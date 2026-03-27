@@ -1,15 +1,15 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 2 UI spec approved, ready for Phase 2 planning
-**Roadmap status:** Release 1 Phase 1 complete, Phase 2 discussed with approved UI contract and awaiting planning
+**Project status:** Phase 2 planned, ready for Phase 2 execution
+**Roadmap status:** Release 1 Phase 1 complete, Phase 2 planned with approved UI contract
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 2 - Statement Import Pipeline planning
+**Current focus:** Phase 2 - Statement Import Pipeline execution
 
 ## Current Position
 
@@ -43,10 +43,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-27: Phase 1 execution plans created at `.planning/phases/01-product-shell-and-security/01-01-PLAN.md`, `.planning/phases/01-product-shell-and-security/01-02-PLAN.md`, and `.planning/phases/01-product-shell-and-security/01-03-PLAN.md`
 - 2026-03-27: Phase 2 context gathered at `.planning/phases/02-statement-import-pipeline/02-CONTEXT.md`
 - 2026-03-27: Phase 2 UI design contract approved at `.planning/phases/02-statement-import-pipeline/02-UI-SPEC.md`
+- 2026-03-27: Phase 2 execution plans created at `.planning/phases/02-statement-import-pipeline/02-01-PLAN.md`, `.planning/phases/02-statement-import-pipeline/02-02-PLAN.md`, and `.planning/phases/02-statement-import-pipeline/02-03-PLAN.md`
 
 ## Immediate Next Action
 
-Run `$gsd-plan-phase 2` to turn the import-pipeline decisions into executable waves.
+Run `$gsd-execute-phase 2` to implement the statement import pipeline across the planned waves.
 
 ---
-*Last updated: 2026-03-27 after Phase 2 discussion*
+*Last updated: 2026-03-27 after Phase 2 planning*
