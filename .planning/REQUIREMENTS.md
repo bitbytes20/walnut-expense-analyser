@@ -25,7 +25,7 @@
 
 ### Review and Transactions
 
-- [ ] **REVW-01**: User can return to a dedicated review queue to resolve pending review items after import.
+- [x] **REVW-01**: User can return to a dedicated review queue to resolve pending review items after import.
 - [ ] **TRAN-01**: App normalizes transactions into types including expense, income, transfer, refund, ATM withdrawal, and credit-card payment.
 - [ ] **TRAN-02**: User can edit transaction amount, date, description, type, category, tags, and rule associations.
 - [ ] **TRAN-03**: Every transaction edit creates an audit event with before/after context.
@@ -113,7 +113,7 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 | IMPT-05 | Phase 3 | Complete |
 | IMPT-06 | Phase 3 | Complete |
 | IMPT-07 | Phase 3 | Complete |
-| REVW-01 | Phase 3 | Pending |
+| REVW-01 | Phase 3 | Complete |
 | TRAN-01 | Phase 4 | Pending |
 | TRAN-02 | Phase 4 | Pending |
 | TRAN-03 | Phase 7 | Pending |
@@ -143,4 +143,4 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after Phase 3 Plan 02 execution*
+*Last updated: 2026-03-27 after Phase 3 completion*
