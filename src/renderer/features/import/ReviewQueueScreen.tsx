@@ -1,33 +1,32 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { ImportBatchDetail } from '../../../shared/contracts/import'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ImportBatchDetail, ReviewItemEditInput, ReviewItemResolutionAction } from '../../../shared/contracts/import'
 import { ReviewBatchGroup } from './ReviewBatchGroup'
 import { ReviewBulkActionBar } from './ReviewBulkActionBar'
 import { ReviewDetailPanel } from './ReviewDetailPanel'
+import { ReviewRestoreBanner } from './ReviewRestoreBanner'
 
 interface ReviewQueueScreenProps {
   initialBatchId?: string
   onBackToHistory: () => void
 }
 
+const getRestoreStorageKey = (batchId?: string) => `walnut.review-restore.${batchId ?? 'all'}`
+
 export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQueueScreenProps) => {
   const [queue, setQueue] = useState<ImportBatchDetail[]>([])
   const [loading, setLoading] = useState(true)
+  const [mutating, setMutating] = useState(false)
   const [activeBatchId, setActiveBatchId] = useState<string | undefined>(initialBatchId)
   const [activeReviewItemId, setActiveReviewItemId] = useState<string>()
   const [selectedReviewItemIds, setSelectedReviewItemIds] = useState<string[]>([])
   const [knownTotals, setKnownTotals] = useState<Record<string, number>>({})
+  const [restoreContext, setRestoreContext] = useState<{ batchId: string; reviewItemIds: string[]; message: string }>()
 
-  useEffect(() => {
-    let cancelled = false
-
-    const loadQueue = async () => {
+  const loadQueue = useCallback(
+    async (preferredBatchId?: string) => {
       setLoading(true)
       try {
         const nextQueue = await window.walnut.getReviewQueue(initialBatchId ? { batchId: initialBatchId } : undefined)
-        if (cancelled) {
-          return
-        }
-
         setQueue(nextQueue)
         setKnownTotals((current) => {
           const next = { ...current }
@@ -37,22 +36,26 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
           return next
         })
 
-        const nextActiveBatchId = initialBatchId ?? nextQueue[0]?.summary.batchId
+        const nextActiveBatchId = preferredBatchId ?? initialBatchId ?? nextQueue[0]?.summary.batchId
         setActiveBatchId(nextActiveBatchId)
-        setActiveReviewItemId((current) => current ?? nextQueue[0]?.reviewItems[0]?.id)
+        const nextActiveBatch = nextQueue.find((batch) => batch.summary.batchId === nextActiveBatchId) ?? nextQueue[0]
+        setActiveReviewItemId(nextActiveBatch?.reviewItems[0]?.id)
+        setSelectedReviewItemIds([])
       } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        setLoading(false)
       }
+    },
+    [initialBatchId]
+  )
+
+  useEffect(() => {
+    const storedRestore = window.sessionStorage.getItem(getRestoreStorageKey(initialBatchId))
+    if (storedRestore) {
+      setRestoreContext(JSON.parse(storedRestore) as { batchId: string; reviewItemIds: string[]; message: string })
     }
 
     void loadQueue()
-
-    return () => {
-      cancelled = true
-    }
-  }, [initialBatchId])
+  }, [loadQueue])
 
   const filteredQueue = useMemo(
     () => queue.filter((batch) => batch.reviewItems.length > 0 || batch.summary.batchId === activeBatchId),
@@ -60,9 +63,7 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
   )
 
   const activeBatch = filteredQueue.find((batch) => batch.summary.batchId === activeBatchId) ?? filteredQueue[0]
-  const activeItem =
-    activeBatch?.reviewItems.find((item) => item.id === activeReviewItemId) ??
-    activeBatch?.reviewItems[0]
+  const activeItem = activeBatch?.reviewItems.find((item) => item.id === activeReviewItemId) ?? activeBatch?.reviewItems[0]
 
   useEffect(() => {
     if (activeBatch?.summary.batchId && activeBatch.summary.batchId !== activeBatchId) {
@@ -77,6 +78,67 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
     setSelectedReviewItemIds((current) =>
       selected ? [...new Set([...current, reviewItemId])] : current.filter((candidate) => candidate !== reviewItemId)
     )
+  }
+
+  const refreshRelatedViews = async (batchId: string) => {
+    await Promise.all([window.walnut.listImportHistory(), window.walnut.getImportBatchDetail({ batchId })])
+  }
+
+  const resolveItems = async (
+    batchId: string,
+    reviewItemIds: string[],
+    action: ReviewItemResolutionAction,
+    options?: { edits?: ReviewItemEditInput; tag?: string }
+  ) => {
+    if (reviewItemIds.length === 0) {
+      return
+    }
+
+    setMutating(true)
+    try {
+      await window.walnut.resolveReviewItems({
+        batchId,
+        reviewItemIds,
+        action,
+        edits: options?.edits,
+        tag: options?.tag
+      })
+      setRestoreContext({
+        batchId,
+        reviewItemIds,
+        message: action === 'mark-duplicate' ? 'Duplicate mark saved. Restore this review item if this was a mistake.' : 'Review action saved. Restore this review item if this was a mistake.'
+      })
+      window.sessionStorage.setItem(
+        getRestoreStorageKey(initialBatchId),
+        JSON.stringify({
+          batchId,
+          reviewItemIds,
+          message: action === 'mark-duplicate' ? 'Duplicate mark saved. Restore this review item if this was a mistake.' : 'Review action saved. Restore this review item if this was a mistake.'
+        })
+      )
+      await Promise.all([loadQueue(batchId), refreshRelatedViews(batchId)])
+    } finally {
+      setMutating(false)
+    }
+  }
+
+  const restoreItems = async () => {
+    if (!restoreContext) {
+      return
+    }
+
+    setMutating(true)
+    try {
+      await window.walnut.restoreReviewItems({
+        batchId: restoreContext.batchId,
+        reviewItemIds: restoreContext.reviewItemIds
+      })
+      await Promise.all([loadQueue(restoreContext.batchId), refreshRelatedViews(restoreContext.batchId)])
+      setRestoreContext(undefined)
+      window.sessionStorage.removeItem(getRestoreStorageKey(initialBatchId))
+    } finally {
+      setMutating(false)
+    }
   }
 
   if (loading) {
@@ -97,6 +159,7 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
             </button>
           </div>
         </section>
+        {restoreContext ? <ReviewRestoreBanner message={restoreContext.message} onRestore={() => void restoreItems()} /> : null}
         <section style={styles.emptyState}>
           <div style={styles.kicker}>Review queue</div>
           <h3 style={styles.emptyHeading}>No unresolved review items</h3>
@@ -123,7 +186,18 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
         </div>
       </section>
 
-      <ReviewBulkActionBar selectedCount={selectedReviewItemIds.length} />
+      {restoreContext ? <ReviewRestoreBanner message={restoreContext.message} onRestore={() => void restoreItems()} /> : null}
+
+      <ReviewBulkActionBar
+        selectedCount={selectedReviewItemIds.length}
+        busy={mutating}
+        onAction={(action, options) => {
+          if (!activeBatch) {
+            return
+          }
+          void resolveItems(activeBatch.summary.batchId, selectedReviewItemIds, action, options)
+        }}
+      />
 
       <div style={styles.layout}>
         <div style={styles.queueColumn}>
@@ -143,7 +217,16 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
           ))}
         </div>
         <div style={styles.detailColumn}>
-          <ReviewDetailPanel item={activeItem} />
+          <ReviewDetailPanel
+            item={activeItem}
+            busy={mutating}
+            onAction={(action, options) => {
+              if (!activeBatch || !activeItem) {
+                return
+              }
+              void resolveItems(activeBatch.summary.batchId, [activeItem.id], action, options)
+            }}
+          />
         </div>
       </div>
     </section>
@@ -223,4 +306,4 @@ const styles = {
     padding: '0 18px',
     fontWeight: 600
   }
-}
+} as const

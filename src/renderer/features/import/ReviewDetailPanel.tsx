@@ -1,7 +1,10 @@
-import type { ReviewItem } from '../../../shared/contracts/import'
+import { useEffect, useState } from 'react'
+import type { ReviewItem, ReviewItemEditInput, ReviewItemResolutionAction } from '../../../shared/contracts/import'
 
 interface ReviewDetailPanelProps {
   item?: ReviewItem
+  busy?: boolean
+  onAction: (action: ReviewItemResolutionAction, options?: { edits?: ReviewItemEditInput; tag?: string }) => void
 }
 
 const amountFormatter = new Intl.NumberFormat('en-IN', {
@@ -17,7 +20,19 @@ const formatAmount = (value?: number) => {
   return amountFormatter.format(value / 100)
 }
 
-export const ReviewDetailPanel = ({ item }: ReviewDetailPanelProps) => {
+export const ReviewDetailPanel = ({ item, busy = false, onAction }: ReviewDetailPanelProps) => {
+  const [transactionDateRaw, setTransactionDateRaw] = useState('')
+  const [cleanedDescription, setCleanedDescription] = useState('')
+  const [reference, setReference] = useState('')
+  const [tags, setTags] = useState('')
+
+  useEffect(() => {
+    setTransactionDateRaw(item?.snapshot.parsedRow?.transactionDateRaw ?? '')
+    setCleanedDescription(item?.snapshot.parsedRow?.cleanedDescription ?? '')
+    setReference(item?.snapshot.parsedRow?.reference ?? '')
+    setTags('')
+  }, [item])
+
   if (!item) {
     return (
       <section style={styles.emptyState}>
@@ -30,6 +45,15 @@ export const ReviewDetailPanel = ({ item }: ReviewDetailPanelProps) => {
 
   const row = item.snapshot.parsedRow
   const amount = row?.direction === 'credit' ? row.creditAmountMinor : row?.debitAmountMinor
+  const edits: ReviewItemEditInput = {
+    transactionDateRaw,
+    cleanedDescription,
+    reference,
+    tags: tags
+      .split(',')
+      .map((candidate) => candidate.trim())
+      .filter(Boolean)
+  }
 
   return (
     <section style={styles.root}>
@@ -42,19 +66,43 @@ export const ReviewDetailPanel = ({ item }: ReviewDetailPanelProps) => {
       <div style={styles.fieldGrid}>
         <label style={styles.field}>
           <span>Date</span>
-          <input type="text" defaultValue={row?.transactionDateRaw ?? ''} aria-label="Editable review date" style={styles.input} />
+          <input
+            type="text"
+            value={transactionDateRaw}
+            onChange={(event) => setTransactionDateRaw(event.currentTarget.value)}
+            aria-label="Editable review date"
+            style={styles.input}
+          />
         </label>
         <label style={styles.field}>
           <span>Description</span>
-          <input type="text" defaultValue={row?.cleanedDescription ?? ''} aria-label="Editable review description" style={styles.input} />
+          <input
+            type="text"
+            value={cleanedDescription}
+            onChange={(event) => setCleanedDescription(event.currentTarget.value)}
+            aria-label="Editable review description"
+            style={styles.input}
+          />
         </label>
         <label style={styles.field}>
           <span>Reference ID</span>
-          <input type="text" defaultValue={row?.reference ?? ''} aria-label="Editable review reference ID" style={styles.input} />
+          <input
+            type="text"
+            value={reference}
+            onChange={(event) => setReference(event.currentTarget.value)}
+            aria-label="Editable review reference ID"
+            style={styles.input}
+          />
         </label>
         <label style={styles.field}>
           <span>Tags</span>
-          <input type="text" defaultValue="" aria-label="Editable review tags" style={styles.input} />
+          <input
+            type="text"
+            value={tags}
+            onChange={(event) => setTags(event.currentTarget.value)}
+            aria-label="Editable review tags"
+            style={styles.input}
+          />
         </label>
       </div>
 
@@ -78,22 +126,27 @@ export const ReviewDetailPanel = ({ item }: ReviewDetailPanelProps) => {
       <p style={styles.helper}>Amount and running balance stay locked here to protect statement trust.</p>
 
       <div style={styles.actions}>
-        <button type="button" style={styles.primaryButton}>
+        <button type="button" style={styles.primaryButton} disabled={busy} onClick={() => onAction('accept-as-is')}>
           Accept as-is
         </button>
-        <button type="button" style={styles.secondaryButton}>
+        <button type="button" style={styles.secondaryButton} disabled={busy} onClick={() => onAction('edit-before-accept', { edits })}>
           Edit before accepting
         </button>
-        <button type="button" style={styles.secondaryButton}>
+        <button type="button" style={styles.secondaryButton} disabled={busy} onClick={() => onAction('mark-duplicate')}>
           Mark as duplicate
         </button>
-        <button type="button" style={styles.secondaryButton}>
+        <button type="button" style={styles.secondaryButton} disabled={busy} onClick={() => onAction('mark-not-duplicate')}>
           Mark as not duplicate
         </button>
-        <button type="button" style={styles.secondaryButton}>
+        <button type="button" style={styles.secondaryButton} disabled={busy} onClick={() => onAction('discard')}>
           Discard row
         </button>
-        <button type="button" style={styles.secondaryButton}>
+        <button
+          type="button"
+          style={styles.secondaryButton}
+          disabled={busy || edits.tags?.length === 0}
+          onClick={() => onAction('apply-tag', { tag: edits.tags?.[0] })}
+        >
           Apply tag
         </button>
       </div>
@@ -166,7 +219,8 @@ const styles = {
     background: 'var(--color-accent)',
     color: '#fff',
     padding: '0 18px',
-    fontWeight: 700
+    fontWeight: 700,
+    cursor: 'pointer'
   },
   secondaryButton: {
     minHeight: 44,
@@ -175,6 +229,7 @@ const styles = {
     background: 'rgba(30, 27, 22, 0.04)',
     color: 'var(--color-ink)',
     padding: '0 18px',
-    fontWeight: 600
+    fontWeight: 600,
+    cursor: 'pointer'
   }
 } as const

@@ -36,6 +36,7 @@ const EVENTS_KEY = 'walnut.mock.security-events'
 const STAGED_FILES_KEY = 'walnut.mock.staged-import-files'
 const IMPORT_HISTORY_KEY = 'walnut.mock.import-history'
 const IMPORT_BATCH_DETAILS_KEY = 'walnut.mock.import-batch-details'
+const RESOLVED_REVIEW_ITEMS_KEY = 'walnut.mock.resolved-review-items'
 
 type StoredState = AppShellState & {
   mockPin?: string
@@ -110,6 +111,11 @@ const readImportBatchDetails = (): Record<string, ImportBatchDetail> => {
   return raw ? (JSON.parse(raw) as Record<string, ImportBatchDetail>) : {}
 }
 
+const readResolvedReviewItems = (): Record<string, ImportBatchDetail['reviewItems']> => {
+  const raw = window.localStorage.getItem(RESOLVED_REVIEW_ITEMS_KEY)
+  return raw ? (JSON.parse(raw) as Record<string, ImportBatchDetail['reviewItems']>) : {}
+}
+
 const orderReviewItems = (detail: ImportBatchDetail) => ({
   ...detail,
   reviewItems: [...detail.reviewItems]
@@ -134,6 +140,11 @@ const writeImportBatchDetails = (details: Record<string, ImportBatchDetail>) => 
   return details
 }
 
+const writeResolvedReviewItems = (items: Record<string, ImportBatchDetail['reviewItems']>) => {
+  window.localStorage.setItem(RESOLVED_REVIEW_ITEMS_KEY, JSON.stringify(items))
+  return items
+}
+
 const syncHistorySummary = (batchId: string, detail: ImportBatchDetail) => {
   const history = readImportHistory().map((row) =>
     row.batchId === batchId
@@ -147,6 +158,39 @@ const syncHistorySummary = (batchId: string, detail: ImportBatchDetail) => {
   )
 
   writeImportHistory(history)
+}
+
+const applyReviewEdits = (detail: ImportBatchDetail, input: ReviewItemResolutionInput) => {
+  if (!input.edits && !input.tag) {
+    return detail
+  }
+
+  const targetIds = new Set(input.reviewItemIds)
+  return {
+    ...detail,
+    transactionGroups: detail.transactionGroups.map((group) => ({
+      ...group,
+      transactions: group.transactions.map((transaction) => {
+        const reviewItem = detail.reviewItems.find(
+          (item) => targetIds.has(item.id) && item.snapshot.parsedRow?.reference === transaction.reference
+        )
+        if (!reviewItem) {
+          return transaction
+        }
+
+        return {
+          ...transaction,
+          transactionDateRaw: input.edits?.transactionDateRaw ?? transaction.transactionDateRaw,
+          cleanedDescription: input.edits?.cleanedDescription ?? transaction.cleanedDescription,
+          reference: input.edits?.reference ?? transaction.reference,
+          tags:
+            input.action === 'apply-tag' && input.tag
+              ? [...new Set([...(transaction.tags ?? []), input.tag])]
+              : input.edits?.tags ?? transaction.tags
+        }
+      })
+    }))
+  }
 }
 
 const logEvent = (eventType: string, metadataJson?: string) => {
@@ -674,23 +718,48 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
     }
 
     const pendingIds = new Set(input.reviewItemIds)
+    const now = new Date().toISOString()
+    const archived = readResolvedReviewItems()
+    const resolvedItems = detail.reviewItems
+      .filter((item) => pendingIds.has(item.id))
+      .map((item) => ({
+        ...item,
+        state: 'resolved' as const,
+        updatedAt: now
+      }))
     const remainingReviewItems = detail.reviewItems.filter((item) => !pendingIds.has(item.id))
-    const nextDetail: ImportBatchDetail = {
-      ...detail,
-      reviewItems: remainingReviewItems,
-      summary: {
-        ...detail.summary,
-        unresolvedReviewCount: remainingReviewItems.length,
-        status: remainingReviewItems.length === 0 ? 'imported' : 'needs-review',
-        lastUpdatedAt: new Date().toISOString()
-      }
-    }
+    const nextDetail = applyReviewEdits(
+      {
+        ...detail,
+        reviewItems: remainingReviewItems,
+        summary: {
+          ...detail.summary,
+          unresolvedReviewCount: remainingReviewItems.length,
+          status: remainingReviewItems.length === 0 ? 'imported' : 'needs-review',
+          lastUpdatedAt: now
+        }
+      },
+      input
+    )
+
+    writeResolvedReviewItems({
+      ...archived,
+      [input.batchId]: [...(archived[input.batchId] ?? []), ...resolvedItems]
+    })
 
     writeImportBatchDetails({
       ...details,
       [input.batchId]: nextDetail
     })
     syncHistorySummary(input.batchId, nextDetail)
+    logEvent(
+      'import.review_item_resolved',
+      JSON.stringify({
+        batchId: input.batchId,
+        reviewItemIds: input.reviewItemIds,
+        action: input.action
+      })
+    )
 
     return nextDetail
   },
@@ -701,26 +770,19 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
       throw new Error(`Import batch ${input.batchId} was not found.`)
     }
 
-    const restoredItems = input.reviewItemIds.map((reviewItemId) => ({
-      id: reviewItemId,
-      batchId: input.batchId,
-      importAttemptId: detail.summary.attemptId,
-      reasonCode: 'duplicate-candidate' as const,
-      severity: 'warning' as const,
-      state: 'pending' as const,
-      title: 'Restored review item',
-      description: 'This review item was restored in the mock API.',
-      snapshot: {
-        message: 'This review item was restored in the mock API.'
-      },
-      createdAt: detail.summary.importedAt,
-      updatedAt: new Date().toISOString(),
-      resolution: {
-        batchId: input.batchId,
-        reviewItemId
-      }
-    }))
-    const nextItems = [...detail.reviewItems, ...restoredItems.filter((item) => !detail.reviewItems.some((existing) => existing.id === item.id))]
+    const archived = readResolvedReviewItems()
+    const available = archived[input.batchId] ?? []
+    const restoreIds = new Set(input.reviewItemIds)
+    const now = new Date().toISOString()
+    const restoredItems = available
+      .filter((item) => restoreIds.has(item.id))
+      .map((item) => ({
+        ...item,
+        state: 'pending' as const,
+        updatedAt: now
+      }))
+    const remainingArchived = available.filter((item) => !restoreIds.has(item.id))
+    const nextItems = [...detail.reviewItems, ...restoredItems].sort((left, right) => left.createdAt.localeCompare(right.createdAt))
     const nextDetail: ImportBatchDetail = {
       ...detail,
       reviewItems: nextItems,
@@ -728,7 +790,7 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
         ...detail.summary,
         unresolvedReviewCount: nextItems.length,
         status: nextItems.length === 0 ? 'imported' : 'needs-review',
-        lastUpdatedAt: new Date().toISOString()
+        lastUpdatedAt: now
       }
     }
 
@@ -736,7 +798,18 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
       ...details,
       [input.batchId]: nextDetail
     })
+    writeResolvedReviewItems({
+      ...archived,
+      [input.batchId]: remainingArchived
+    })
     syncHistorySummary(input.batchId, nextDetail)
+    logEvent(
+      'import.review_item_restored',
+      JSON.stringify({
+        batchId: input.batchId,
+        reviewItemIds: input.reviewItemIds
+      })
+    )
 
     return nextDetail
   },
