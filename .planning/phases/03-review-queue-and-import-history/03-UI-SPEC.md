@@ -5,6 +5,7 @@ status: draft
 shadcn_initialized: false
 preset: none
 created: 2026-03-27
+reviewed_at: 2026-03-27
 ---
 
 # Phase 03 - UI Design Contract
@@ -55,6 +56,7 @@ Manual token contract inherited from Phase 1, Phase 2, and the existing renderer
 
 ### Review Queue
 - Review queue is a financial operations inbox, grouped by batch first and issue cards second.
+- The primary visual anchor of the review queue is the active batch group header with its unresolved count and progress phrase. This element should draw the eye first before individual issue cards.
 - Each batch group header must show the batch label, current status badge, unresolved count, and a progress phrase such as `3 of 7 resolved`.
 - Inside a batch group, sort blocking items before warning items.
 - Within each severity group, keep issue cards in source-file order when possible.
@@ -75,6 +77,8 @@ Manual token contract inherited from Phase 1, Phase 2, and the existing renderer
 - Keep the current import workspace handoff intact: after an import completes with unresolved warning-level items, the owner can continue now or leave and return later.
 - Preserve batch context during navigation. If the owner opens review from a batch row, start in that batch group rather than a generic global top state.
 - Include a visible return path from review queue back to import history.
+- In `Import history`, the eye should land first on the batch status and unresolved review count so the owner can immediately identify which imports still need intervention.
+- In `Review queue`, the eye should land first on the active batch header and unresolved-progress area so the owner understands source context before acting on any row.
 
 ---
 
@@ -213,11 +217,11 @@ Manual token system retained by explicit user decision on 2026-03-27. Third-part
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved
