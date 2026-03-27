@@ -21,12 +21,16 @@
     "@fontsource/manrope": "^5.1.1",
     "@node-rs/argon2": "^2.0.2",
     "better-sqlite3": "^11.8.1",
+    "date-fns": "^4.1.0",
     "drizzle-orm": "^0.44.5",
     "lucide-react": "^0.542.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
     "@playwright/test": "^1.55.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -36,7 +40,6 @@
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.2",
-    "@electron/rebuild": "^3.7.1",
     "electron": "^30.5.1",
     "electron-vite": "^4.0.0",
     "esbuild": "^0.25.9",

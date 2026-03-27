@@ -1,5 +1,14 @@
 import type { AccountProfile, AccountProfileDraft } from './account'
 import type {
+  ChooseImportSheetInput,
+  CommitImportBatchInput,
+  CommitImportBatchResult,
+  PriorImportBatchInspection,
+  RemoveStagedFileInput,
+  StageImportFilesInput,
+  StageImportFilesResult
+} from './import'
+import type {
   LockReason,
   RecoveryKeyMaterial,
   RecoveryResetPayload,
@@ -69,5 +78,10 @@ export interface WalnutApi {
   copyRecoveryKeyAcknowledged: () => Promise<AppShellState>
   downloadRecoveryKeyAcknowledged: () => Promise<AppShellState>
   getSecurityEvents: () => Promise<SecurityEvent[]>
+  stageImportFiles: (input?: StageImportFilesInput) => Promise<StageImportFilesResult>
+  chooseImportSheet: (input: ChooseImportSheetInput) => Promise<StageImportFilesResult>
+  removeStagedFile: (input: RemoveStagedFileInput) => Promise<StageImportFilesResult>
+  commitImportBatch: (input?: CommitImportBatchInput) => Promise<CommitImportBatchResult>
+  inspectPriorImportBatch: (priorBatchId: string) => Promise<PriorImportBatchInspection>
   ping: () => Promise<string>
 }

@@ -59,3 +59,41 @@ export const accountProfiles = sqliteTable('account_profiles', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull()
 })
+
+export const importBatches = sqliteTable('import_batches', {
+  id: text('id').primaryKey(),
+  batchLabel: text('batch_label').notNull(),
+  importedAt: text('imported_at').notNull(),
+  fileCount: integer('file_count').notNull(),
+  transactionCount: integer('transaction_count').notNull(),
+  createdAccountProfile: integer('created_account_profile', { mode: 'boolean' }).notNull().default(false)
+})
+
+export const importSourceFiles = sqliteTable('import_source_files', {
+  id: text('id').primaryKey(),
+  importBatchId: text('import_batch_id').notNull(),
+  fileName: text('file_name').notNull(),
+  fileExtension: text('file_extension').notNull(),
+  fileFingerprint: text('file_fingerprint').notNull(),
+  accountLabel: text('account_label'),
+  statementPeriodLabel: text('statement_period_label'),
+  worksheetName: text('worksheet_name'),
+  rowCount: integer('row_count').notNull(),
+  createdAt: text('created_at').notNull()
+})
+
+export const importedTransactions = sqliteTable('imported_transactions', {
+  id: text('id').primaryKey(),
+  importBatchId: text('import_batch_id').notNull(),
+  sourceFileId: text('source_file_id').notNull(),
+  transactionDateRaw: text('transaction_date_raw').notNull(),
+  valueDateRaw: text('value_date_raw'),
+  rawNarration: text('raw_narration').notNull(),
+  cleanedDescription: text('cleaned_description').notNull(),
+  debitAmountMinor: integer('debit_amount_minor'),
+  creditAmountMinor: integer('credit_amount_minor'),
+  runningBalanceMinor: integer('running_balance_minor'),
+  direction: text('direction').notNull(),
+  reference: text('reference'),
+  transactionSignature: text('transaction_signature').notNull()
+})

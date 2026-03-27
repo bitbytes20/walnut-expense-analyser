@@ -10,6 +10,13 @@ import type {
   SaveOnboardingProgressInput
 } from '../../shared/contracts/app-state'
 import type { AccountProfile, AccountProfileDraft } from '../../shared/contracts/account'
+import type {
+  CommitImportBatchResult,
+  NormalizedImportRow,
+  PriorImportBatchInspection,
+  PriorImportBatchReference,
+  StagedImportFile
+} from '../../shared/contracts/import'
 import type { LockReason, SecurityEvent, SecurityState } from '../../shared/contracts/security'
 
 const DASHBOARD_STATE = {
@@ -32,6 +39,13 @@ const defaultSecurityState: SecurityState = {
 
 const nowIso = () => new Date().toISOString()
 const singleRowId = 1
+
+interface PersistImportFileInput {
+  stagedFile: StagedImportFile
+  fileFingerprint: string
+  transactionSignatures: string[]
+  rows: NormalizedImportRow[]
+}
 
 const buildDbPath = () => {
   const configuredPath = process.env.WALNUT_DB_PATH
@@ -118,6 +132,41 @@ export class WalnutRepository {
         skipped_during_onboarding INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS import_batches (
+        id TEXT PRIMARY KEY,
+        batch_label TEXT NOT NULL,
+        imported_at TEXT NOT NULL,
+        file_count INTEGER NOT NULL,
+        transaction_count INTEGER NOT NULL,
+        created_account_profile INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS import_source_files (
+        id TEXT PRIMARY KEY,
+        import_batch_id TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_extension TEXT NOT NULL,
+        file_fingerprint TEXT NOT NULL,
+        account_label TEXT,
+        statement_period_label TEXT,
+        worksheet_name TEXT,
+        row_count INTEGER NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS imported_transactions (
+        id TEXT PRIMARY KEY,
+        import_batch_id TEXT NOT NULL,
+        source_file_id TEXT NOT NULL,
+        transaction_date_raw TEXT NOT NULL,
+        value_date_raw TEXT,
+        raw_narration TEXT NOT NULL,
+        cleaned_description TEXT NOT NULL,
+        debit_amount_minor INTEGER,
+        credit_amount_minor INTEGER,
+        running_balance_minor INTEGER,
+        direction TEXT NOT NULL,
+        reference TEXT,
+        transaction_signature TEXT NOT NULL
       );
     `)
 
@@ -363,6 +412,185 @@ export class WalnutRepository {
       }))
   }
 
+  findDuplicateImportByFingerprint(fileFingerprint: string): PriorImportBatchReference | undefined {
+    const row = this.sqlite
+      .prepare(
+        `SELECT b.id AS prior_batch_id, b.batch_label, b.imported_at, b.file_count, s.file_name
+         FROM import_source_files s
+         INNER JOIN import_batches b ON b.id = s.import_batch_id
+         WHERE s.file_fingerprint = ?
+         ORDER BY b.imported_at DESC
+         LIMIT 1`
+      )
+      .get(fileFingerprint) as Record<string, unknown> | undefined
+
+    if (!row) {
+      return undefined
+    }
+
+    return {
+      priorBatchId: String(row.prior_batch_id),
+      batchLabel: String(row.batch_label),
+      importedAt: String(row.imported_at),
+      fileCount: Number(row.file_count),
+      matchedFileName: row.file_name ? String(row.file_name) : undefined
+    }
+  }
+
+  findDuplicateImportByTransactionSignatures(transactionSignatures: string[]): PriorImportBatchReference | undefined {
+    if (transactionSignatures.length === 0) {
+      return undefined
+    }
+
+    const uniqueSignatures = Array.from(new Set(transactionSignatures))
+    const placeholders = uniqueSignatures.map(() => '?').join(', ')
+    const rows = this.sqlite
+      .prepare(
+        `SELECT b.id AS prior_batch_id, b.batch_label, b.imported_at, b.file_count, s.file_name, COUNT(DISTINCT t.transaction_signature) AS matched_count
+         FROM imported_transactions t
+         INNER JOIN import_batches b ON b.id = t.import_batch_id
+         INNER JOIN import_source_files s ON s.import_batch_id = b.id
+         WHERE t.transaction_signature IN (${placeholders})
+         GROUP BY b.id, b.batch_label, b.imported_at, b.file_count, s.file_name
+         ORDER BY matched_count DESC, b.imported_at DESC`
+      )
+      .all(...uniqueSignatures) as Record<string, unknown>[]
+
+    const match = rows.find((row) => Number(row.matched_count) >= uniqueSignatures.length)
+    if (!match) {
+      return undefined
+    }
+
+    return {
+      priorBatchId: String(match.prior_batch_id),
+      batchLabel: String(match.batch_label),
+      importedAt: String(match.imported_at),
+      fileCount: Number(match.file_count),
+      matchedFileName: match.file_name ? String(match.file_name) : undefined
+    }
+  }
+
+  inspectPriorImportBatch(priorBatchId: string): PriorImportBatchInspection {
+    const batchRow = this.sqlite
+      .prepare('SELECT * FROM import_batches WHERE id = ?')
+      .get(priorBatchId) as Record<string, unknown> | undefined
+
+    if (!batchRow) {
+      throw new Error(`Import batch ${priorBatchId} was not found.`)
+    }
+
+    const fileRows = this.sqlite
+      .prepare('SELECT file_name FROM import_source_files WHERE import_batch_id = ? ORDER BY created_at ASC')
+      .all(priorBatchId) as Record<string, unknown>[]
+
+    return {
+      priorBatchId,
+      batchLabel: String(batchRow.batch_label),
+      importedAt: String(batchRow.imported_at),
+      fileCount: Number(batchRow.file_count),
+      importedTransactionCount: Number(batchRow.transaction_count),
+      fileNames: fileRows.map((row) => String(row.file_name))
+    }
+  }
+
+  persistImportBatch(files: PersistImportFileInput[]): CommitImportBatchResult {
+    if (files.length === 0) {
+      return {
+        batchId: crypto.randomUUID(),
+        importedAt: nowIso(),
+        importedFiles: [],
+        rejectedFiles: [],
+        duplicateBlockedFiles: [],
+        transactionsCreated: 0,
+        lazyAccountCreated: false
+      }
+    }
+
+    const batchId = crypto.randomUUID()
+    const importedAt = nowIso()
+    const batchLabel = files[0]?.stagedFile.statementPeriodLabel
+      ? `ICICI import ${files[0].stagedFile.statementPeriodLabel}`
+      : `ICICI import ${importedAt.slice(0, 10)}`
+    const lazyAccountCreated = this.ensureImportedAccountProfile(files[0]?.stagedFile.accountLabel)
+
+    const insertBatch = this.sqlite.prepare(
+      `INSERT INTO import_batches (id, batch_label, imported_at, file_count, transaction_count, created_account_profile)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    const insertSourceFile = this.sqlite.prepare(
+      `INSERT INTO import_source_files
+       (id, import_batch_id, file_name, file_extension, file_fingerprint, account_label, statement_period_label, worksheet_name, row_count, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    const insertTransaction = this.sqlite.prepare(
+      `INSERT INTO imported_transactions
+       (id, import_batch_id, source_file_id, transaction_date_raw, value_date_raw, raw_narration, cleaned_description,
+        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, reference, transaction_signature)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+
+    const transaction = this.sqlite.transaction(() => {
+      insertBatch.run(
+        batchId,
+        batchLabel,
+        importedAt,
+        files.length,
+        files.reduce((sum, file) => sum + file.rows.length, 0),
+        lazyAccountCreated ? 1 : 0
+      )
+
+      for (const file of files) {
+        const sourceFileId = crypto.randomUUID()
+        insertSourceFile.run(
+          sourceFileId,
+          batchId,
+          file.stagedFile.fileName,
+          file.stagedFile.fileExtension,
+          file.fileFingerprint,
+          file.stagedFile.accountLabel ?? null,
+          file.stagedFile.statementPeriodLabel ?? null,
+          file.stagedFile.selectedWorksheetName ?? null,
+          file.rows.length,
+          importedAt
+        )
+
+        for (const [index, row] of file.rows.entries()) {
+          insertTransaction.run(
+            crypto.randomUUID(),
+            batchId,
+            sourceFileId,
+            row.transactionDateRaw,
+            row.valueDateRaw ?? null,
+            row.rawNarration,
+            row.cleanedDescription,
+            row.debitAmountMinor ?? null,
+            row.creditAmountMinor ?? null,
+            row.runningBalanceMinor ?? null,
+            row.direction,
+            row.reference ?? null,
+            file.transactionSignatures[index]
+          )
+        }
+      }
+    })
+
+    transaction()
+
+    return {
+      batchId,
+      importedAt,
+      importedFiles: files.map((file) => ({
+        ...file.stagedFile,
+        status: 'imported',
+        importedTransactionCount: file.rows.length
+      })),
+      rejectedFiles: [],
+      duplicateBlockedFiles: [],
+      transactionsCreated: files.reduce((sum, file) => sum + file.rows.length, 0),
+      lazyAccountCreated
+    }
+  }
+
   close() {
     this.sqlite.close()
   }
@@ -411,6 +639,26 @@ export class WalnutRepository {
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at)
     }
+  }
+
+  private ensureImportedAccountProfile(accountLabel?: string) {
+    const existing = this.loadAccountProfile()
+    if (existing) {
+      return false
+    }
+
+    const onboardingProfile = this.loadAppState().onboarding.profile
+    const parsedHolderName = accountLabel?.includes(' - ') ? accountLabel.split(' - ').slice(1).join(' - ').trim() : undefined
+
+    this.saveAccountProfile({
+      bankName: 'ICICI',
+      displayName: accountLabel?.split(' - ')[0]?.trim() || 'Primary ICICI',
+      accountHolderName: parsedHolderName || onboardingProfile?.ownerName || 'Walnut Owner',
+      baseCurrency: 'INR',
+      skippedDuringOnboarding: true
+    })
+
+    return true
   }
 }
 

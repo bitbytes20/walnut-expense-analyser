@@ -1,12 +1,16 @@
-export const EmptyDashboard = () => (
+interface EmptyDashboardProps {
+  onImport: () => void
+}
+
+export const EmptyDashboard = ({ onImport }: EmptyDashboardProps) => (
   <section aria-label="dashboard empty state" style={styles.panel}>
     <div style={styles.kicker}>Your dashboard is ready</div>
-    <h2 style={styles.heading}>Ready for your first import</h2>
+    <h2 style={styles.heading}>Bring in your ICICI statements</h2>
     <p style={styles.body}>
-      Add your first ICICI statement to create the account timeline and unlock dashboard insights.
+      Select one or more ICICI statement files to stage them, review any issues, and import the records without storing the source files.
     </p>
-    <button type="button" style={styles.primaryButton}>
-      Import your first statement
+    <button type="button" aria-label="Import statements from dashboard" style={styles.primaryButton} onClick={onImport}>
+      Import statements
     </button>
   </section>
 )
