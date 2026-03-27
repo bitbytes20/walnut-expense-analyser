@@ -253,12 +253,102 @@ const createWalnutApi = () => {
   }
 }
 
+const createMutationWalnutApi = () => {
+  let history = structuredClone(historyRows)
+  let detail = structuredClone(batchDetail)
+
+  const api = {
+    loadAppState: vi.fn().mockResolvedValue(dashboardState),
+    saveOnboardingProgress: vi.fn(),
+    completeOnboarding: vi.fn(),
+    lockNow: vi.fn(),
+    unlockWithPin: vi.fn(),
+    beginRecoveryReset: vi.fn(),
+    saveAccountProfile: vi.fn(),
+    copyRecoveryKeyAcknowledged: vi.fn(),
+    downloadRecoveryKeyAcknowledged: vi.fn(),
+    getSecurityEvents: vi.fn().mockResolvedValue([]),
+    stageImportFiles: vi.fn(),
+    chooseImportSheet: vi.fn(),
+    removeStagedFile: vi.fn(),
+    commitImportBatch: vi.fn(),
+    inspectPriorImportBatch: vi.fn(),
+    listImportHistory: vi.fn(async () => history),
+    getImportBatchDetail: vi.fn(async () => detail),
+    getReviewQueue: vi.fn(async (input?: { batchId?: string }) => {
+      if (input?.batchId && input.batchId !== detail.summary.batchId) {
+        return []
+      }
+
+      return [detail]
+    }),
+    resolveReviewItems: vi.fn(async (input: { batchId: string; reviewItemIds: string[]; action: string }) => {
+      detail = {
+        ...detail,
+        reviewItems: detail.reviewItems.filter((item) => !input.reviewItemIds.includes(item.id)),
+        summary: {
+          ...detail.summary,
+          unresolvedReviewCount: detail.reviewItems.filter((item) => !input.reviewItemIds.includes(item.id)).length,
+          status: detail.reviewItems.filter((item) => !input.reviewItemIds.includes(item.id)).length === 0 ? 'imported' : 'needs-review',
+          lastUpdatedAt: '2026-03-27T12:00:00.000Z'
+        }
+      }
+      history = history.map((row) =>
+        row.batchId === input.batchId
+          ? {
+              ...row,
+              unresolvedReviewCount: detail.summary.unresolvedReviewCount,
+              status: detail.summary.status,
+              lastUpdatedAt: detail.summary.lastUpdatedAt
+            }
+          : row
+      )
+      return detail
+    }),
+    restoreReviewItems: vi.fn(async (input: { batchId: string; reviewItemIds: string[] }) => {
+      const restored = batchDetail.reviewItems.filter((item) => input.reviewItemIds.includes(item.id))
+      detail = {
+        ...detail,
+        reviewItems: [...restored, ...detail.reviewItems],
+        summary: {
+          ...detail.summary,
+          unresolvedReviewCount: detail.reviewItems.length + restored.length,
+          status: 'needs-review',
+          lastUpdatedAt: '2026-03-27T12:05:00.000Z'
+        }
+      }
+      history = history.map((row) =>
+        row.batchId === input.batchId
+          ? {
+              ...row,
+              unresolvedReviewCount: detail.summary.unresolvedReviewCount,
+              status: detail.summary.status,
+              lastUpdatedAt: detail.summary.lastUpdatedAt
+            }
+          : row
+      )
+      return detail
+    }),
+    ping: vi.fn().mockResolvedValue('pong')
+  } satisfies Partial<WalnutApi>
+
+  return api as WalnutApi & {
+    listImportHistory: ReturnType<typeof vi.fn>
+    getImportBatchDetail: ReturnType<typeof vi.fn>
+    getReviewQueue: ReturnType<typeof vi.fn>
+    resolveReviewItems: ReturnType<typeof vi.fn>
+    restoreReviewItems: ReturnType<typeof vi.fn>
+  }
+}
+
 beforeEach(() => {
   window.localStorage.clear()
+  window.sessionStorage.clear()
 })
 
 afterEach(() => {
   window.localStorage.clear()
+  window.sessionStorage.clear()
   delete (window as typeof window & { walnut?: unknown }).walnut
 })
 
@@ -356,5 +446,68 @@ describe('review queue', () => {
 
     expect(await screen.findByRole('heading', { name: 'No unresolved review items' })).toBeVisible()
     expect(screen.getByText(/All current import issues have been resolved/i)).toBeVisible()
+  })
+
+  it('refetches queue, batch detail, and history after destructive actions and exposes a restore banner', async () => {
+    const user = userEvent.setup()
+    const walnut = createMutationWalnutApi()
+    window.walnut = walnut
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Import statements from dashboard' }))
+    await user.click(screen.getByRole('button', { name: 'Import history' }))
+    await user.click(await screen.findByRole('button', { name: 'Open review queue for Needs review batch' }))
+    await user.click(await screen.findByRole('button', { name: 'Open details for Possible duplicate candidate' }))
+    await user.click(screen.getByRole('button', { name: 'Mark as duplicate' }))
+
+    expect(walnut.resolveReviewItems).toHaveBeenCalledWith({
+      action: 'mark-duplicate',
+      batchId: 'batch-needs-review',
+      reviewItemIds: ['blocking-duplicate']
+    })
+
+    await waitFor(() => expect(walnut.getReviewQueue).toHaveBeenCalledTimes(2))
+    expect(walnut.listImportHistory.mock.calls.length).toBeGreaterThanOrEqual(1)
+    expect(walnut.getImportBatchDetail.mock.calls.length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('2 unresolved items')).toBeVisible()
+    expect(screen.getByText('Duplicate mark saved. Restore this review item if this was a mistake.')).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Restore' }))
+
+    expect(walnut.restoreReviewItems).toHaveBeenCalledWith({
+      batchId: 'batch-needs-review',
+      reviewItemIds: ['blocking-duplicate']
+    })
+    await waitFor(() => expect(walnut.getReviewQueue).toHaveBeenCalledTimes(3))
+    expect(screen.getByText('3 unresolved items')).toBeVisible()
+  })
+
+  it('keeps partial review progress consistent when the user leaves and returns later', async () => {
+    const user = userEvent.setup()
+    const walnut = createMutationWalnutApi()
+    window.walnut = walnut
+    const view = render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Import statements from dashboard' }))
+    await user.click(screen.getByRole('button', { name: 'Import history' }))
+    await user.click(await screen.findByRole('button', { name: 'Open review queue for Needs review batch' }))
+    await user.click(await screen.findByRole('button', { name: 'Open details for Possible duplicate candidate' }))
+    await user.click(screen.getByRole('button', { name: 'Mark as duplicate' }))
+    await screen.findByText('2 unresolved items')
+
+    view.unmount()
+    window.walnut = walnut
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Import statements from dashboard' }))
+    await user.click(screen.getByRole('button', { name: 'Import history' }))
+
+    expect(await screen.findByText('Needs review: 2')).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Open batch detail for Needs review batch' }))
+    expect(await screen.findByText('Needs review: 2')).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Review unresolved items' }))
+    expect(await screen.findByText('2 unresolved items')).toBeVisible()
   })
 })
