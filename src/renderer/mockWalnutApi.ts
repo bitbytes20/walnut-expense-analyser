@@ -110,6 +110,25 @@ const readImportBatchDetails = (): Record<string, ImportBatchDetail> => {
   return raw ? (JSON.parse(raw) as Record<string, ImportBatchDetail>) : {}
 }
 
+const orderReviewItems = (detail: ImportBatchDetail) => ({
+  ...detail,
+  reviewItems: [...detail.reviewItems]
+    .filter((item) => item.state === 'pending')
+    .sort((left, right) => {
+      if (left.severity !== right.severity) {
+        return left.severity === 'blocking' ? -1 : 1
+      }
+
+      const leftSource = left.snapshot.sourceFileName ?? ''
+      const rightSource = right.snapshot.sourceFileName ?? ''
+      if (leftSource !== rightSource) {
+        return leftSource.localeCompare(rightSource)
+      }
+
+      return (left.snapshot.rowIndex ?? 0) - (right.snapshot.rowIndex ?? 0)
+    })
+})
+
 const writeImportBatchDetails = (details: Record<string, ImportBatchDetail>) => {
   window.localStorage.setItem(IMPORT_BATCH_DETAILS_KEY, JSON.stringify(details))
   return details
@@ -642,8 +661,10 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
     }
     return detail
   },
-  async getReviewQueue(_input?: GetReviewQueueInput): Promise<ImportBatchDetail[]> {
-    return []
+  async getReviewQueue(input?: GetReviewQueueInput): Promise<ImportBatchDetail[]> {
+    const details = Object.values(readImportBatchDetails()).map(orderReviewItems)
+    const filtered = input?.batchId ? details.filter((detail) => detail.summary.batchId === input.batchId) : details
+    return filtered.filter((detail) => !input?.state || detail.reviewItems.every((item) => item.state === input.state))
   },
   async resolveReviewItems(input: ReviewItemResolutionInput): Promise<ImportBatchDetail> {
     const details = readImportBatchDetails()

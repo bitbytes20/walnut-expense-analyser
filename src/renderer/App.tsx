@@ -4,6 +4,7 @@ import { EmptyDashboard } from './features/dashboard/EmptyDashboard'
 import { ImportBatchDetailScreen } from './features/import/ImportBatchDetailScreen'
 import { ImportHistoryScreen } from './features/import/ImportHistoryScreen'
 import { ImportWorkspace } from './features/import/ImportWorkspace'
+import { ReviewQueueScreen } from './features/import/ReviewQueueScreen'
 import { LockScreen } from './features/lock-screen/LockScreen'
 import { OnboardingFlow } from './features/onboarding/OnboardingFlow'
 import { AppShell } from './features/app-shell/AppShell'
@@ -32,6 +33,7 @@ type ImportAreaScreen =
   | { type: 'workspace' }
   | { type: 'history' }
   | { type: 'batch-detail'; batchId: string; batchLabel: string }
+  | { type: 'review-queue'; batchId?: string; batchLabel?: string }
 
 export const App = () => {
   const [state, setState] = useState<AppShellState>(fallbackState)
@@ -144,14 +146,25 @@ export const App = () => {
           <ImportHistoryScreen
             onBackToWorkspace={() => setImportAreaScreen({ type: 'workspace' })}
             onOpenBatchDetail={(batchId, batchLabel) => setImportAreaScreen({ type: 'batch-detail', batchId, batchLabel })}
-            onOpenReviewQueue={(batchId, batchLabel) => setImportAreaScreen({ type: 'batch-detail', batchId, batchLabel })}
+            onOpenReviewQueue={(batchId, batchLabel) => setImportAreaScreen({ type: 'review-queue', batchId, batchLabel })}
           />
-        ) : (
+        ) : importAreaScreen.type === 'batch-detail' ? (
           <ImportBatchDetailScreen
             batchId={importAreaScreen.batchId}
             batchLabel={importAreaScreen.batchLabel}
             onBackToHistory={() => setImportAreaScreen({ type: 'history' })}
-            onReviewUnresolvedItems={() => setImportAreaScreen({ type: 'workspace' })}
+            onReviewUnresolvedItems={() =>
+              setImportAreaScreen({
+                type: 'review-queue',
+                batchId: importAreaScreen.batchId,
+                batchLabel: importAreaScreen.batchLabel
+              })
+            }
+          />
+        ) : (
+          <ReviewQueueScreen
+            initialBatchId={importAreaScreen.batchId}
+            onBackToHistory={() => setImportAreaScreen({ type: 'history' })}
           />
         )
       ) : (
