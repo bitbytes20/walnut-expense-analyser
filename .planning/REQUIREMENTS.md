@@ -101,11 +101,11 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ONBD-01 | Phase 1 | Pending |
-| SECU-01 | Phase 1 | Pending |
-| SECU-02 | Phase 1 | Pending |
+| ONBD-01 | Phase 1 | Complete |
+| SECU-01 | Phase 1 | Complete |
+| SECU-02 | Phase 1 | Complete |
 | SECU-03 | Phase 8 | Pending |
-| ACCT-01 | Phase 1 | Pending |
+| ACCT-01 | Phase 1 | Complete |
 | IMPT-01 | Phase 2 | Pending |
 | IMPT-02 | Phase 2 | Pending |
 | IMPT-03 | Phase 2 | Pending |

@@ -15,6 +15,7 @@ Release 1 is the trusted local import-to-insight loop for one ICICI account prof
 ### Phase 1: Product Shell and Security
 
 Goal: establish the local app shell, guided onboarding, one-account setup, PIN protection, and recovery posture.
+Status: implemented on `phase/1-product-shell-and-security`, in PR review against `release/1.0.0`.
 
 ### Phase 2: Statement Import Pipeline
 
@@ -70,11 +71,18 @@ Goal: prepare for additional banks, sync, web, and mobile clients without destab
 
 ## Phase 1 Planned Waves
 
-Phase 1 is already decomposed into three execution waves:
+Phase 1 was decomposed into three execution waves and all three are now implemented:
 
 - Wave 1: desktop shell scaffold, persistence layer, typed contracts
 - Wave 2: onboarding wizard, recovery confirmation, empty-dashboard handoff
 - Wave 3: lock screen, PIN enforcement, relock behavior, recovery reset
+
+Execution artifacts:
+
+- `.planning/phases/01-product-shell-and-security/01-01-SUMMARY.md`
+- `.planning/phases/01-product-shell-and-security/01-02-SUMMARY.md`
+- `.planning/phases/01-product-shell-and-security/01-03-SUMMARY.md`
+- `.planning/phases/01-product-shell-and-security/01-VERIFICATION.md`
 
 ## How We Track Delivery
 

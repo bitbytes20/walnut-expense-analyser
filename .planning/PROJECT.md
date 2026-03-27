@@ -12,7 +12,9 @@ A household owner can reliably import local bank statements and quickly understa
 
 ### Validated
 
-(None yet - ship to validate)
+- Trusted local-first onboarding-to-dashboard shell validated in Phase 1: Product Shell and Security.
+- PIN launch/manual lock flows and recovery-key confirmation posture validated in Phase 1: Product Shell and Security.
+- Single-account ICICI setup path validated in Phase 1: Product Shell and Security.
 
 ### Active
 
@@ -88,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after initialization*
+*Last updated: 2026-03-27 after Phase 1 execution*

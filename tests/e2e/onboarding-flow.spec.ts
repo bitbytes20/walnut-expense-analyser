@@ -1,0 +1,22 @@
+import { test, expect } from '@playwright/test'
+
+test('onboarding flow enforces recovery-key gating and reaches the empty dashboard', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Start setup' }).click()
+  await page.getByLabel('Household name').fill('Walnut Home')
+  await page.getByLabel('Owner name').fill('Bit')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByLabel('New PIN').fill('123456')
+  await page.getByLabel('Confirm PIN').fill('123456')
+  await page.getByLabel('Confirm PIN').press('Tab')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await expect(page.getByRole('heading', { name: 'Save the one-time recovery key for this device.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Copy' }).click()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByLabel('Account display name').fill('Primary ICICI')
+  await page.getByLabel('Account holder name').fill('Bit')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByRole('button', { name: 'Finish' }).click()
+  await expect(page.getByRole('heading', { name: 'Ready for your first import' })).toBeVisible()
+})

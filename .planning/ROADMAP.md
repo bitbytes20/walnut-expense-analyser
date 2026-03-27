@@ -47,11 +47,12 @@ Future-facing expansion once the local foundation and core workflows are stable.
 **Requirements:** ONBD-01, SECU-01, SECU-02, ACCT-01
 
 **Plans:** 3 plans
+**Status:** Complete (2026-03-27)
 
 Plans:
-- [ ] `01-01-PLAN.md` - Bootstrap the Electron desktop shell, persistence layer, and shared phase contracts
-- [ ] `01-02-PLAN.md` - Implement the persisted onboarding wizard, recovery confirmation, and empty-dashboard handoff
-- [ ] `01-03-PLAN.md` - Implement PIN lock enforcement, lock-screen UX, and recovery-key reset
+- [x] `01-01-PLAN.md` - Bootstrap the Electron desktop shell, persistence layer, and shared phase contracts
+- [x] `01-02-PLAN.md` - Implement the persisted onboarding wizard, recovery confirmation, and empty-dashboard handoff
+- [x] `01-03-PLAN.md` - Implement PIN lock enforcement, lock-screen UX, and recovery-key reset
 
 **Success criteria**
 1. First launch routes the owner through guided onboarding instead of dropping into an incomplete shell.
@@ -168,7 +169,7 @@ Plans:
 
 ## Next Step
 
-Next recommended command: `$gsd-discuss-phase 1`
+Next recommended command: `$gsd-discuss-phase 2`
 
 ---
 *Last updated: 2026-03-27 after roadmap creation*
