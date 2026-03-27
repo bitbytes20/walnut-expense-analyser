@@ -15,6 +15,7 @@ import type {
   GetImportBatchDetailInput,
   GetReviewQueueInput,
   ImportBatchDetail,
+  ImportAttemptStatus,
   ImportAttemptSummary,
   ListImportHistoryInput,
   NormalizedImportRow,
@@ -51,6 +52,21 @@ interface PersistImportFileInput {
   fileFingerprint: string
   transactionSignatures: string[]
   rows: NormalizedImportRow[]
+}
+
+interface PersistImportAttemptInput {
+  attemptId: string
+  batchId: string
+  batchLabel: string
+  status: ImportAttemptStatus
+  importedAt: string
+  accountLabel?: string
+  importedFiles: StagedImportFile[]
+  rejectedFiles: StagedImportFile[]
+  duplicateBlockedFiles: StagedImportFile[]
+  acceptedFiles: PersistImportFileInput[]
+  reviewItems: ReviewItem[]
+  lazyAccountCreated: boolean
 }
 
 const buildDbPath = () => {
@@ -147,6 +163,24 @@ export class WalnutRepository {
         transaction_count INTEGER NOT NULL,
         created_account_profile INTEGER NOT NULL DEFAULT 0
       );
+      CREATE TABLE IF NOT EXISTS import_attempts (
+        id TEXT PRIMARY KEY,
+        batch_id TEXT NOT NULL,
+        batch_label TEXT NOT NULL,
+        status TEXT NOT NULL,
+        imported_at TEXT NOT NULL,
+        account_label TEXT,
+        file_count INTEGER NOT NULL,
+        accepted_transaction_count INTEGER NOT NULL,
+        blocked_duplicate_count INTEGER NOT NULL,
+        unresolved_review_count INTEGER NOT NULL,
+        error_count INTEGER NOT NULL,
+        last_updated_at TEXT NOT NULL,
+        created_account_profile INTEGER NOT NULL DEFAULT 0,
+        imported_files_json TEXT NOT NULL,
+        rejected_files_json TEXT NOT NULL,
+        duplicate_blocked_files_json TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS import_source_files (
         id TEXT PRIMARY KEY,
         import_batch_id TEXT NOT NULL,
@@ -174,6 +208,28 @@ export class WalnutRepository {
         reference TEXT,
         transaction_signature TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS review_items (
+        id TEXT PRIMARY KEY,
+        import_attempt_id TEXT NOT NULL,
+        batch_id TEXT NOT NULL,
+        source_file_id TEXT,
+        reason_code TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        state TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        snapshot_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_import_attempts_status_imported_at
+        ON import_attempts(status, imported_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_import_attempts_batch_id
+        ON import_attempts(batch_id);
+      CREATE INDEX IF NOT EXISTS idx_review_items_batch_state
+        ON review_items(batch_id, state);
+      CREATE INDEX IF NOT EXISTS idx_review_items_attempt_id
+        ON review_items(import_attempt_id);
     `)
 
     const stamp = nowIso()
@@ -499,59 +555,61 @@ export class WalnutRepository {
     }
   }
 
-  listImportHistory(_input?: ListImportHistoryInput): ImportAttemptSummary[] {
-    return []
+  listImportHistory(input?: ListImportHistoryInput): ImportAttemptSummary[] {
+    const rows = this.sqlite
+      .prepare(
+        `SELECT *
+         FROM import_attempts
+         WHERE (? IS NULL OR status = ?)
+         ORDER BY imported_at DESC`
+      )
+      .all(input?.status ?? null, input?.status ?? null) as Record<string, unknown>[]
+
+    const query = input?.query?.trim().toLowerCase()
+    const summaries = rows.map((row) => this.mapImportAttemptSummary(row))
+    if (!query) {
+      return summaries
+    }
+
+    return summaries.filter((summary) =>
+      summary.batchLabel.toLowerCase().includes(query) ||
+      summary.accountLabel?.toLowerCase().includes(query)
+    )
   }
 
   getImportBatchDetail(input: GetImportBatchDetailInput): ImportBatchDetail {
-    throw new Error(`Import batch ${input.batchId} was not found.`)
-  }
+    const row = this.sqlite
+      .prepare(
+        `SELECT *
+         FROM import_attempts
+         WHERE batch_id = ?
+         ORDER BY imported_at DESC
+         LIMIT 1`
+      )
+      .get(input.batchId) as Record<string, unknown> | undefined
 
-  getReviewQueue(_input?: GetReviewQueueInput): ImportBatchDetail[] {
-    return []
-  }
-
-  persistImportBatch(files: PersistImportFileInput[]): CommitImportBatchResult {
-    if (files.length === 0) {
-      const importedAt = nowIso()
-      const batchId = crypto.randomUUID()
-      const attemptId = crypto.randomUUID()
-      return {
-        attemptId,
-        batchId,
-        status: 'rejected',
-        importedAt,
-        importedFiles: [],
-        rejectedFiles: [],
-        duplicateBlockedFiles: [],
-        transactionsCreated: 0,
-        acceptedTransactionCount: 0,
-        blockedDuplicateCount: 0,
-        reviewItems: [],
-        summary: {
-          attemptId,
-          batchId,
-          status: 'rejected',
-          importedAt,
-          batchLabel: `ICICI import ${importedAt.slice(0, 10)}`,
-          fileCount: 0,
-          acceptedTransactionCount: 0,
-          blockedDuplicateCount: 0,
-          unresolvedReviewCount: 0,
-          errorCount: 0,
-          lastUpdatedAt: importedAt
-        },
-        lazyAccountCreated: false
-      }
+    if (!row) {
+      throw new Error(`Import batch ${input.batchId} was not found.`)
     }
 
-    const batchId = crypto.randomUUID()
-    const importedAt = nowIso()
-    const batchLabel = files[0]?.stagedFile.statementPeriodLabel
-      ? `ICICI import ${files[0].stagedFile.statementPeriodLabel}`
-      : `ICICI import ${importedAt.slice(0, 10)}`
-    const lazyAccountCreated = this.ensureImportedAccountProfile(files[0]?.stagedFile.accountLabel)
+    return this.mapImportBatchDetail(row)
+  }
 
+  getReviewQueue(input?: GetReviewQueueInput): ImportBatchDetail[] {
+    const batchIds = this.sqlite
+      .prepare(
+        `SELECT DISTINCT batch_id
+         FROM review_items
+         WHERE state = ?
+           AND (? IS NULL OR batch_id = ?)
+         ORDER BY batch_id DESC`
+      )
+      .all(input?.state ?? 'pending', input?.batchId ?? null, input?.batchId ?? null) as Record<string, unknown>[]
+
+    return batchIds.map((row) => this.getImportBatchDetail({ batchId: String(row.batch_id) }))
+  }
+
+  persistImportAttempt(input: PersistImportAttemptInput): CommitImportBatchResult {
     const insertBatch = this.sqlite.prepare(
       `INSERT INTO import_batches (id, batch_label, imported_at, file_count, transaction_count, created_account_profile)
        VALUES (?, ?, ?, ?, ?, ?)`
@@ -567,22 +625,45 @@ export class WalnutRepository {
         debit_amount_minor, credit_amount_minor, running_balance_minor, direction, reference, transaction_signature)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
+    const insertAttempt = this.sqlite.prepare(
+      `INSERT INTO import_attempts
+       (id, batch_id, batch_label, status, imported_at, account_label, file_count, accepted_transaction_count,
+        blocked_duplicate_count, unresolved_review_count, error_count, last_updated_at, created_account_profile,
+        imported_files_json, rejected_files_json, duplicate_blocked_files_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    const insertReviewItem = this.sqlite.prepare(
+      `INSERT INTO review_items
+       (id, import_attempt_id, batch_id, source_file_id, reason_code, severity, state, title, description, snapshot_json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+
+    const importedFiles = input.importedFiles.map((file, index) => ({
+      ...file,
+      status: 'imported' as const,
+      importedTransactionCount: input.acceptedFiles[index]?.rows.length ?? file.importedTransactionCount ?? 0
+    }))
+
+    const acceptedTransactionCount = input.acceptedFiles.reduce((sum, file) => sum + file.rows.length, 0)
+    const blockedDuplicateCount = input.reviewItems.filter((item) => item.reasonCode === 'duplicate-candidate').length
+    const unresolvedReviewCount = input.reviewItems.filter((item) => item.state === 'pending').length
+    const errorCount = input.rejectedFiles.length
 
     const transaction = this.sqlite.transaction(() => {
       insertBatch.run(
-        batchId,
-        batchLabel,
-        importedAt,
-        files.length,
-        files.reduce((sum, file) => sum + file.rows.length, 0),
-        lazyAccountCreated ? 1 : 0
+        input.batchId,
+        input.batchLabel,
+        input.importedAt,
+        importedFiles.length + input.rejectedFiles.length + input.duplicateBlockedFiles.length,
+        acceptedTransactionCount,
+        input.lazyAccountCreated ? 1 : 0
       )
 
-      for (const file of files) {
+      for (const file of input.acceptedFiles) {
         const sourceFileId = crypto.randomUUID()
         insertSourceFile.run(
           sourceFileId,
-          batchId,
+          input.batchId,
           file.stagedFile.fileName,
           file.stagedFile.fileExtension,
           file.fileFingerprint,
@@ -590,13 +671,13 @@ export class WalnutRepository {
           file.stagedFile.statementPeriodLabel ?? null,
           file.stagedFile.selectedWorksheetName ?? null,
           file.rows.length,
-          importedAt
+          input.importedAt
         )
 
         for (const [index, row] of file.rows.entries()) {
           insertTransaction.run(
             crypto.randomUUID(),
-            batchId,
+            input.batchId,
             sourceFileId,
             row.transactionDateRaw,
             row.valueDateRaw ?? null,
@@ -611,46 +692,163 @@ export class WalnutRepository {
           )
         }
       }
+
+      insertAttempt.run(
+        input.attemptId,
+        input.batchId,
+        input.batchLabel,
+        input.status,
+        input.importedAt,
+        input.accountLabel ?? null,
+        importedFiles.length + input.rejectedFiles.length + input.duplicateBlockedFiles.length,
+        acceptedTransactionCount,
+        blockedDuplicateCount,
+        unresolvedReviewCount,
+        errorCount,
+        input.importedAt,
+        input.lazyAccountCreated ? 1 : 0,
+        JSON.stringify(importedFiles),
+        JSON.stringify(input.rejectedFiles),
+        JSON.stringify(input.duplicateBlockedFiles)
+      )
+
+      for (const reviewItem of input.reviewItems) {
+        insertReviewItem.run(
+          reviewItem.id,
+          input.attemptId,
+          input.batchId,
+          reviewItem.sourceFileId ?? null,
+          reviewItem.reasonCode,
+          reviewItem.severity,
+          reviewItem.state,
+          reviewItem.title,
+          reviewItem.description,
+          JSON.stringify(reviewItem.snapshot),
+          reviewItem.createdAt,
+          reviewItem.updatedAt
+        )
+      }
     })
 
     transaction()
 
+    const summary: ImportAttemptSummary = {
+      attemptId: input.attemptId,
+      batchId: input.batchId,
+      status: input.status,
+      importedAt: input.importedAt,
+      accountLabel: input.accountLabel,
+      batchLabel: input.batchLabel,
+      fileCount: importedFiles.length + input.rejectedFiles.length + input.duplicateBlockedFiles.length,
+      acceptedTransactionCount,
+      blockedDuplicateCount,
+      unresolvedReviewCount,
+      errorCount,
+      lastUpdatedAt: input.importedAt
+    }
+
     return {
-      attemptId: crypto.randomUUID(),
+      attemptId: input.attemptId,
+      batchId: input.batchId,
+      status: input.status,
+      importedAt: input.importedAt,
+      importedFiles,
+      rejectedFiles: input.rejectedFiles,
+      duplicateBlockedFiles: input.duplicateBlockedFiles,
+      transactionsCreated: acceptedTransactionCount,
+      acceptedTransactionCount,
+      blockedDuplicateCount,
+      reviewItems: input.reviewItems,
+      summary,
+      lazyAccountCreated: input.lazyAccountCreated
+    }
+  }
+
+  persistImportBatch(files: PersistImportFileInput[]): CommitImportBatchResult {
+    const importedAt = nowIso()
+    const batchId = crypto.randomUUID()
+    const attemptId = crypto.randomUUID()
+    const batchLabel = files[0]?.stagedFile.statementPeriodLabel
+      ? `ICICI import ${files[0].stagedFile.statementPeriodLabel}`
+      : `ICICI import ${importedAt.slice(0, 10)}`
+    const lazyAccountCreated = files.length > 0 && this.ensureImportedAccountProfile(files[0]?.stagedFile.accountLabel)
+
+    return this.persistImportAttempt({
+      attemptId,
       batchId,
-      status: 'imported',
+      batchLabel,
+      status: files.length > 0 ? 'imported' : 'rejected',
       importedAt,
-      importedFiles: files.map((file) => ({
-        ...file.stagedFile,
-        status: 'imported',
-        importedTransactionCount: file.rows.length
-      })),
+      accountLabel: files[0]?.stagedFile.accountLabel,
+      importedFiles: files.map((file) => file.stagedFile),
       rejectedFiles: [],
       duplicateBlockedFiles: [],
-      transactionsCreated: files.reduce((sum, file) => sum + file.rows.length, 0),
-      acceptedTransactionCount: files.reduce((sum, file) => sum + file.rows.length, 0),
-      blockedDuplicateCount: 0,
-      reviewItems: [] as ReviewItem[],
-      summary: {
-        attemptId: crypto.randomUUID(),
-        batchId,
-        status: 'imported',
-        importedAt,
-        accountLabel: files[0]?.stagedFile.accountLabel,
-        batchLabel,
-        fileCount: files.length,
-        acceptedTransactionCount: files.reduce((sum, file) => sum + file.rows.length, 0),
-        blockedDuplicateCount: 0,
-        unresolvedReviewCount: 0,
-        errorCount: 0,
-        lastUpdatedAt: importedAt
-      },
+      acceptedFiles: files,
+      reviewItems: [],
       lazyAccountCreated
-    }
+    })
   }
 
   close() {
     this.sqlite.close()
+  }
+
+  private mapImportAttemptSummary(row: Record<string, unknown>): ImportAttemptSummary {
+    return {
+      attemptId: String(row.id),
+      batchId: String(row.batch_id),
+      status: String(row.status) as ImportAttemptStatus,
+      importedAt: String(row.imported_at),
+      accountLabel: row.account_label ? String(row.account_label) : undefined,
+      batchLabel: String(row.batch_label),
+      fileCount: Number(row.file_count),
+      acceptedTransactionCount: Number(row.accepted_transaction_count),
+      blockedDuplicateCount: Number(row.blocked_duplicate_count),
+      unresolvedReviewCount: Number(row.unresolved_review_count),
+      errorCount: Number(row.error_count),
+      lastUpdatedAt: String(row.last_updated_at)
+    }
+  }
+
+  private mapImportBatchDetail(row: Record<string, unknown>): ImportBatchDetail {
+    const reviewRows = this.sqlite
+      .prepare(
+        `SELECT *
+         FROM review_items
+         WHERE batch_id = ?
+           AND state = ?
+         ORDER BY created_at ASC`
+      )
+      .all(String(row.batch_id), 'pending') as Record<string, unknown>[]
+
+    return {
+      ...this.mapImportAttemptSummary(row),
+      reviewItems: reviewRows.map((reviewRow) => this.mapReviewItem(reviewRow)),
+      importedFiles: JSON.parse(String(row.imported_files_json ?? '[]')) as StagedImportFile[],
+      rejectedFiles: JSON.parse(String(row.rejected_files_json ?? '[]')) as StagedImportFile[],
+      duplicateBlockedFiles: JSON.parse(String(row.duplicate_blocked_files_json ?? '[]')) as StagedImportFile[]
+    }
+  }
+
+  private mapReviewItem(row: Record<string, unknown>): ReviewItem {
+    return {
+      id: String(row.id),
+      batchId: String(row.batch_id),
+      importAttemptId: String(row.import_attempt_id),
+      sourceFileId: row.source_file_id ? String(row.source_file_id) : undefined,
+      reasonCode: String(row.reason_code) as ReviewItem['reasonCode'],
+      severity: String(row.severity) as ReviewItem['severity'],
+      state: String(row.state) as ReviewItem['state'],
+      title: String(row.title),
+      description: String(row.description),
+      snapshot: JSON.parse(String(row.snapshot_json)) as ReviewItem['snapshot'],
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+      resolution: {
+        batchId: String(row.batch_id),
+        reviewItemId: String(row.id)
+      }
+    }
   }
 
   private mapOnboardingRow(row: Record<string, unknown>): OnboardingProgress {

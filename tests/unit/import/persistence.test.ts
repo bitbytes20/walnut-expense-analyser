@@ -50,7 +50,7 @@ describe('import persistence', () => {
     repository.close()
   })
 
-  it('continues importing valid files when siblings are rejected or duplicate-blocked and loads prior-batch details', () => {
+  it('records mixed rejected and duplicate-candidate batches without finalizing accepted rows and still loads prior-batch details', () => {
     const repository = createRepository()
     const coordinator = new ImportCoordinator(repository)
     const originalPath = path.join(fixtureDir, 'icici-valid.xlsx')
@@ -85,9 +85,13 @@ describe('import persistence', () => {
 
     const secondCommit = coordinator.commitBatch()
 
-    expect(secondCommit.importedFiles.map((file) => file.fileName)).toContain('unique.xlsx')
+    expect(secondCommit.status).toBe('needs-review')
+    expect(secondCommit.importedFiles).toHaveLength(0)
     expect(secondCommit.rejectedFiles.map((file) => file.fileName)).toContain('icici-unsupported-variant.xlsx')
     expect(secondCommit.duplicateBlockedFiles.map((file) => file.fileName)).toContain('icici-valid.xlsx')
+    expect(secondCommit.reviewItems.some((item) => item.reasonCode === 'duplicate-candidate' && item.severity === 'blocking')).toBe(true)
+    expect(secondCommit.acceptedTransactionCount).toBe(0)
+    expect(secondCommit.transactionsCreated).toBe(0)
 
     const inspection = coordinator.inspectPriorImportBatch(duplicateFile?.priorBatch?.priorBatchId ?? '')
     expect(inspection.fileNames).toContain('icici-valid.xlsx')
