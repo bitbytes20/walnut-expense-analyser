@@ -1,15 +1,15 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 1 complete, ready for Phase 2 discussion
-**Roadmap status:** Release 1 Phase 1 complete, Phase 2 not yet discussed
+**Project status:** Phase 2 context gathered, ready for Phase 2 planning
+**Roadmap status:** Release 1 Phase 1 complete, Phase 2 discussed and awaiting planning
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 2 - Statement Import Pipeline
+**Current focus:** Phase 2 - Statement Import Pipeline planning
 
 ## Current Position
 
@@ -41,10 +41,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-27: Phase 1 context gathered at `.planning/phases/01-product-shell-and-security/01-CONTEXT.md`
 - 2026-03-27: Phase 1 UI design contract approved at `.planning/phases/01-product-shell-and-security/01-UI-SPEC.md`
 - 2026-03-27: Phase 1 execution plans created at `.planning/phases/01-product-shell-and-security/01-01-PLAN.md`, `.planning/phases/01-product-shell-and-security/01-02-PLAN.md`, and `.planning/phases/01-product-shell-and-security/01-03-PLAN.md`
+- 2026-03-27: Phase 2 context gathered at `.planning/phases/02-statement-import-pipeline/02-CONTEXT.md`
 
 ## Immediate Next Action
 
-Run `$gsd-discuss-phase 2` to lock the statement import pipeline details before planning.
+Run `$gsd-plan-phase 2` to turn the import-pipeline decisions into executable waves.
 
 ---
-*Last updated: 2026-03-27 after Phase 1 execution*
+*Last updated: 2026-03-27 after Phase 2 discussion*
