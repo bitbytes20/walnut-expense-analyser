@@ -225,7 +225,7 @@ describe('history repository', () => {
       batchId: 'batch-detail',
       status: 'needs-review',
       acceptedTransactionCount: 2,
-      blockedDuplicateCount: 0,
+      blockedDuplicateCount: 1,
       unresolvedReviewCount: 1
     })
     expect(detail.fileOutcomes).toHaveLength(3)

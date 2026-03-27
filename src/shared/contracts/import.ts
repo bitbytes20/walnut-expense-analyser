@@ -148,11 +148,29 @@ export interface ImportAttemptSummary {
   lastUpdatedAt: string
 }
 
-export interface ImportBatchDetail extends ImportAttemptSummary {
+export interface ImportBatchDetailSummary extends ImportAttemptSummary {}
+
+export type ImportBatchFileOutcomeStatus = 'imported' | 'duplicate-blocked' | 'rejected'
+
+export interface ImportBatchFileOutcome extends StagedImportFile {
+  outcome: ImportBatchFileOutcomeStatus
+}
+
+export interface ImportBatchTransaction extends NormalizedImportRow {
+  id: string
+}
+
+export interface ImportBatchTransactionGroup {
+  sourceFileId: string
+  sourceFileName: string
+  transactions: ImportBatchTransaction[]
+}
+
+export interface ImportBatchDetail {
+  summary: ImportBatchDetailSummary
   reviewItems: ReviewItem[]
-  importedFiles: StagedImportFile[]
-  rejectedFiles: StagedImportFile[]
-  duplicateBlockedFiles: StagedImportFile[]
+  fileOutcomes: ImportBatchFileOutcome[]
+  transactionGroups: ImportBatchTransactionGroup[]
 }
 
 export interface ListImportHistoryInput {

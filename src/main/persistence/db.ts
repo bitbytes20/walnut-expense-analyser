@@ -12,9 +12,11 @@ import type {
 import type { AccountProfile, AccountProfileDraft } from '../../shared/contracts/account'
 import type {
   CommitImportBatchResult,
+  ImportBatchFileOutcome,
   GetImportBatchDetailInput,
   GetReviewQueueInput,
   ImportBatchDetail,
+  ImportBatchTransactionGroup,
   ImportAttemptStatus,
   ImportAttemptSummary,
   ListImportHistoryInput,
@@ -660,7 +662,7 @@ export class WalnutRepository {
       )
 
       for (const file of input.acceptedFiles) {
-        const sourceFileId = crypto.randomUUID()
+        const sourceFileId = file.stagedFile.id
         insertSourceFile.run(
           sourceFileId,
           input.batchId,
@@ -794,23 +796,41 @@ export class WalnutRepository {
   }
 
   private mapImportAttemptSummary(row: Record<string, unknown>): ImportAttemptSummary {
+    const batchId = String(row.batch_id)
+    const acceptedTransactionCount = this.sqlite
+      .prepare('SELECT COUNT(*) AS count FROM imported_transactions WHERE import_batch_id = ?')
+      .get(batchId) as { count: number }
+    const unresolvedReviewCount = this.sqlite
+      .prepare('SELECT COUNT(*) AS count FROM review_items WHERE batch_id = ? AND state = ?')
+      .get(batchId, 'pending') as { count: number }
+    const importedFiles = JSON.parse(String(row.imported_files_json ?? '[]')) as ImportBatchFileOutcome[]
+    const rejectedFiles = JSON.parse(String(row.rejected_files_json ?? '[]')) as ImportBatchFileOutcome[]
+    const duplicateBlockedFiles = JSON.parse(String(row.duplicate_blocked_files_json ?? '[]')) as ImportBatchFileOutcome[]
+    const persistedStatus = String(row.status) as ImportAttemptStatus
+    const status =
+      persistedStatus === 'needs-review' && unresolvedReviewCount.count === 0 ? 'imported' : persistedStatus
+
     return {
       attemptId: String(row.id),
-      batchId: String(row.batch_id),
-      status: String(row.status) as ImportAttemptStatus,
+      batchId,
+      status,
       importedAt: String(row.imported_at),
       accountLabel: row.account_label ? String(row.account_label) : undefined,
       batchLabel: String(row.batch_label),
-      fileCount: Number(row.file_count),
-      acceptedTransactionCount: Number(row.accepted_transaction_count),
-      blockedDuplicateCount: Number(row.blocked_duplicate_count),
-      unresolvedReviewCount: Number(row.unresolved_review_count),
-      errorCount: Number(row.error_count),
-      lastUpdatedAt: String(row.last_updated_at)
+      fileCount: importedFiles.length + rejectedFiles.length + duplicateBlockedFiles.length,
+      acceptedTransactionCount: acceptedTransactionCount.count,
+      blockedDuplicateCount: duplicateBlockedFiles.length,
+      unresolvedReviewCount: unresolvedReviewCount.count,
+      errorCount: rejectedFiles.length,
+      lastUpdatedAt:
+        (this.sqlite
+          .prepare('SELECT MAX(updated_at) AS last_updated_at FROM review_items WHERE batch_id = ?')
+          .get(batchId) as { last_updated_at?: string | null }).last_updated_at ?? String(row.last_updated_at)
     }
   }
 
   private mapImportBatchDetail(row: Record<string, unknown>): ImportBatchDetail {
+    const batchId = String(row.batch_id)
     const reviewRows = this.sqlite
       .prepare(
         `SELECT *
@@ -819,14 +839,67 @@ export class WalnutRepository {
            AND state = ?
          ORDER BY created_at ASC`
       )
-      .all(String(row.batch_id), 'pending') as Record<string, unknown>[]
+      .all(batchId, 'pending') as Record<string, unknown>[]
+    const importedFiles = JSON.parse(String(row.imported_files_json ?? '[]')) as StagedImportFile[]
+    const rejectedFiles = JSON.parse(String(row.rejected_files_json ?? '[]')) as StagedImportFile[]
+    const duplicateBlockedFiles = JSON.parse(String(row.duplicate_blocked_files_json ?? '[]')) as StagedImportFile[]
 
     return {
-      ...this.mapImportAttemptSummary(row),
+      summary: this.mapImportAttemptSummary(row),
       reviewItems: reviewRows.map((reviewRow) => this.mapReviewItem(reviewRow)),
-      importedFiles: JSON.parse(String(row.imported_files_json ?? '[]')) as StagedImportFile[],
-      rejectedFiles: JSON.parse(String(row.rejected_files_json ?? '[]')) as StagedImportFile[],
-      duplicateBlockedFiles: JSON.parse(String(row.duplicate_blocked_files_json ?? '[]')) as StagedImportFile[]
+      fileOutcomes: [
+        ...importedFiles.map((file) => ({ ...file, outcome: 'imported' as const })),
+        ...duplicateBlockedFiles.map((file) => ({ ...file, outcome: 'duplicate-blocked' as const })),
+        ...rejectedFiles.map((file) => ({ ...file, outcome: 'rejected' as const }))
+      ],
+      transactionGroups: this.mapImportBatchTransactionGroups(batchId)
+    }
+  }
+
+  private mapImportBatchTransactionGroups(batchId: string): ImportBatchTransactionGroup[] {
+    const transactionRows = this.sqlite
+      .prepare(
+        `SELECT t.*, s.file_name
+         FROM imported_transactions t
+         INNER JOIN import_source_files s ON s.id = t.source_file_id
+         WHERE t.import_batch_id = ?
+         ORDER BY s.created_at ASC, t.transaction_date_raw ASC, t.id ASC`
+      )
+      .all(batchId) as Record<string, unknown>[]
+
+    const groups = new Map<string, ImportBatchTransactionGroup>()
+    for (const row of transactionRows) {
+      const sourceFileId = String(row.source_file_id)
+      const existing = groups.get(sourceFileId)
+      if (existing) {
+        existing.transactions.push(this.mapImportedTransaction(row))
+        continue
+      }
+
+      groups.set(sourceFileId, {
+        sourceFileId,
+        sourceFileName: String(row.file_name),
+        transactions: [this.mapImportedTransaction(row)]
+      })
+    }
+
+    return Array.from(groups.values())
+  }
+
+  private mapImportedTransaction(row: Record<string, unknown>) {
+    return {
+      id: String(row.id),
+      transactionDateRaw: String(row.transaction_date_raw),
+      valueDateRaw: row.value_date_raw ? String(row.value_date_raw) : undefined,
+      rawNarration: String(row.raw_narration),
+      cleanedDescription: String(row.cleaned_description),
+      debitAmountMinor: row.debit_amount_minor === null ? undefined : Number(row.debit_amount_minor),
+      creditAmountMinor: row.credit_amount_minor === null ? undefined : Number(row.credit_amount_minor),
+      runningBalanceMinor: row.running_balance_minor === null ? undefined : Number(row.running_balance_minor),
+      direction: String(row.direction) as NormalizedImportRow['direction'],
+      reference: row.reference ? String(row.reference) : undefined,
+      sourceFileId: String(row.source_file_id),
+      importBatchId: String(row.import_batch_id)
     }
   }
 
