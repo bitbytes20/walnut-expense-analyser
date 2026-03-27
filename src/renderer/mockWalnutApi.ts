@@ -8,6 +8,11 @@ import type { AccountProfileDraft } from '../shared/contracts/account'
 import type {
   ChooseImportSheetInput,
   CommitImportBatchInput,
+  GetImportBatchDetailInput,
+  GetReviewQueueInput,
+  ImportBatchDetail,
+  ImportAttemptSummary,
+  ListImportHistoryInput,
   PriorImportBatchInspection,
   RemoveStagedFileInput,
   StageImportFilesInput,
@@ -474,8 +479,9 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
       })
     }
 
+    const batchId = crypto.randomUUID()
+    const attemptId = crypto.randomUUID()
     if (importedFiles.length > 0) {
-      const batchId = crypto.randomUUID()
       const priorBatch: PriorImportBatchInspection = {
         priorBatchId: batchId,
         batchLabel: `ICICI import ${statementPeriodLabel}`,
@@ -496,12 +502,31 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
     )
 
     return {
-      batchId: crypto.randomUUID(),
+      attemptId,
+      batchId,
+      status: importedFiles.length > 0 ? 'imported' : 'rejected',
       importedAt,
       importedFiles,
       rejectedFiles,
       duplicateBlockedFiles,
       transactionsCreated: importedFiles.length * 8,
+      acceptedTransactionCount: importedFiles.length * 8,
+      blockedDuplicateCount: duplicateBlockedFiles.length,
+      reviewItems: [],
+      summary: {
+        attemptId,
+        batchId,
+        status: importedFiles.length > 0 ? 'imported' : 'rejected',
+        importedAt,
+        accountLabel: importedFiles[0]?.accountLabel,
+        batchLabel: `ICICI import ${statementPeriodLabel}`,
+        fileCount: stagedFiles.length,
+        acceptedTransactionCount: importedFiles.length * 8,
+        blockedDuplicateCount: duplicateBlockedFiles.length,
+        unresolvedReviewCount: 0,
+        errorCount: rejectedFiles.length,
+        lastUpdatedAt: importedAt
+      },
       lazyAccountCreated
     }
   },
@@ -517,6 +542,40 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
         duplicateCauseFileName: 'icici-valid.xlsx'
       }
     )
+  },
+  async listImportHistory(_input?: ListImportHistoryInput): Promise<ImportAttemptSummary[]> {
+    return readImportHistory().map((batch) => ({
+      attemptId: batch.priorBatchId,
+      batchId: batch.priorBatchId,
+      status: 'imported',
+      importedAt: batch.importedAt,
+      batchLabel: batch.batchLabel,
+      accountLabel: statementAccountLabel,
+      fileCount: batch.fileCount,
+      acceptedTransactionCount: batch.importedTransactionCount,
+      blockedDuplicateCount: 0,
+      unresolvedReviewCount: 0,
+      errorCount: 0,
+      lastUpdatedAt: batch.importedAt
+    }))
+  },
+  async getImportBatchDetail(input: GetImportBatchDetailInput): Promise<ImportBatchDetail> {
+    const history = await this.listImportHistory()
+    const summary = history.find((item) => item.batchId === input.batchId)
+    if (!summary) {
+      throw new Error(`Import batch ${input.batchId} was not found.`)
+    }
+
+    return {
+      ...summary,
+      reviewItems: [],
+      importedFiles: [],
+      rejectedFiles: [],
+      duplicateBlockedFiles: []
+    }
+  },
+  async getReviewQueue(_input?: GetReviewQueueInput): Promise<ImportBatchDetail[]> {
+    return []
   },
   async ping() {
     return 'pong'

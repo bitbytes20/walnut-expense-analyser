@@ -88,13 +88,100 @@ export interface CommitImportBatchInput {
   stagedFileIds?: string[]
 }
 
-export interface CommitImportBatchResult {
+export type ReviewItemReasonCode =
+  | 'duplicate-candidate'
+  | 'parser-uncertainty'
+  | 'deferred-worksheet'
+  | 'balance-continuity-warning'
+  | 'unsupported-row-skipped'
+
+export type ReviewItemSeverity = 'blocking' | 'warning'
+
+export type ReviewItemState = 'pending' | 'resolved' | 'restored'
+
+export interface ReviewItemSnapshot {
+  sourceFileId?: string
+  sourceFileName?: string
+  rowIndex?: number
+  message: string
+  rawContent?: string
+  parsedRow?: NormalizedImportRow
+  priorBatch?: PriorImportBatchReference
+  metadata?: Record<string, string | number | boolean | null>
+}
+
+export interface ReviewItemResolutionRef {
   batchId: string
+  reviewItemId: string
+}
+
+export interface ReviewItem {
+  id: string
+  batchId: string
+  importAttemptId: string
+  sourceFileId?: string
+  reasonCode: ReviewItemReasonCode
+  severity: ReviewItemSeverity
+  state: ReviewItemState
+  title: string
+  description: string
+  snapshot: ReviewItemSnapshot
+  createdAt: string
+  updatedAt: string
+  resolution?: ReviewItemResolutionRef
+}
+
+export type ImportAttemptStatus = 'imported' | 'needs-review' | 'rejected' | 'failed'
+
+export interface ImportAttemptSummary {
+  attemptId: string
+  batchId: string
+  status: ImportAttemptStatus
+  importedAt: string
+  accountLabel?: string
+  batchLabel: string
+  fileCount: number
+  acceptedTransactionCount: number
+  blockedDuplicateCount: number
+  unresolvedReviewCount: number
+  errorCount: number
+  lastUpdatedAt: string
+}
+
+export interface ImportBatchDetail extends ImportAttemptSummary {
+  reviewItems: ReviewItem[]
+  importedFiles: StagedImportFile[]
+  rejectedFiles: StagedImportFile[]
+  duplicateBlockedFiles: StagedImportFile[]
+}
+
+export interface ListImportHistoryInput {
+  status?: ImportAttemptStatus
+  query?: string
+}
+
+export interface GetImportBatchDetailInput {
+  batchId: string
+}
+
+export interface GetReviewQueueInput {
+  batchId?: string
+  state?: ReviewItemState
+}
+
+export interface CommitImportBatchResult {
+  attemptId: string
+  batchId: string
+  status: ImportAttemptStatus
   importedAt: string
   importedFiles: StagedImportFile[]
   rejectedFiles: StagedImportFile[]
   duplicateBlockedFiles: StagedImportFile[]
   transactionsCreated: number
+  acceptedTransactionCount: number
+  blockedDuplicateCount: number
+  reviewItems: ReviewItem[]
+  summary: ImportAttemptSummary
   lazyAccountCreated?: boolean
 }
 

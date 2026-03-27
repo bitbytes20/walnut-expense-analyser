@@ -2,7 +2,10 @@ import type {
   ChooseImportSheetInput,
   CommitImportBatchInput,
   CommitImportBatchResult,
+  ImportAttemptStatus,
   PriorImportBatchInspection,
+  ReviewItem,
+  ReviewItemSeverity,
   StageImportFilesResult
 } from '../../shared/contracts/import'
 import type { WalnutRepository } from '../persistence/db'
@@ -13,6 +16,60 @@ interface StagedRecord {
   parsedFile: ParsedImportFile
   fileFingerprint: string
   transactionSignatures: string[]
+}
+
+export interface ReviewSignalInput {
+  signalType: ReviewItem['reasonCode']
+  sourceFileId?: string
+  sourceFileName?: string
+  message: string
+}
+
+export interface ReviewGateResult {
+  status: ImportAttemptStatus
+  shouldFinalizeAcceptedTransactions: boolean
+}
+
+export const buildReviewItemsForSignals = (input: {
+  batchId: string
+  importAttemptId: string
+  signals: ReviewSignalInput[]
+}): ReviewItem[] =>
+  input.signals.map((signal) => ({
+    id: crypto.randomUUID(),
+    batchId: input.batchId,
+    importAttemptId: input.importAttemptId,
+    sourceFileId: signal.sourceFileId,
+    reasonCode: signal.signalType,
+    severity: 'warning',
+    state: 'pending',
+    title: signal.signalType,
+    description: signal.message,
+    snapshot: {
+      sourceFileId: signal.sourceFileId,
+      sourceFileName: signal.sourceFileName,
+      message: signal.message
+    },
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+    resolution: {
+      batchId: input.batchId,
+      reviewItemId: ''
+    }
+  }))
+
+export const calculateReviewGate = (reviewItems: ReviewItem[], acceptedTransactionCount: number): ReviewGateResult => {
+  if (acceptedTransactionCount <= 0) {
+    return {
+      status: 'rejected',
+      shouldFinalizeAcceptedTransactions: false
+    }
+  }
+
+  return {
+    status: reviewItems.length > 0 ? 'imported' : 'imported',
+    shouldFinalizeAcceptedTransactions: true
+  }
 }
 
 export class ImportCoordinator {
@@ -102,7 +159,9 @@ export class ImportCoordinator {
     }
 
     return {
+      attemptId: crypto.randomUUID(),
       ...commitResult,
+      status: commitResult.summary.status,
       rejectedFiles: selectedRecords
         .map(([, record]) => record.parsedFile.stagedFile)
         .filter((file) => file.status === 'rejected'),

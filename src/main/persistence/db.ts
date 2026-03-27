@@ -12,9 +12,15 @@ import type {
 import type { AccountProfile, AccountProfileDraft } from '../../shared/contracts/account'
 import type {
   CommitImportBatchResult,
+  GetImportBatchDetailInput,
+  GetReviewQueueInput,
+  ImportBatchDetail,
+  ImportAttemptSummary,
+  ListImportHistoryInput,
   NormalizedImportRow,
   PriorImportBatchInspection,
   PriorImportBatchReference,
+  ReviewItem,
   StagedImportFile
 } from '../../shared/contracts/import'
 import type { LockReason, SecurityEvent, SecurityState } from '../../shared/contracts/security'
@@ -493,15 +499,48 @@ export class WalnutRepository {
     }
   }
 
+  listImportHistory(_input?: ListImportHistoryInput): ImportAttemptSummary[] {
+    return []
+  }
+
+  getImportBatchDetail(input: GetImportBatchDetailInput): ImportBatchDetail {
+    throw new Error(`Import batch ${input.batchId} was not found.`)
+  }
+
+  getReviewQueue(_input?: GetReviewQueueInput): ImportBatchDetail[] {
+    return []
+  }
+
   persistImportBatch(files: PersistImportFileInput[]): CommitImportBatchResult {
     if (files.length === 0) {
+      const importedAt = nowIso()
+      const batchId = crypto.randomUUID()
+      const attemptId = crypto.randomUUID()
       return {
-        batchId: crypto.randomUUID(),
-        importedAt: nowIso(),
+        attemptId,
+        batchId,
+        status: 'rejected',
+        importedAt,
         importedFiles: [],
         rejectedFiles: [],
         duplicateBlockedFiles: [],
         transactionsCreated: 0,
+        acceptedTransactionCount: 0,
+        blockedDuplicateCount: 0,
+        reviewItems: [],
+        summary: {
+          attemptId,
+          batchId,
+          status: 'rejected',
+          importedAt,
+          batchLabel: `ICICI import ${importedAt.slice(0, 10)}`,
+          fileCount: 0,
+          acceptedTransactionCount: 0,
+          blockedDuplicateCount: 0,
+          unresolvedReviewCount: 0,
+          errorCount: 0,
+          lastUpdatedAt: importedAt
+        },
         lazyAccountCreated: false
       }
     }
@@ -577,7 +616,9 @@ export class WalnutRepository {
     transaction()
 
     return {
+      attemptId: crypto.randomUUID(),
       batchId,
+      status: 'imported',
       importedAt,
       importedFiles: files.map((file) => ({
         ...file.stagedFile,
@@ -587,6 +628,23 @@ export class WalnutRepository {
       rejectedFiles: [],
       duplicateBlockedFiles: [],
       transactionsCreated: files.reduce((sum, file) => sum + file.rows.length, 0),
+      acceptedTransactionCount: files.reduce((sum, file) => sum + file.rows.length, 0),
+      blockedDuplicateCount: 0,
+      reviewItems: [] as ReviewItem[],
+      summary: {
+        attemptId: crypto.randomUUID(),
+        batchId,
+        status: 'imported',
+        importedAt,
+        accountLabel: files[0]?.stagedFile.accountLabel,
+        batchLabel,
+        fileCount: files.length,
+        acceptedTransactionCount: files.reduce((sum, file) => sum + file.rows.length, 0),
+        blockedDuplicateCount: 0,
+        unresolvedReviewCount: 0,
+        errorCount: 0,
+        lastUpdatedAt: importedAt
+      },
       lazyAccountCreated
     }
   }
