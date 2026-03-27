@@ -95,7 +95,7 @@ Plans:
 
 Plans:
 - [x] `03-01-PLAN.md` - Persist review items and import attempts with severity-aware mixed import gating
-- [ ] `03-02-PLAN.md` - Expose import history and batch detail as trustworthy all-attempt receipt views
+- [x] `03-02-PLAN.md` - Expose import history and batch detail as trustworthy all-attempt receipt views
 - [ ] `03-03-PLAN.md` - Implement auditable review mutations and persisted soft-restore backend flows
 - [ ] `03-04-PLAN.md` - Build the dedicated review queue UI, batch re-entry, and end-to-end restore coverage
 
@@ -189,4 +189,4 @@ Plans:
 Next recommended command: `$gsd-execute-phase 3`
 
 ---
-*Last updated: 2026-03-27 after Phase 3 Plan 01 execution*
+*Last updated: 2026-03-27 after Phase 3 Plan 02 execution*

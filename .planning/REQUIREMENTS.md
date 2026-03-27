@@ -21,7 +21,7 @@
 - [ ] **IMPT-04**: App blocks clear duplicate imports automatically.
 - [x] **IMPT-05**: App routes uncertain duplicate or parsing cases into review instead of silently accepting them.
 - [x] **IMPT-06**: Import flow blocks completion on critical issues but allows lower-risk review items to remain queued.
-- [ ] **IMPT-07**: User can view import history with batch status, counts, and errors.
+- [x] **IMPT-07**: User can view import history with batch status, counts, and errors.
 
 ### Review and Transactions
 
@@ -112,7 +112,7 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 | IMPT-04 | Phase 2 | Pending |
 | IMPT-05 | Phase 3 | Complete |
 | IMPT-06 | Phase 3 | Complete |
-| IMPT-07 | Phase 3 | Pending |
+| IMPT-07 | Phase 3 | Complete |
 | REVW-01 | Phase 3 | Pending |
 | TRAN-01 | Phase 4 | Pending |
 | TRAN-02 | Phase 4 | Pending |
@@ -143,4 +143,4 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after initial definition*
+*Last updated: 2026-03-27 after Phase 3 Plan 02 execution*
