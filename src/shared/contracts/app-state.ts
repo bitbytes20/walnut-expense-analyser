@@ -9,6 +9,8 @@ import type {
   ImportAttemptSummary,
   ListImportHistoryInput,
   PriorImportBatchInspection,
+  ReviewItemResolutionInput,
+  ReviewItemRestoreInput,
   RemoveStagedFileInput,
   StageImportFilesInput,
   StageImportFilesResult
@@ -91,5 +93,7 @@ export interface WalnutApi {
   listImportHistory: (input?: ListImportHistoryInput) => Promise<ImportAttemptSummary[]>
   getImportBatchDetail: (input: GetImportBatchDetailInput) => Promise<ImportBatchDetail>
   getReviewQueue: (input?: GetReviewQueueInput) => Promise<ImportBatchDetail[]>
+  resolveReviewItems: (input: ReviewItemResolutionInput) => Promise<ImportBatchDetail>
+  restoreReviewItems: (input: ReviewItemRestoreInput) => Promise<ImportBatchDetail>
   ping: () => Promise<string>
 }

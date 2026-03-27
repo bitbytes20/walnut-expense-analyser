@@ -175,6 +175,8 @@ const createWalnutApi = (): WalnutApi =>
     listImportHistory: vi.fn().mockResolvedValue(historyRows),
     getImportBatchDetail: vi.fn().mockResolvedValue(batchDetail),
     getReviewQueue: vi.fn().mockResolvedValue([]),
+    resolveReviewItems: vi.fn().mockResolvedValue(batchDetail),
+    restoreReviewItems: vi.fn().mockResolvedValue(batchDetail),
     ping: vi.fn().mockResolvedValue('pong')
   }) as unknown as WalnutApi
 

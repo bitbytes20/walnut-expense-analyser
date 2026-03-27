@@ -5,6 +5,8 @@ import type {
   GetImportBatchDetailInput,
   GetReviewQueueInput,
   ListImportHistoryInput,
+  ReviewItemResolutionInput,
+  ReviewItemRestoreInput,
   StageImportFilesInput
 } from '../../shared/contracts/import'
 import { pickImportFiles } from '../import/file-picker'
@@ -27,4 +29,6 @@ export const registerImportIpc = (window: BrowserWindow) => {
   ipcMain.handle('import:list-history', (_event, input?: ListImportHistoryInput) => repository.listImportHistory(input))
   ipcMain.handle('import:get-batch-detail', (_event, input: GetImportBatchDetailInput) => repository.getImportBatchDetail(input))
   ipcMain.handle('import:get-review-queue', (_event, input?: GetReviewQueueInput) => repository.getReviewQueue(input))
+  ipcMain.handle('import:resolve-review-items', (_event, input: ReviewItemResolutionInput) => repository.resolveReviewItems(input))
+  ipcMain.handle('import:restore-review-items', (_event, input: ReviewItemRestoreInput) => repository.restoreReviewItems(input))
 }

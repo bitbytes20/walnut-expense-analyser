@@ -75,6 +75,7 @@ const seedBatch = (repository: WalnutRepository) => {
   const attemptId = 'attempt-review'
   const sourceFileId = 'file-review'
   const baseRow = createRow(sourceFileId, batchId, 1)
+  const warningRow = createRow(sourceFileId, batchId, 2, { cleanedDescription: 'Needs acceptance' })
 
   repository.persistImportAttempt({
     attemptId,
@@ -90,21 +91,13 @@ const seedBatch = (repository: WalnutRepository) => {
       {
         stagedFile: createStagedFile(sourceFileId, 'review.xlsx'),
         fileFingerprint: 'fingerprint-review',
-        transactionSignatures: ['sig-review'],
-        rows: [baseRow]
+        transactionSignatures: ['sig-review-1', 'sig-review-2'],
+        rows: [baseRow, warningRow]
       }
     ],
     reviewItems: [
       createReviewItem('review-duplicate', batchId, attemptId, sourceFileId, baseRow, 'duplicate-candidate', 'blocking'),
-      createReviewItem(
-        'review-warning',
-        batchId,
-        attemptId,
-        sourceFileId,
-        createRow(sourceFileId, batchId, 2, { cleanedDescription: 'Needs acceptance' }),
-        'parser-uncertainty',
-        'warning'
-      )
+      createReviewItem('review-warning', batchId, attemptId, sourceFileId, warningRow, 'parser-uncertainty', 'warning')
     ],
     lazyAccountCreated: false
   })
@@ -136,7 +129,7 @@ describe('review mutations', () => {
     })
 
     let queue = repository.getReviewQueue({ batchId })
-    expect(queue[0].reviewItems).toHaveLength(0)
+    expect(queue).toHaveLength(0)
     expect(repository.listImportHistory()[0]).toMatchObject({
       batchId,
       unresolvedReviewCount: 0,
@@ -157,7 +150,23 @@ describe('review mutations', () => {
   it('allows edit-before-accept only for date, description, reference, and tags', () => {
     const repository = createRepository()
     const { batchId } = seedBatch(repository)
-    const before = repository.getImportBatchDetail({ batchId }).transactionGroups[0].transactions[0]
+    const before = repository.getImportBatchDetail({ batchId }).transactionGroups[0].transactions[1]
+
+    expect(() =>
+      repository.resolveReviewItems({
+        batchId,
+        action: 'edit-before-accept',
+        reviewItemIds: ['review-warning'],
+        edits: {
+          transactionDateRaw: '2024-02-29',
+          cleanedDescription: 'Reviewed description',
+          reference: 'REF-UPDATED',
+          tags: ['utilities'],
+          debitAmountMinor: 999999,
+          runningBalanceMinor: 123456
+        }
+      })
+    ).toThrow('Review resolution cannot change amount or running balance.')
 
     repository.resolveReviewItems({
       batchId,
@@ -167,13 +176,11 @@ describe('review mutations', () => {
         transactionDateRaw: '2024-02-29',
         cleanedDescription: 'Reviewed description',
         reference: 'REF-UPDATED',
-        tags: ['utilities'],
-        debitAmountMinor: 999999,
-        runningBalanceMinor: 123456
+        tags: ['utilities']
       }
     })
 
-    const after = repository.getImportBatchDetail({ batchId }).transactionGroups[0].transactions[0] as typeof before & {
+    const after = repository.getImportBatchDetail({ batchId }).transactionGroups[0].transactions[1] as typeof before & {
       tags?: string[]
     }
 

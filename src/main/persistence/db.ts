@@ -12,10 +12,10 @@ import type {
 import type { AccountProfile, AccountProfileDraft } from '../../shared/contracts/account'
 import type {
   CommitImportBatchResult,
-  ImportBatchFileOutcome,
   GetImportBatchDetailInput,
   GetReviewQueueInput,
   ImportBatchDetail,
+  ImportBatchFileOutcome,
   ImportBatchTransactionGroup,
   ImportAttemptStatus,
   ImportAttemptSummary,
@@ -24,6 +24,10 @@ import type {
   PriorImportBatchInspection,
   PriorImportBatchReference,
   ReviewItem,
+  ReviewItemEditInput,
+  ReviewItemResolutionAction,
+  ReviewItemResolutionInput,
+  ReviewItemRestoreInput,
   StagedImportFile
 } from '../../shared/contracts/import'
 import type { LockReason, SecurityEvent, SecurityState } from '../../shared/contracts/security'
@@ -69,6 +73,25 @@ interface PersistImportAttemptInput {
   acceptedFiles: PersistImportFileInput[]
   reviewItems: ReviewItem[]
   lazyAccountCreated: boolean
+}
+
+interface ReviewItemRow extends Record<string, unknown> {
+  id: string
+  import_attempt_id: string
+  batch_id: string
+  source_file_id: string | null
+  reason_code: string
+  severity: string
+  state: string
+  title: string
+  description: string
+  snapshot_json: string
+  created_at: string
+  updated_at: string
+  resolution_action?: string | null
+  resolution_payload_json?: string | null
+  resolved_at?: string | null
+  restored_at?: string | null
 }
 
 const buildDbPath = () => {
@@ -208,7 +231,8 @@ export class WalnutRepository {
         running_balance_minor INTEGER,
         direction TEXT NOT NULL,
         reference TEXT,
-        transaction_signature TEXT NOT NULL
+        transaction_signature TEXT NOT NULL,
+        tags_json TEXT
       );
       CREATE TABLE IF NOT EXISTS review_items (
         id TEXT PRIMARY KEY,
@@ -222,7 +246,11 @@ export class WalnutRepository {
         description TEXT NOT NULL,
         snapshot_json TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
+        updated_at TEXT NOT NULL,
+        resolution_action TEXT,
+        resolution_payload_json TEXT,
+        resolved_at TEXT,
+        restored_at TEXT
       );
       CREATE INDEX IF NOT EXISTS idx_import_attempts_status_imported_at
         ON import_attempts(status, imported_at DESC);
@@ -233,6 +261,12 @@ export class WalnutRepository {
       CREATE INDEX IF NOT EXISTS idx_review_items_attempt_id
         ON review_items(import_attempt_id);
     `)
+
+    this.ensureColumn('imported_transactions', 'tags_json', 'TEXT')
+    this.ensureColumn('review_items', 'resolution_action', 'TEXT')
+    this.ensureColumn('review_items', 'resolution_payload_json', 'TEXT')
+    this.ensureColumn('review_items', 'resolved_at', 'TEXT')
+    this.ensureColumn('review_items', 'restored_at', 'TEXT')
 
     const stamp = nowIso()
     this.sqlite
@@ -249,6 +283,18 @@ export class WalnutRepository {
         VALUES (?, ?, ?, ?)`
       )
       .run(singleRowId, 0, 0, stamp)
+  }
+
+  private ensureColumn(tableName: string, columnName: string, definition: string) {
+    const columns = this.sqlite
+      .prepare(`PRAGMA table_info(${tableName})`)
+      .all() as Array<{ name: string }>
+
+    if (columns.some((column) => column.name === columnName)) {
+      return
+    }
+
+    this.sqlite.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition};`)
   }
 
   loadAppState(): AppShellState {
@@ -611,6 +657,90 @@ export class WalnutRepository {
     return batchIds.map((row) => this.getImportBatchDetail({ batchId: String(row.batch_id) }))
   }
 
+  resolveReviewItems(input: ReviewItemResolutionInput): ImportBatchDetail {
+    const stamp = nowIso()
+    const sanitized = this.sanitizeResolutionInput(input)
+
+    const transaction = this.sqlite.transaction(() => {
+      const reviewRows = this.getPendingReviewItemRows(sanitized.batchId, sanitized.reviewItemIds)
+      const updateReviewItem = this.sqlite.prepare(
+        `UPDATE review_items
+         SET state = ?, updated_at = ?, resolution_action = ?, resolution_payload_json = ?, resolved_at = ?, restored_at = NULL
+         WHERE id = ?`
+      )
+
+      for (const reviewRow of reviewRows) {
+        this.applyResolutionEffects(reviewRow, sanitized)
+        updateReviewItem.run(
+          'resolved',
+          stamp,
+          sanitized.action,
+          JSON.stringify(this.buildResolutionPayload(sanitized)),
+          stamp,
+          reviewRow.id
+        )
+        this.insertReviewAuditEvent('review:resolved', {
+          action: sanitized.action,
+          batchId: sanitized.batchId,
+          reviewItemIds: [reviewRow.id]
+        }, stamp)
+      }
+
+      this.refreshImportAttemptReviewState(sanitized.batchId, stamp)
+    })
+
+    transaction()
+    return this.getImportBatchDetail({ batchId: sanitized.batchId })
+  }
+
+  restoreReviewItems(input: ReviewItemRestoreInput): ImportBatchDetail {
+    if (input.reviewItemIds.length === 0) {
+      throw new Error('Select at least one review item to restore.')
+    }
+
+    const stamp = nowIso()
+    const transaction = this.sqlite.transaction(() => {
+      const reviewRows = this.sqlite
+        .prepare(
+          `SELECT *
+           FROM review_items
+           WHERE batch_id = ?
+             AND id IN (${input.reviewItemIds.map(() => '?').join(', ')})
+             AND state = ?`
+        )
+        .all(input.batchId, ...input.reviewItemIds, 'resolved') as ReviewItemRow[]
+
+      if (reviewRows.length !== input.reviewItemIds.length) {
+        throw new Error('Only resolved review items from the selected batch can be restored.')
+      }
+
+      const updateReviewItem = this.sqlite.prepare(
+        `UPDATE review_items
+         SET state = ?, updated_at = ?, restored_at = ?
+         WHERE id = ?`
+      )
+
+      for (const reviewRow of reviewRows) {
+        const resolutionAction = reviewRow.resolution_action ?? ''
+        if (resolutionAction !== 'discard' && resolutionAction !== 'mark-duplicate') {
+          throw new Error('Only discarded or duplicate-marked review items can be restored.')
+        }
+
+        updateReviewItem.run('pending', stamp, stamp, reviewRow.id)
+        this.insertReviewAuditEvent('review:restored', {
+          action: resolutionAction,
+          batchId: input.batchId,
+          reviewItemIds: [reviewRow.id]
+        }, stamp)
+      }
+
+      this.refreshImportAttemptReviewState(input.batchId, stamp)
+    })
+
+    transaction()
+    return this.getImportBatchDetail({ batchId: input.batchId })
+  }
+
   persistImportAttempt(input: PersistImportAttemptInput): CommitImportBatchResult {
     const insertBatch = this.sqlite.prepare(
       `INSERT INTO import_batches (id, batch_label, imported_at, file_count, transaction_count, created_account_profile)
@@ -624,8 +754,8 @@ export class WalnutRepository {
     const insertTransaction = this.sqlite.prepare(
       `INSERT INTO imported_transactions
        (id, import_batch_id, source_file_id, transaction_date_raw, value_date_raw, raw_narration, cleaned_description,
-        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, reference, transaction_signature)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, reference, transaction_signature, tags_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const insertAttempt = this.sqlite.prepare(
       `INSERT INTO import_attempts
@@ -636,8 +766,9 @@ export class WalnutRepository {
     )
     const insertReviewItem = this.sqlite.prepare(
       `INSERT INTO review_items
-       (id, import_attempt_id, batch_id, source_file_id, reason_code, severity, state, title, description, snapshot_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, import_attempt_id, batch_id, source_file_id, reason_code, severity, state, title, description, snapshot_json, created_at, updated_at,
+        resolution_action, resolution_payload_json, resolved_at, restored_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
 
     const importedFiles = input.importedFiles.map((file, index) => ({
@@ -690,7 +821,8 @@ export class WalnutRepository {
             row.runningBalanceMinor ?? null,
             row.direction,
             row.reference ?? null,
-            file.transactionSignatures[index]
+            file.transactionSignatures[index],
+            null
           )
         }
       }
@@ -727,7 +859,11 @@ export class WalnutRepository {
           reviewItem.description,
           JSON.stringify(reviewItem.snapshot),
           reviewItem.createdAt,
-          reviewItem.updatedAt
+          reviewItem.updatedAt,
+          null,
+          null,
+          null,
+          null
         )
       }
     })
@@ -793,6 +929,199 @@ export class WalnutRepository {
 
   close() {
     this.sqlite.close()
+  }
+
+  private sanitizeResolutionInput(input: ReviewItemResolutionInput) {
+    if (input.reviewItemIds.length === 0) {
+      throw new Error('Select at least one review item to resolve.')
+    }
+
+    if (input.reviewItemIds.length > 1 && input.action === 'edit-before-accept') {
+      throw new Error('Edit before accept is only available for a single review item.')
+    }
+
+    if (input.action === 'apply-tag' && !input.tag?.trim()) {
+      throw new Error('Apply tag requires a tag value.')
+    }
+
+    const edits = input.edits ? this.sanitizeReviewEdits(input.edits) : undefined
+    return {
+      ...input,
+      tag: input.tag?.trim(),
+      edits
+    }
+  }
+
+  private sanitizeReviewEdits(edits: ReviewItemEditInput) {
+    if (edits.debitAmountMinor !== undefined || edits.creditAmountMinor !== undefined || edits.runningBalanceMinor !== undefined) {
+      throw new Error('Review resolution cannot change amount or running balance.')
+    }
+
+    return {
+      transactionDateRaw: edits.transactionDateRaw,
+      cleanedDescription: edits.cleanedDescription?.trim(),
+      reference: edits.reference?.trim(),
+      tags: edits.tags?.map((tag) => tag.trim()).filter(Boolean)
+    }
+  }
+
+  private getPendingReviewItemRows(batchId: string, reviewItemIds: string[]) {
+    const rows = this.sqlite
+      .prepare(
+        `SELECT *
+         FROM review_items
+         WHERE batch_id = ?
+           AND id IN (${reviewItemIds.map(() => '?').join(', ')})
+           AND state = ?
+         ORDER BY created_at ASC`
+      )
+      .all(batchId, ...reviewItemIds, 'pending') as ReviewItemRow[]
+
+    if (rows.length !== reviewItemIds.length) {
+      throw new Error('Only pending review items from the selected batch can be resolved.')
+    }
+
+    return rows
+  }
+
+  private applyResolutionEffects(
+    reviewRow: ReviewItemRow,
+    input: ReturnType<WalnutRepository['sanitizeResolutionInput']>
+  ) {
+    if (!reviewRow.source_file_id) {
+      return
+    }
+
+    if (input.action === 'edit-before-accept') {
+      this.updateImportedTransactionFromReview(reviewRow, input.edits)
+      return
+    }
+
+    if (input.action === 'apply-tag') {
+      this.applyTagToImportedTransaction(reviewRow, input.tag!)
+    }
+  }
+
+  private updateImportedTransactionFromReview(reviewRow: ReviewItemRow, edits?: ReturnType<WalnutRepository['sanitizeReviewEdits']>) {
+    if (!edits) {
+      throw new Error('Edit before accept requires editable fields.')
+    }
+
+    const snapshot = JSON.parse(String(reviewRow.snapshot_json)) as ReviewItem['snapshot']
+    const parsedRow = snapshot.parsedRow
+    if (!parsedRow) {
+      throw new Error('Review item does not have a parsed row to edit.')
+    }
+
+    const transactionRow = this.findImportedTransactionForReview(reviewRow, parsedRow)
+    if (!transactionRow) {
+      throw new Error('Imported transaction for review item could not be found.')
+    }
+
+    const nextTags = edits.tags ?? this.parseTagsJson(transactionRow.tags_json)
+    this.sqlite
+      .prepare(
+        `UPDATE imported_transactions
+         SET transaction_date_raw = ?, cleaned_description = ?, reference = ?, tags_json = ?
+         WHERE id = ?`
+      )
+      .run(
+        edits.transactionDateRaw ?? String(transactionRow.transaction_date_raw),
+        edits.cleanedDescription ?? String(transactionRow.cleaned_description),
+        edits.reference ?? (transactionRow.reference ? String(transactionRow.reference) : null),
+        JSON.stringify(nextTags),
+        String(transactionRow.id)
+      )
+  }
+
+  private applyTagToImportedTransaction(reviewRow: ReviewItemRow, tag: string) {
+    const snapshot = JSON.parse(String(reviewRow.snapshot_json)) as ReviewItem['snapshot']
+    const parsedRow = snapshot.parsedRow
+    if (!parsedRow) {
+      throw new Error('Review item does not have a parsed row to tag.')
+    }
+
+    const transactionRow = this.findImportedTransactionForReview(reviewRow, parsedRow)
+    if (!transactionRow) {
+      throw new Error('Imported transaction for review item could not be found.')
+    }
+
+    const nextTags = Array.from(new Set([...this.parseTagsJson(transactionRow.tags_json), tag]))
+    this.sqlite
+      .prepare('UPDATE imported_transactions SET tags_json = ? WHERE id = ?')
+      .run(JSON.stringify(nextTags), String(transactionRow.id))
+  }
+
+  private findImportedTransactionForReview(reviewRow: ReviewItemRow, parsedRow: NormalizedImportRow) {
+    return this.sqlite
+      .prepare(
+        `SELECT *
+         FROM imported_transactions
+         WHERE import_batch_id = ?
+           AND source_file_id = ?
+           AND transaction_date_raw = ?
+           AND cleaned_description = ?
+           AND IFNULL(reference, '') = IFNULL(?, '')
+         ORDER BY id ASC
+         LIMIT 1`
+      )
+      .get(
+        reviewRow.batch_id,
+        reviewRow.source_file_id,
+        parsedRow.transactionDateRaw,
+        parsedRow.cleanedDescription,
+        parsedRow.reference ?? null
+      ) as Record<string, unknown> | undefined
+  }
+
+  private refreshImportAttemptReviewState(batchId: string, updatedAt: string) {
+    const unresolved = this.sqlite
+      .prepare('SELECT COUNT(*) AS count FROM review_items WHERE batch_id = ? AND state = ?')
+      .get(batchId, 'pending') as { count: number }
+    const attemptRow = this.sqlite
+      .prepare('SELECT status FROM import_attempts WHERE batch_id = ? ORDER BY imported_at DESC LIMIT 1')
+      .get(batchId) as { status: ImportAttemptStatus } | undefined
+
+    if (!attemptRow) {
+      throw new Error(`Import attempt for batch ${batchId} was not found.`)
+    }
+
+    const nextStatus =
+      attemptRow.status === 'failed' || attemptRow.status === 'rejected'
+        ? attemptRow.status
+        : unresolved.count === 0
+          ? 'imported'
+          : 'needs-review'
+
+    this.sqlite
+      .prepare(
+        `UPDATE import_attempts
+         SET status = ?, unresolved_review_count = ?, last_updated_at = ?
+         WHERE batch_id = ?`
+      )
+      .run(nextStatus, unresolved.count, updatedAt, batchId)
+  }
+
+  private insertReviewAuditEvent(eventType: string, metadata: Record<string, unknown>, createdAt: string) {
+    this.sqlite
+      .prepare('INSERT INTO security_events (id, event_type, metadata_json, created_at) VALUES (?, ?, ?, ?)')
+      .run(crypto.randomUUID(), eventType, JSON.stringify(metadata), createdAt)
+  }
+
+  private buildResolutionPayload(input: ReturnType<WalnutRepository['sanitizeResolutionInput']>) {
+    return {
+      action: input.action,
+      tag: input.tag,
+      edits: input.edits
+    }
+  }
+
+  private parseTagsJson(value: unknown) {
+    if (!value) {
+      return [] as string[]
+    }
+
+    return JSON.parse(String(value)) as string[]
   }
 
   private mapImportAttemptSummary(row: Record<string, unknown>): ImportAttemptSummary {
@@ -898,6 +1227,7 @@ export class WalnutRepository {
       runningBalanceMinor: row.running_balance_minor === null ? undefined : Number(row.running_balance_minor),
       direction: String(row.direction) as NormalizedImportRow['direction'],
       reference: row.reference ? String(row.reference) : undefined,
+      tags: this.parseTagsJson(row.tags_json),
       sourceFileId: String(row.source_file_id),
       importBatchId: String(row.import_batch_id)
     }

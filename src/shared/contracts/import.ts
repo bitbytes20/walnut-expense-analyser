@@ -115,6 +115,37 @@ export interface ReviewItemResolutionRef {
   reviewItemId: string
 }
 
+export type ReviewItemResolutionAction =
+  | 'mark-duplicate'
+  | 'mark-not-duplicate'
+  | 'accept-as-is'
+  | 'edit-before-accept'
+  | 'discard'
+  | 'apply-tag'
+
+export interface ReviewItemEditInput {
+  transactionDateRaw?: string
+  cleanedDescription?: string
+  reference?: string
+  tags?: string[]
+  debitAmountMinor?: number
+  creditAmountMinor?: number
+  runningBalanceMinor?: number
+}
+
+export interface ReviewItemResolutionInput {
+  batchId: string
+  reviewItemIds: string[]
+  action: ReviewItemResolutionAction
+  tag?: string
+  edits?: ReviewItemEditInput
+}
+
+export interface ReviewItemRestoreInput {
+  batchId: string
+  reviewItemIds: string[]
+}
+
 export interface ReviewItem {
   id: string
   batchId: string
@@ -158,6 +189,7 @@ export interface ImportBatchFileOutcome extends StagedImportFile {
 
 export interface ImportBatchTransaction extends NormalizedImportRow {
   id: string
+  tags?: string[]
 }
 
 export interface ImportBatchTransactionGroup {

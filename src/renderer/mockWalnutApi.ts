@@ -14,6 +14,8 @@ import type {
   ImportAttemptSummary,
   ListImportHistoryInput,
   PriorImportBatchInspection,
+  ReviewItemResolutionInput,
+  ReviewItemRestoreInput,
   RemoveStagedFileInput,
   StageImportFilesInput,
   StageImportFilesResult,
@@ -111,6 +113,21 @@ const readImportBatchDetails = (): Record<string, ImportBatchDetail> => {
 const writeImportBatchDetails = (details: Record<string, ImportBatchDetail>) => {
   window.localStorage.setItem(IMPORT_BATCH_DETAILS_KEY, JSON.stringify(details))
   return details
+}
+
+const syncHistorySummary = (batchId: string, detail: ImportBatchDetail) => {
+  const history = readImportHistory().map((row) =>
+    row.batchId === batchId
+      ? {
+          ...row,
+          status: detail.summary.status,
+          unresolvedReviewCount: detail.summary.unresolvedReviewCount,
+          lastUpdatedAt: detail.summary.lastUpdatedAt
+        }
+      : row
+  )
+
+  writeImportHistory(history)
 }
 
 const logEvent = (eventType: string, metadataJson?: string) => {
@@ -627,6 +644,80 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
   },
   async getReviewQueue(_input?: GetReviewQueueInput): Promise<ImportBatchDetail[]> {
     return []
+  },
+  async resolveReviewItems(input: ReviewItemResolutionInput): Promise<ImportBatchDetail> {
+    const details = readImportBatchDetails()
+    const detail = details[input.batchId]
+    if (!detail) {
+      throw new Error(`Import batch ${input.batchId} was not found.`)
+    }
+
+    const pendingIds = new Set(input.reviewItemIds)
+    const remainingReviewItems = detail.reviewItems.filter((item) => !pendingIds.has(item.id))
+    const nextDetail: ImportBatchDetail = {
+      ...detail,
+      reviewItems: remainingReviewItems,
+      summary: {
+        ...detail.summary,
+        unresolvedReviewCount: remainingReviewItems.length,
+        status: remainingReviewItems.length === 0 ? 'imported' : 'needs-review',
+        lastUpdatedAt: new Date().toISOString()
+      }
+    }
+
+    writeImportBatchDetails({
+      ...details,
+      [input.batchId]: nextDetail
+    })
+    syncHistorySummary(input.batchId, nextDetail)
+
+    return nextDetail
+  },
+  async restoreReviewItems(input: ReviewItemRestoreInput): Promise<ImportBatchDetail> {
+    const details = readImportBatchDetails()
+    const detail = details[input.batchId]
+    if (!detail) {
+      throw new Error(`Import batch ${input.batchId} was not found.`)
+    }
+
+    const restoredItems = input.reviewItemIds.map((reviewItemId) => ({
+      id: reviewItemId,
+      batchId: input.batchId,
+      importAttemptId: detail.summary.attemptId,
+      reasonCode: 'duplicate-candidate' as const,
+      severity: 'warning' as const,
+      state: 'pending' as const,
+      title: 'Restored review item',
+      description: 'This review item was restored in the mock API.',
+      snapshot: {
+        message: 'This review item was restored in the mock API.'
+      },
+      createdAt: detail.summary.importedAt,
+      updatedAt: new Date().toISOString(),
+      resolution: {
+        batchId: input.batchId,
+        reviewItemId
+      }
+    }))
+    const nextItems = [...detail.reviewItems, ...restoredItems.filter((item) => !detail.reviewItems.some((existing) => existing.id === item.id))]
+    const nextDetail: ImportBatchDetail = {
+      ...detail,
+      reviewItems: nextItems,
+      summary: {
+        ...detail.summary,
+        unresolvedReviewCount: nextItems.length,
+        status: nextItems.length === 0 ? 'imported' : 'needs-review',
+        lastUpdatedAt: new Date().toISOString()
+      }
+    }
+
+    writeImportBatchDetails({
+      ...details,
+      [input.batchId]: nextDetail
+    })
+    syncHistorySummary(input.batchId, nextDetail)
+
+    return nextDetail
   },
   async ping() {
     return 'pong'
