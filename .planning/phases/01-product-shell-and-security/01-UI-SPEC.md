@@ -1,10 +1,11 @@
 ---
 phase: 01
 slug: product-shell-and-security
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-03-27
+reviewed_at: 2026-03-27T00:00:00+05:30
 ---
 
 # Phase 01 - UI Design Contract
@@ -38,6 +39,7 @@ Manual token contract for a greenfield desktop shell. No shadcn gate was applied
 ### Onboarding Flow
 - Use a linear wizard with `Back` and `Next`; do not show a numbered stepper.
 - Follow the fixed order from context: Welcome, Household profile, PIN setup, Recovery key, Account profile, Finish.
+- The centered task panel and welcome/display headline are the first-read visual anchor on the main onboarding screen; shell branding is intentionally secondary.
 - Show progress as plain language such as `Step 2 of 6` in the panel header, not as clickable milestones.
 - Persist draft progress after every successful step transition so restart resumes at the last incomplete step.
 - Place primary actions bottom-right and secondary actions bottom-left on every step.
@@ -173,4 +175,4 @@ Microcopy rules:
 - [ ] Dimension 5 Spacing: PASS
 - [ ] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-03-27

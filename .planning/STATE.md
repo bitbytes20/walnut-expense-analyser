@@ -39,10 +39,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 ## Session History
 
 - 2026-03-27: Phase 1 context gathered at `.planning/phases/01-product-shell-and-security/01-CONTEXT.md`
+- 2026-03-27: Phase 1 UI design contract approved at `.planning/phases/01-product-shell-and-security/01-UI-SPEC.md`
 
 ## Immediate Next Action
 
-Run `$gsd-plan-phase 1` to turn the Phase 1 shell, onboarding, account setup, and security decisions into an executable implementation plan.
+Run `$gsd-plan-phase 1` to turn the Phase 1 shell, onboarding, account setup, security decisions, and UI contract into an executable implementation plan.
 
 ---
-*Last updated: 2026-03-27 after phase 1 context gathering*
+*Last updated: 2026-03-27 after phase 1 UI-SPEC approval*
