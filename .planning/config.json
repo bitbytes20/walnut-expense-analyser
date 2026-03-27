@@ -1,0 +1,20 @@
+{
+  "mode": "interactive",
+  "granularity": "standard",
+  "parallelization": true,
+  "commit_docs": true,
+  "model_profile": "balanced",
+  "workflow": {
+    "research": true,
+    "plan_check": true,
+    "verifier": true,
+    "nyquist_validation": true,
+    "auto_advance": false
+  },
+  "planning": {
+    "release_strategy": "foundation-core-smart",
+    "project_type": "greenfield",
+    "product_posture": "windows-local-first-desktop",
+    "commit_docs": true
+  }
+}
