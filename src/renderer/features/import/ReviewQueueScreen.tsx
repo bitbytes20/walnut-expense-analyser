@@ -49,7 +49,7 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
   )
 
   useEffect(() => {
-    const storedRestore = window.sessionStorage.getItem(getRestoreStorageKey(initialBatchId))
+    const storedRestore = window.localStorage.getItem(getRestoreStorageKey(initialBatchId))
     if (storedRestore) {
       setRestoreContext(JSON.parse(storedRestore) as { batchId: string; reviewItemIds: string[]; message: string })
     }
@@ -108,7 +108,7 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
         reviewItemIds,
         message: action === 'mark-duplicate' ? 'Duplicate mark saved. Restore this review item if this was a mistake.' : 'Review action saved. Restore this review item if this was a mistake.'
       })
-      window.sessionStorage.setItem(
+      window.localStorage.setItem(
         getRestoreStorageKey(initialBatchId),
         JSON.stringify({
           batchId,
@@ -135,7 +135,7 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
       })
       await Promise.all([loadQueue(restoreContext.batchId), refreshRelatedViews(restoreContext.batchId)])
       setRestoreContext(undefined)
-      window.sessionStorage.removeItem(getRestoreStorageKey(initialBatchId))
+      window.localStorage.removeItem(getRestoreStorageKey(initialBatchId))
     } finally {
       setMutating(false)
     }
