@@ -60,9 +60,9 @@ Plan Phase 2 as a main-process import service, not a renderer feature with file 
 
 Use one parser stack for all required file types. The narrowest workable choice is `xlsx` for CSV/XLS/XLSX ingestion, plus explicit ICICI header matching, explicit date and amount normalization, and SQLite-backed duplicate keys. Do not plan a generic import mapper. This phase is a trusted ICICI pipeline with clear rejection reasons, sheet-choice handling for Excel, and durable batch metadata that Phase 3 can extend into review/history.
 
-The main planning risk is fixture quality, not UI complexity. There are no sample ICICI statements in the repo today. Treat golden import fixtures for known-good CSV/XLS/XLSX and at least one unsupported variant as Wave 0 assets, otherwise the parser and duplicate logic will drift into guesswork.
+The main planning risk is fixture coverage, not UI complexity. The repo now has two real ICICI `.xls` statement samples in `sample_files/OpTransactionHistory-2016.xls` and `sample_files/OpTransactionHistory-2017.xls`. Treat those as the canonical seed assets for Wave 1, then derive the committed golden fixture set for known-good CSV/XLS/XLSX and at least one unsupported variant from those real exports so the parser and duplicate logic do not drift into guesswork.
 
-**Primary recommendation:** Build a main-process `import` module around `xlsx` + SQLite transactions + SHA-256 duplicate keys, and gate planning on adding real ICICI fixture files first.
+**Primary recommendation:** Build a main-process `import` module around `xlsx` + SQLite transactions + SHA-256 duplicate keys, using `sample_files/OpTransactionHistory-2016.xls` and `sample_files/OpTransactionHistory-2017.xls` as the real ICICI source files for the committed fixture set.
 
 ## Project Constraints (from AGENTS.md)
 
@@ -305,10 +305,10 @@ txn(batchRecord, fileRecords, transactionRows)
 
 ## Open Questions
 
-1. **Where are the real ICICI sample fixtures?**
-   - What we know: The repo has no sample CSV/XLS/XLSX files or expected parser outputs.
-   - What's unclear: Exact header variants, date formats, amount formatting, and narration quirks across the user's exports.
-   - Recommendation: Make fixture acquisition a Wave 0 prerequisite for planning.
+1. **How should the real ICICI sample files be normalized into the committed fixture set?**
+   - What we know: The repo now has `sample_files/OpTransactionHistory-2016.xls` and `sample_files/OpTransactionHistory-2017.xls`.
+   - What's unclear: Whether those two files cover all header/date/narration quirks needed for the first parser pass, and what exact CSV/XLSX derivatives should be committed under `tests/fixtures/import/`.
+   - Recommendation: Make fixture promotion a first Wave 1 deliverable: inspect both `.xls` files, document their column/header patterns, derive one known-good committed `.xls` fixture from them, and generate matching `.csv` and `.xlsx` committed fixtures with expected parser outputs.
 
 2. **What money unit should Phase 2 persist for imported amounts?**
    - What we know: Existing SQLite schema already uses `INTEGER` for `opening_balance`.
@@ -359,6 +359,7 @@ txn(batchRecord, fileRecords, transactionRows)
 - **Phase gate:** `cmd /c npm run test:unit` plus `npx playwright test tests/e2e/import-flow.spec.ts`
 
 ### Wave 0 Gaps
+- [ ] Promote `sample_files/OpTransactionHistory-2016.xls` and `sample_files/OpTransactionHistory-2017.xls` into the committed fixture workflow before deriving the committed golden fixtures below
 - [ ] `tests/fixtures/import/` — real known-good ICICI CSV, XLS, XLSX, plus at least one unsupported variant
 - [ ] `tests/unit/import/parser.test.ts` — format detection, header mapping, worksheet ambiguity
 - [ ] `tests/unit/import/duplicates.test.ts` — file fingerprint and transaction-signature blocking

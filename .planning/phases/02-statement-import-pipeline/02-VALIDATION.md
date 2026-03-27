@@ -50,6 +50,7 @@ created: 2026-03-27
 
 ## Wave 0 Requirements
 
+- [ ] Promote `sample_files/OpTransactionHistory-2016.xls` and `sample_files/OpTransactionHistory-2017.xls` into the committed test fixture workflow
 - [ ] `tests/fixtures/import/icici-valid.csv` - known-good CSV fixture
 - [ ] `tests/fixtures/import/icici-valid.xls` - known-good XLS fixture
 - [ ] `tests/fixtures/import/icici-valid.xlsx` - known-good XLSX fixture
