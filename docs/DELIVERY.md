@@ -98,11 +98,17 @@ Plan reference:
 
 When a phase completes:
 
-- update story issues to done/closed
-- update the epic issue with completion status
-- move project items accordingly
+- move story issues into `Review` while the phase PR is open
+- update the epic issue with execution status and linked PR
+- move project items to `Done` and close them after the phase merges
 - review milestone progress
 - carry any deferred or follow-up work into later epic/story creation
+
+## Current Delivery Snapshot
+
+- Phase 1 implementation is complete and staged for PR review against `release/1.0.0`
+- Phase 1 tracking items are the epic `#1` and stories `#14`, `#15`, and `#16`
+- Next planning track remains Phase 2: Statement Import Pipeline
 
 ## Documentation Expectations
 

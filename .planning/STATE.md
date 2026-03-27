@@ -1,19 +1,19 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Ready for phase execution
-**Roadmap status:** Release 1 Phase 1 planned, execution not started
+**Project status:** Phase 1 complete, ready for Phase 2 discussion
+**Roadmap status:** Release 1 Phase 1 complete, Phase 2 not yet discussed
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 1 - Product Shell and Security
+**Current focus:** Phase 2 - Statement Import Pipeline
 
 ## Current Position
 
-- Repo is greenfield with planning artifacts initialized.
+- Repo now includes the initial desktop shell, onboarding flow, lock screen, and Phase 1 verification artifacts.
 - Release 1 is the trusted import-to-insight loop for one ICICI account profile.
 - The project should stay Windows-first, local-first, and offline-first for core flows.
 - Future releases cover budgeting, AI summaries, additional banks, sync, web, and mobile.
@@ -44,7 +44,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 ## Immediate Next Action
 
-Run `$gsd-execute-phase 1` to execute the three Phase 1 plans across the planned waves.
+Run `$gsd-discuss-phase 2` to lock the statement import pipeline details before planning.
 
 ---
-*Last updated: 2026-03-27 after phase 1 planning*
+*Last updated: 2026-03-27 after Phase 1 execution*
