@@ -1,8 +1,8 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Ready for phase discussion
-**Roadmap status:** Release 1 planned, work not started
+**Project status:** Ready for phase execution
+**Roadmap status:** Release 1 Phase 1 planned, execution not started
 
 ## Project Reference
 
@@ -40,10 +40,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 - 2026-03-27: Phase 1 context gathered at `.planning/phases/01-product-shell-and-security/01-CONTEXT.md`
 - 2026-03-27: Phase 1 UI design contract approved at `.planning/phases/01-product-shell-and-security/01-UI-SPEC.md`
+- 2026-03-27: Phase 1 execution plans created at `.planning/phases/01-product-shell-and-security/01-01-PLAN.md`, `.planning/phases/01-product-shell-and-security/01-02-PLAN.md`, and `.planning/phases/01-product-shell-and-security/01-03-PLAN.md`
 
 ## Immediate Next Action
 
-Run `$gsd-plan-phase 1` to turn the Phase 1 shell, onboarding, account setup, security decisions, and UI contract into an executable implementation plan.
+Run `$gsd-execute-phase 1` to execute the three Phase 1 plans across the planned waves.
 
 ---
-*Last updated: 2026-03-27 after phase 1 UI-SPEC approval*
+*Last updated: 2026-03-27 after phase 1 planning*
