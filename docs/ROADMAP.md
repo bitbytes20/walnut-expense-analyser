@@ -20,7 +20,7 @@ Status: completed and merged into `release/1.0.0`.
 ### Phase 2: Statement Import Pipeline
 
 Goal: build the strict ICICI import flow and local record-only persistence model with hard duplicate blocking.
-Status: planned and ready for execution on `phase/2-statement-import-pipeline`.
+Status: implemented on `phase/2-statement-import-pipeline`.
 
 ### Phase 3: Review Queue and Import History
 
@@ -85,16 +85,20 @@ Execution artifacts:
 - `.planning/phases/01-product-shell-and-security/01-03-SUMMARY.md`
 - `.planning/phases/01-product-shell-and-security/01-VERIFICATION.md`
 
-## Phase 2 Planned Waves
+## Phase 2 Completed Waves
 
-Phase 2 is decomposed into three execution waves and is ready to execute:
+Phase 2 was decomposed into three execution waves and all three are now implemented:
 
 - Wave 1: import fixtures, parser contracts, and preload import foundation
 - Wave 2: main-process parsing, record-only persistence, and duplicate blocking
 - Wave 3: shared import workspace, import summary, and end-to-end coverage
 
-Tracking artifacts:
+Execution artifacts:
 
+- `.planning/phases/02-statement-import-pipeline/02-01-SUMMARY.md`
+- `.planning/phases/02-statement-import-pipeline/02-02-SUMMARY.md`
+- `.planning/phases/02-statement-import-pipeline/02-03-SUMMARY.md`
+- `.planning/phases/02-statement-import-pipeline/02-VERIFICATION.md`
 - `.planning/phases/02-statement-import-pipeline/02-01-PLAN.md`
 - `.planning/phases/02-statement-import-pipeline/02-02-PLAN.md`
 - `.planning/phases/02-statement-import-pipeline/02-03-PLAN.md`

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
 import { registerAppStateIpc } from './ipc/app-state'
+import { registerImportIpc } from './ipc/import'
 import { registerSecurityIpc } from './ipc/security'
 import { SessionLockManager } from './security/session-lock'
 
@@ -26,6 +27,7 @@ const createWindow = async () => {
 
   const sessionLock = new SessionLockManager()
   registerAppStateIpc()
+  registerImportIpc(mainWindow)
   registerSecurityIpc(mainWindow, sessionLock)
   sessionLock.registerWindow(mainWindow)
 

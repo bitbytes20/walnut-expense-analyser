@@ -6,6 +6,16 @@ import type {
 } from '../shared/contracts/app-state'
 import type { AccountProfileDraft } from '../shared/contracts/account'
 import type {
+  ChooseImportSheetInput,
+  CommitImportBatchInput,
+  PriorImportBatchInspection,
+  RemoveStagedFileInput,
+  StageImportFilesInput,
+  StageImportFilesResult,
+  StagedImportFile,
+  WorksheetCandidate
+} from '../shared/contracts/import'
+import type {
   LockReason,
   RecoveryResetPayload,
   SecurityEvent,
@@ -16,11 +26,17 @@ import { generateRecoveryKey, isValidPin } from '../shared/security-utils'
 
 const STORAGE_KEY = 'walnut.mock.app-state'
 const EVENTS_KEY = 'walnut.mock.security-events'
+const STAGED_FILES_KEY = 'walnut.mock.staged-import-files'
+const IMPORT_HISTORY_KEY = 'walnut.mock.import-history'
 
 type StoredState = AppShellState & {
   mockPin?: string
   mockRecoveryCode?: string
   mockRecoveryWords?: string
+}
+
+type MockWalnutApi = WalnutApi & {
+  __mock: true
 }
 
 const defaultState = (): StoredState => ({
@@ -61,6 +77,26 @@ const writeEvents = (events: SecurityEvent[]) => {
   window.localStorage.setItem(EVENTS_KEY, JSON.stringify(events))
 }
 
+const readStagedFiles = (): StagedImportFile[] => {
+  const raw = window.localStorage.getItem(STAGED_FILES_KEY)
+  return raw ? (JSON.parse(raw) as StagedImportFile[]) : []
+}
+
+const writeStagedFiles = (files: StagedImportFile[]) => {
+  window.localStorage.setItem(STAGED_FILES_KEY, JSON.stringify(files))
+  return files
+}
+
+const readImportHistory = (): PriorImportBatchInspection[] => {
+  const raw = window.localStorage.getItem(IMPORT_HISTORY_KEY)
+  return raw ? (JSON.parse(raw) as PriorImportBatchInspection[]) : []
+}
+
+const writeImportHistory = (history: PriorImportBatchInspection[]) => {
+  window.localStorage.setItem(IMPORT_HISTORY_KEY, JSON.stringify(history))
+  return history
+}
+
 const logEvent = (eventType: string, metadataJson?: string) => {
   const next: SecurityEvent = {
     id: crypto.randomUUID(),
@@ -87,7 +123,115 @@ const updateSecurity = (update: Partial<SecurityState>) => {
   })
 }
 
-export const createMockWalnutApi = (): WalnutApi => ({
+const createWorksheetCandidates = (): WorksheetCandidate[] => [
+  {
+    name: 'OpTransactionHistory',
+    rowCount: 66,
+    headerPreview: ['Transaction Date', 'Transaction Remarks', 'Withdrawal Amount(INR)', 'Deposit Amount(INR)', 'Balance(INR)'],
+    recommended: true
+  },
+  {
+    name: 'Transactions',
+    rowCount: 64,
+    headerPreview: ['Value Date', 'Narration', 'Debit', 'Credit', 'Balance'],
+    recommended: false
+  }
+]
+
+const statementAccountLabel = '187501504556 ( INR )  - OMPRAKASH HARISHCHANDRA GAUTAM'
+const statementPeriodLabel = '01/07/2016 to 31/12/2016'
+
+const createStagedFile = (rawPath: string, history: PriorImportBatchInspection[]): StagedImportFile => {
+  const normalizedPath = rawPath.replace(/\\/g, '/')
+  const fileName = normalizedPath.split('/').pop() ?? rawPath
+  const lowerName = fileName.toLowerCase()
+  const extension = lowerName.endsWith('.csv') ? 'csv' : lowerName.endsWith('.xls') ? 'xls' : lowerName.endsWith('.xlsx') ? 'xlsx' : 'unknown'
+  const latestHistory = history[0]
+
+  if (lowerName.includes('unsupported')) {
+    return {
+      id: crypto.randomUUID(),
+      fileName,
+      fileExtension: extension,
+      filePath: rawPath,
+      status: 'rejected',
+      accountLabel: statementAccountLabel,
+      statementPeriodLabel,
+      reasonCode: 'missing-columns',
+      reasonTitle: 'ICICI columns were not recognized',
+      reasonBody: 'Use an ICICI account statement in CSV, XLS, or XLSX with transaction date, narration, and debit or credit columns.'
+    }
+  }
+
+  if (lowerName.includes('ambiguous')) {
+    return {
+      id: crypto.randomUUID(),
+      fileName,
+      fileExtension: extension,
+      filePath: rawPath,
+      status: 'needs-sheet-selection',
+      accountLabel: statementAccountLabel,
+      statementPeriodLabel,
+      worksheetCandidates: createWorksheetCandidates(),
+      reasonCode: 'ambiguous-sheet',
+      reasonTitle: 'Choose the worksheet to import',
+      reasonBody: 'More than one worksheet looks like an ICICI transaction sheet. Review the recommended sheet before continuing.'
+    }
+  }
+
+  if (lowerName.includes('duplicate')) {
+    const priorBatch = latestHistory ?? {
+      priorBatchId: 'mock-batch-earlier',
+      batchLabel: 'ICICI import 01/07/2016 to 31/12/2016',
+      importedAt: new Date().toISOString(),
+      fileCount: 1,
+      importedTransactionCount: 8,
+      fileNames: ['icici-valid.xlsx'],
+      duplicateCauseFileName: 'icici-valid.xlsx'
+    }
+
+    return {
+      id: crypto.randomUUID(),
+      fileName,
+      fileExtension: extension,
+      filePath: rawPath,
+      status: 'duplicate-blocked',
+      accountLabel: statementAccountLabel,
+      statementPeriodLabel,
+      reasonCode: 'duplicate-file',
+      reasonTitle: 'Walnut already imported this statement',
+      reasonBody: 'This file matches a previously imported statement, even if the filename changed.',
+      priorBatch: {
+        priorBatchId: priorBatch.priorBatchId,
+        batchLabel: priorBatch.batchLabel,
+        importedAt: priorBatch.importedAt,
+        fileCount: priorBatch.fileCount,
+        matchedFileName: priorBatch.duplicateCauseFileName
+      }
+    }
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    fileName,
+    fileExtension: extension,
+    filePath: rawPath,
+    status: 'ready',
+    accountLabel: statementAccountLabel,
+    statementPeriodLabel,
+    warnings: lowerName.includes('warning') ? ['Check after import: balance continuity needs review.'] : undefined
+  }
+}
+
+const mergeStagedFiles = (incoming: StagedImportFile[]) => {
+  const existing = readStagedFiles()
+  const next = [...existing, ...incoming]
+  writeStagedFiles(next)
+  return next
+}
+
+export const createMockWalnutApi = (): MockWalnutApi => ({
+  __mock: true,
   async loadAppState() {
     return withoutMocks(readState())
   },
@@ -264,6 +408,115 @@ export const createMockWalnutApi = (): WalnutApi => ({
   },
   async getSecurityEvents() {
     return readEvents()
+  },
+  async stageImportFiles(input?: StageImportFilesInput): Promise<StageImportFilesResult> {
+    const history = readImportHistory()
+    const staged = (input?.filePaths ?? []).map((filePath) => createStagedFile(filePath, history))
+    return {
+      stagedFiles: mergeStagedFiles(staged)
+    }
+  },
+  async chooseImportSheet(input: ChooseImportSheetInput): Promise<StageImportFilesResult> {
+    const updated = readStagedFiles().map((file) =>
+      file.id === input.stagedFileId
+        ? {
+            ...file,
+            status: 'ready' as const,
+            selectedWorksheetName: input.worksheetName,
+            worksheetCandidates: file.worksheetCandidates?.map((candidate) => ({
+              ...candidate,
+              recommended: candidate.name === input.worksheetName
+            })),
+            reasonCode: undefined,
+            reasonTitle: undefined,
+            reasonBody: undefined
+          }
+        : file
+    )
+    return {
+      stagedFiles: writeStagedFiles(updated)
+    }
+  },
+  async removeStagedFile(input: RemoveStagedFileInput): Promise<StageImportFilesResult> {
+    return {
+      stagedFiles: writeStagedFiles(readStagedFiles().filter((file) => file.id !== input.stagedFileId))
+    }
+  },
+  async commitImportBatch(input?: CommitImportBatchInput) {
+    const current = readState()
+    const targetIds = input?.stagedFileIds?.length ? new Set(input.stagedFileIds) : undefined
+    const stagedFiles = readStagedFiles().filter((file) => !targetIds || targetIds.has(file.id))
+    const importedAt = new Date().toISOString()
+    const importedFiles = stagedFiles
+      .filter((file) => file.status === 'ready')
+      .map((file) => ({
+        ...file,
+        status: 'imported' as const,
+        importedTransactionCount: 8,
+        warnings: file.warnings
+      }))
+    const rejectedFiles = stagedFiles.filter((file) => file.status === 'rejected')
+    const duplicateBlockedFiles = stagedFiles.filter((file) => file.status === 'duplicate-blocked')
+    const lazyAccountCreated = importedFiles.length > 0 && !current.accountProfile
+
+    if (lazyAccountCreated) {
+      writeState({
+        ...current,
+        accountProfile: {
+          id: 'account-primary',
+          bankName: 'ICICI',
+          displayName: 'Primary ICICI',
+          accountHolderName: current.onboarding.profile?.ownerName ?? 'Walnut Owner',
+          baseCurrency: 'INR',
+          createdAt: importedAt,
+          updatedAt: importedAt
+        }
+      })
+    }
+
+    if (importedFiles.length > 0) {
+      const batchId = crypto.randomUUID()
+      const priorBatch: PriorImportBatchInspection = {
+        priorBatchId: batchId,
+        batchLabel: `ICICI import ${statementPeriodLabel}`,
+        importedAt,
+        fileCount: importedFiles.length,
+        importedTransactionCount: importedFiles.length * 8,
+        fileNames: importedFiles.map((file) => file.fileName),
+        duplicateCauseFileName: importedFiles[0]?.fileName
+      }
+      writeImportHistory([priorBatch, ...readImportHistory()])
+    }
+
+    writeStagedFiles(
+      readStagedFiles().map((file) => {
+        const imported = importedFiles.find((candidate) => candidate.id === file.id)
+        return imported ?? file
+      })
+    )
+
+    return {
+      batchId: crypto.randomUUID(),
+      importedAt,
+      importedFiles,
+      rejectedFiles,
+      duplicateBlockedFiles,
+      transactionsCreated: importedFiles.length * 8,
+      lazyAccountCreated
+    }
+  },
+  async inspectPriorImportBatch(priorBatchId: string): Promise<PriorImportBatchInspection> {
+    return (
+      readImportHistory().find((batch) => batch.priorBatchId === priorBatchId) ?? {
+        priorBatchId,
+        batchLabel: 'Earlier import batch',
+        importedAt: new Date().toISOString(),
+        fileCount: 1,
+        importedTransactionCount: 8,
+        fileNames: ['icici-valid.xlsx'],
+        duplicateCauseFileName: 'icici-valid.xlsx'
+      }
+    )
   },
   async ping() {
     return 'pong'

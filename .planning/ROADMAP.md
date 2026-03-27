@@ -69,11 +69,12 @@ Plans:
 **Requirements:** IMPT-01, IMPT-02, IMPT-03, IMPT-04
 
 **Plans:** 3 plans
+**Status:** Complete (2026-03-27)
 
 Plans:
-- [ ] `02-01-PLAN.md` - Define import contracts and build the fixture-backed ICICI staging/parser foundation
-- [ ] `02-02-PLAN.md` - Implement record-only persistence, duplicate-safe commit flow, and lazy account creation
-- [ ] `02-03-PLAN.md` - Build the staged import workspace, summary flow, and import e2e coverage
+- [x] `02-01-PLAN.md` - Define import contracts and build the fixture-backed ICICI staging/parser foundation
+- [x] `02-02-PLAN.md` - Implement record-only persistence, duplicate-safe commit flow, and lazy account creation
+- [x] `02-03-PLAN.md` - Build the staged import workspace, summary flow, and import e2e coverage
 
 **Success criteria**
 1. Supported ICICI CSV/XLS/XLSX files import successfully.
@@ -176,7 +177,7 @@ Plans:
 
 ## Next Step
 
-Next recommended command: `$gsd-discuss-phase 2`
+Next recommended command: `$gsd-discuss-phase 3`
 
 ---
-*Last updated: 2026-03-27 after roadmap creation*
+*Last updated: 2026-03-27 after Phase 2 execution*

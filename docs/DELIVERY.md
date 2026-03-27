@@ -152,8 +152,9 @@ When a phase completes:
 
 - Phase 1 implementation is complete and merged into `release/1.0.0`
 - Phase 1 tracking items are epic `#1` and stories `#14`, `#15`, and `#16`
-- Phase 2 is planned and ready for execution on `phase/2-statement-import-pipeline`
+- Phase 2 implementation is complete on `phase/2-statement-import-pipeline`
 - Phase 2 tracking items are epic `#2` and stories `#18`, `#19`, and `#20`
+- Next discussion track is Phase 3: Review Queue and Import History
 
 ## Documentation Expectations
 
