@@ -90,6 +90,14 @@ Plans:
 
 **Requirements:** IMPT-05, IMPT-06, IMPT-07, REVW-01
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] `03-01-PLAN.md` - Persist review items and import attempts with severity-aware mixed import gating
+- [ ] `03-02-PLAN.md` - Expose import history and batch detail as trustworthy all-attempt receipt views
+- [ ] `03-03-PLAN.md` - Implement auditable review mutations and persisted soft-restore backend flows
+- [ ] `03-04-PLAN.md` - Build the dedicated review queue UI, batch re-entry, and end-to-end restore coverage
+
 **Success criteria**
 1. Ambiguous duplicates or parser uncertainties are sent to review rather than guessed silently.
 2. Critical issues block import completion while lower-risk items can remain unresolved.
