@@ -1,7 +1,7 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 2 complete, ready for Phase 3 discussion
+**Project status:** Phase 3 context captured, ready for planning
 **Roadmap status:** Release 1 Phases 1 and 2 complete
 
 ## Project Reference
@@ -9,7 +9,7 @@
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 3 - Review Queue and Import History discussion
+**Current focus:** Phase 3 - Review Queue and Import History planning
 
 ## Current Position
 
@@ -45,10 +45,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-27: Phase 2 UI design contract approved at `.planning/phases/02-statement-import-pipeline/02-UI-SPEC.md`
 - 2026-03-27: Phase 2 execution plans created at `.planning/phases/02-statement-import-pipeline/02-01-PLAN.md`, `.planning/phases/02-statement-import-pipeline/02-02-PLAN.md`, and `.planning/phases/02-statement-import-pipeline/02-03-PLAN.md`
 - 2026-03-27: Phase 2 executed with summaries at `.planning/phases/02-statement-import-pipeline/02-01-SUMMARY.md`, `.planning/phases/02-statement-import-pipeline/02-02-SUMMARY.md`, `.planning/phases/02-statement-import-pipeline/02-03-SUMMARY.md`, and `.planning/phases/02-statement-import-pipeline/02-VERIFICATION.md`
+- 2026-03-27: Phase 3 context gathered at `.planning/phases/03-review-queue-and-import-history/03-CONTEXT.md`
 
 ## Immediate Next Action
 
-Run `$gsd-discuss-phase 3` to lock the review-queue and import-history behavior before planning.
+Run `$gsd-ui-phase 3` and then `$gsd-plan-phase 3` to turn the locked review-queue and import-history behavior into an execution-ready phase.
 
 ---
-*Last updated: 2026-03-27 after Phase 2 execution*
+*Last updated: 2026-03-27 after Phase 3 discussion*
