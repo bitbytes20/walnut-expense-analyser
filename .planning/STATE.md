@@ -1,15 +1,15 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 3 planned, ready for execution
-**Roadmap status:** Release 1 Phases 1 and 2 complete
+**Project status:** Phase 3 in progress
+**Roadmap status:** Release 1 Phases 1 and 2 complete; Phase 3 started
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 3 - Review Queue and Import History execution
+**Current focus:** Phase 3 - Review Queue and Import History execution (03-02 next)
 
 ## Current Position
 
@@ -28,6 +28,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - Starter categories and rules with user-rule precedence
 - Premium dashboard with both themes
 - Full audit ledger, redacted diagnostics, and local crash reports
+- Duplicate candidates and worksheet/parser uncertainty persist as blocking review items
+- Import attempts persist durable file outcomes and counters in SQLite for history and queue refetches
 
 ## Delivery Expectations
 
@@ -49,10 +51,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-27: Phase 3 research captured at `.planning/phases/03-review-queue-and-import-history/03-RESEARCH.md`
 - 2026-03-27: Phase 3 UI design contract approved at `.planning/phases/03-review-queue-and-import-history/03-UI-SPEC.md`
 - 2026-03-27: Phase 3 execution plans created at `.planning/phases/03-review-queue-and-import-history/03-01-PLAN.md`, `.planning/phases/03-review-queue-and-import-history/03-02-PLAN.md`, `.planning/phases/03-review-queue-and-import-history/03-03-PLAN.md`, and `.planning/phases/03-review-queue-and-import-history/03-04-PLAN.md`
+- 2026-03-27: Phase 3 Plan 01 executed with summary at `.planning/phases/03-review-queue-and-import-history/03-01-SUMMARY.md`
 
 ## Immediate Next Action
 
-Run `$gsd-execute-phase 3` to implement the planned review-queue, import-history, mutation, and restore flows.
+Execute `03-02-PLAN.md` to build the import history and batch detail surfaces on top of the new attempt ledger.
 
 ---
-*Last updated: 2026-03-27 after Phase 3 planning*
+*Last updated: 2026-03-27 after Phase 3 Plan 01 execution*
