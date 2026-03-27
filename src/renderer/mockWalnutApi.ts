@@ -33,6 +33,7 @@ const STORAGE_KEY = 'walnut.mock.app-state'
 const EVENTS_KEY = 'walnut.mock.security-events'
 const STAGED_FILES_KEY = 'walnut.mock.staged-import-files'
 const IMPORT_HISTORY_KEY = 'walnut.mock.import-history'
+const IMPORT_BATCH_DETAILS_KEY = 'walnut.mock.import-batch-details'
 
 type StoredState = AppShellState & {
   mockPin?: string
@@ -92,14 +93,24 @@ const writeStagedFiles = (files: StagedImportFile[]) => {
   return files
 }
 
-const readImportHistory = (): PriorImportBatchInspection[] => {
+const readImportHistory = (): ImportAttemptSummary[] => {
   const raw = window.localStorage.getItem(IMPORT_HISTORY_KEY)
-  return raw ? (JSON.parse(raw) as PriorImportBatchInspection[]) : []
+  return raw ? (JSON.parse(raw) as ImportAttemptSummary[]) : []
 }
 
-const writeImportHistory = (history: PriorImportBatchInspection[]) => {
+const writeImportHistory = (history: ImportAttemptSummary[]) => {
   window.localStorage.setItem(IMPORT_HISTORY_KEY, JSON.stringify(history))
   return history
+}
+
+const readImportBatchDetails = (): Record<string, ImportBatchDetail> => {
+  const raw = window.localStorage.getItem(IMPORT_BATCH_DETAILS_KEY)
+  return raw ? (JSON.parse(raw) as Record<string, ImportBatchDetail>) : {}
+}
+
+const writeImportBatchDetails = (details: Record<string, ImportBatchDetail>) => {
+  window.localStorage.setItem(IMPORT_BATCH_DETAILS_KEY, JSON.stringify(details))
+  return details
 }
 
 const logEvent = (eventType: string, metadataJson?: string) => {
@@ -146,7 +157,7 @@ const createWorksheetCandidates = (): WorksheetCandidate[] => [
 const statementAccountLabel = '187501504556 ( INR )  - OMPRAKASH HARISHCHANDRA GAUTAM'
 const statementPeriodLabel = '01/07/2016 to 31/12/2016'
 
-const createStagedFile = (rawPath: string, history: PriorImportBatchInspection[]): StagedImportFile => {
+const createStagedFile = (rawPath: string, history: ImportAttemptSummary[]): StagedImportFile => {
   const normalizedPath = rawPath.replace(/\\/g, '/')
   const fileName = normalizedPath.split('/').pop() ?? rawPath
   const lowerName = fileName.toLowerCase()
@@ -185,15 +196,7 @@ const createStagedFile = (rawPath: string, history: PriorImportBatchInspection[]
   }
 
   if (lowerName.includes('duplicate')) {
-    const priorBatch = latestHistory ?? {
-      priorBatchId: 'mock-batch-earlier',
-      batchLabel: 'ICICI import 01/07/2016 to 31/12/2016',
-      importedAt: new Date().toISOString(),
-      fileCount: 1,
-      importedTransactionCount: 8,
-      fileNames: ['icici-valid.xlsx'],
-      duplicateCauseFileName: 'icici-valid.xlsx'
-    }
+    const priorBatch = latestHistory
 
     return {
       id: crypto.randomUUID(),
@@ -207,11 +210,11 @@ const createStagedFile = (rawPath: string, history: PriorImportBatchInspection[]
       reasonTitle: 'Walnut already imported this statement',
       reasonBody: 'This file matches a previously imported statement, even if the filename changed.',
       priorBatch: {
-        priorBatchId: priorBatch.priorBatchId,
-        batchLabel: priorBatch.batchLabel,
-        importedAt: priorBatch.importedAt,
-        fileCount: priorBatch.fileCount,
-        matchedFileName: priorBatch.duplicateCauseFileName
+        priorBatchId: priorBatch?.batchId ?? 'mock-batch-earlier',
+        batchLabel: priorBatch?.batchLabel ?? 'ICICI import 01/07/2016 to 31/12/2016',
+        importedAt: priorBatch?.importedAt ?? new Date().toISOString(),
+        fileCount: priorBatch?.fileCount ?? 1,
+        matchedFileName: 'icici-valid.xlsx'
       }
     }
   }
@@ -482,16 +485,74 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
     const batchId = crypto.randomUUID()
     const attemptId = crypto.randomUUID()
     if (importedFiles.length > 0) {
-      const priorBatch: PriorImportBatchInspection = {
-        priorBatchId: batchId,
-        batchLabel: `ICICI import ${statementPeriodLabel}`,
+      const summary: ImportAttemptSummary = {
+        attemptId,
+        batchId,
+        status: importedFiles.some((file) => file.warnings?.length) ? 'needs-review' : 'imported',
         importedAt,
-        fileCount: importedFiles.length,
-        importedTransactionCount: importedFiles.length * 8,
-        fileNames: importedFiles.map((file) => file.fileName),
-        duplicateCauseFileName: importedFiles[0]?.fileName
+        accountLabel: importedFiles[0]?.accountLabel,
+        batchLabel: `ICICI import ${statementPeriodLabel}`,
+        fileCount: stagedFiles.length,
+        acceptedTransactionCount: importedFiles.length * 8,
+        blockedDuplicateCount: duplicateBlockedFiles.length,
+        unresolvedReviewCount: importedFiles.some((file) => file.warnings?.length) ? 1 : 0,
+        errorCount: rejectedFiles.length,
+        lastUpdatedAt: importedAt
       }
-      writeImportHistory([priorBatch, ...readImportHistory()])
+      writeImportHistory([summary, ...readImportHistory()])
+      writeImportBatchDetails({
+        ...readImportBatchDetails(),
+        [batchId]: {
+          summary,
+          reviewItems:
+            summary.unresolvedReviewCount > 0
+              ? [
+                  {
+                    id: 'mock-review-item',
+                    batchId,
+                    importAttemptId: attemptId,
+                    reasonCode: 'balance-continuity-warning',
+                    severity: 'warning',
+                    state: 'pending',
+                    title: 'Balance continuity warning',
+                    description: 'Check after import: balance continuity needs review.',
+                    snapshot: {
+                      sourceFileId: importedFiles[0]?.id,
+                      sourceFileName: importedFiles[0]?.fileName,
+                      message: 'Check after import: balance continuity needs review.'
+                    },
+                    createdAt: importedAt,
+                    updatedAt: importedAt,
+                    resolution: {
+                      batchId,
+                      reviewItemId: 'mock-review-item'
+                    }
+                  }
+                ]
+              : [],
+          fileOutcomes: [
+            ...importedFiles.map((file) => ({ ...file, outcome: 'imported' as const })),
+            ...duplicateBlockedFiles.map((file) => ({ ...file, outcome: 'duplicate-blocked' as const })),
+            ...rejectedFiles.map((file) => ({ ...file, outcome: 'rejected' as const }))
+          ],
+          transactionGroups: importedFiles.map((file) => ({
+            sourceFileId: file.id,
+            sourceFileName: file.fileName,
+            transactions: [
+              {
+                id: `${file.id}-txn-1`,
+                transactionDateRaw: '2024-01-01',
+                rawNarration: 'Mock transaction',
+                cleanedDescription: 'Mock transaction',
+                debitAmountMinor: 120000,
+                direction: 'debit' as const,
+                sourceFileId: file.id,
+                importBatchId: batchId
+              }
+            ]
+          }))
+        }
+      })
     }
 
     writeStagedFiles(
@@ -531,8 +592,19 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
     }
   },
   async inspectPriorImportBatch(priorBatchId: string): Promise<PriorImportBatchInspection> {
+    const historyBatch = readImportHistory().find((batch) => batch.batchId === priorBatchId)
     return (
-      readImportHistory().find((batch) => batch.priorBatchId === priorBatchId) ?? {
+      (historyBatch
+        ? {
+            priorBatchId: historyBatch.batchId,
+            batchLabel: historyBatch.batchLabel,
+            importedAt: historyBatch.importedAt,
+            fileCount: historyBatch.fileCount,
+            importedTransactionCount: historyBatch.acceptedTransactionCount,
+            fileNames: ['icici-valid.xlsx'],
+            duplicateCauseFileName: 'icici-valid.xlsx'
+          }
+        : undefined) ?? {
         priorBatchId,
         batchLabel: 'Earlier import batch',
         importedAt: new Date().toISOString(),
@@ -544,35 +616,14 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
     )
   },
   async listImportHistory(_input?: ListImportHistoryInput): Promise<ImportAttemptSummary[]> {
-    return readImportHistory().map((batch) => ({
-      attemptId: batch.priorBatchId,
-      batchId: batch.priorBatchId,
-      status: 'imported',
-      importedAt: batch.importedAt,
-      batchLabel: batch.batchLabel,
-      accountLabel: statementAccountLabel,
-      fileCount: batch.fileCount,
-      acceptedTransactionCount: batch.importedTransactionCount,
-      blockedDuplicateCount: 0,
-      unresolvedReviewCount: 0,
-      errorCount: 0,
-      lastUpdatedAt: batch.importedAt
-    }))
+    return readImportHistory()
   },
   async getImportBatchDetail(input: GetImportBatchDetailInput): Promise<ImportBatchDetail> {
-    const history = await this.listImportHistory()
-    const summary = history.find((item) => item.batchId === input.batchId)
-    if (!summary) {
+    const detail = readImportBatchDetails()[input.batchId]
+    if (!detail) {
       throw new Error(`Import batch ${input.batchId} was not found.`)
     }
-
-    return {
-      ...summary,
-      reviewItems: [],
-      importedFiles: [],
-      rejectedFiles: [],
-      duplicateBlockedFiles: []
-    }
+    return detail
   },
   async getReviewQueue(_input?: GetReviewQueueInput): Promise<ImportBatchDetail[]> {
     return []

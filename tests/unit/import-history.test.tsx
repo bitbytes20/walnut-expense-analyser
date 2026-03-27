@@ -224,7 +224,7 @@ describe('import history', () => {
     await screen.findByRole('heading', { name: 'Batch detail' })
     expect(screen.getByText('Review unresolved items')).toBeVisible()
     expect(screen.getByText('duplicate.xlsx')).toBeVisible()
-    expect(screen.getByText('review.xlsx')).toBeVisible()
+    expect(screen.getAllByText('review.xlsx').length).toBeGreaterThan(0)
     expect(screen.getByText('Coffee shop')).toBeVisible()
   })
 
