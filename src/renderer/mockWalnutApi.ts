@@ -56,6 +56,17 @@ import type {
   UpdateTransactionInput,
   UpdateTransactionResult
 } from '../shared/contracts/transactions'
+import type {
+  DashboardPreferences,
+  DashboardRange,
+  DashboardRangePreset,
+  DashboardRecurringDetail,
+  DashboardRecurringDetailInput,
+  DashboardRecurringItem,
+  DashboardSnapshot,
+  DashboardSnapshotQuery,
+  DashboardTrendPoint
+} from '../shared/contracts/dashboard'
 import { generateRecoveryKey, isValidPin } from '../shared/security-utils'
 
 const STORAGE_KEY = 'walnut.mock.app-state'
@@ -69,6 +80,7 @@ const ACTIVE_PROFILE_KEY = 'walnut.mock.active-profile-id'
 const PROFILE_SNAPSHOTS_KEY = 'walnut.mock.profile-snapshots'
 const CATEGORIES_KEY = 'walnut.mock.categories'
 const RULES_KEY = 'walnut.mock.rules'
+const DASHBOARD_PREFERENCES_KEY = 'walnut.mock.dashboard-preferences'
 
 type StoredState = AppShellState & {
   mockPin?: string
@@ -288,6 +300,16 @@ const writeRules = (rules: CategorizationRuleSummary[]) => {
   return rules
 }
 
+const readDashboardPreferences = (): DashboardPreferences | undefined => {
+  const raw = window.localStorage.getItem(DASHBOARD_PREFERENCES_KEY)
+  return raw ? (JSON.parse(raw) as DashboardPreferences) : undefined
+}
+
+const writeDashboardPreferences = (preferences: DashboardPreferences) => {
+  window.localStorage.setItem(DASHBOARD_PREFERENCES_KEY, JSON.stringify(preferences))
+  return preferences
+}
+
 const syncHistorySummary = (batchId: string, detail: ImportBatchDetail) => {
   const history = readImportHistory().map((row) =>
     row.batchId === batchId
@@ -350,6 +372,264 @@ const toSortableDateKey = (raw: string) => {
   }
 
   return trimmed
+}
+
+const formatIsoDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const addDaysToIso = (iso: string, days: number) => {
+  const date = new Date(`${iso}T00:00:00`)
+  date.setDate(date.getDate() + days)
+  return formatIsoDate(date)
+}
+
+const startOfMonthIso = (iso: string) => {
+  const date = new Date(`${iso}T00:00:00`)
+  date.setDate(1)
+  return formatIsoDate(date)
+}
+
+const endOfMonthIso = (iso: string) => {
+  const date = new Date(`${iso}T00:00:00`)
+  date.setMonth(date.getMonth() + 1, 0)
+  return formatIsoDate(date)
+}
+
+const startOfYearIso = (iso: string) => {
+  const date = new Date(`${iso}T00:00:00`)
+  date.setMonth(0, 1)
+  return formatIsoDate(date)
+}
+
+const endOfYearIso = (iso: string) => {
+  const date = new Date(`${iso}T00:00:00`)
+  date.setMonth(11, 31)
+  return formatIsoDate(date)
+}
+
+const startOfWeekIso = (iso: string) => {
+  const date = new Date(`${iso}T00:00:00`)
+  const day = date.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  date.setDate(date.getDate() + diff)
+  return formatIsoDate(date)
+}
+
+const endOfWeekIso = (iso: string) => addDaysToIso(startOfWeekIso(iso), 6)
+
+const differenceInDaysInclusive = (from: string, to: string) => {
+  const fromDate = new Date(`${from}T00:00:00`)
+  const toDate = new Date(`${to}T00:00:00`)
+  const diff = toDate.getTime() - fromDate.getTime()
+  return Math.max(1, Math.round(diff / 86400000) + 1)
+}
+
+const formatTrendMonth = (iso: string) =>
+  new Intl.DateTimeFormat('en-IN', {
+    month: 'short'
+  }).format(new Date(`${iso}T00:00:00`))
+
+const formatTrendDay = (iso: string) =>
+  new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short'
+  }).format(new Date(`${iso}T00:00:00`))
+
+const resolveDashboardRange = (range: DashboardRange, rows: TransactionLedgerRow[]): DashboardRange => {
+  const ordered = [...rows].sort((left, right) => left.transactionDateSortable.localeCompare(right.transactionDateSortable))
+  const first = ordered[0]?.transactionDateSortable ?? formatIsoDate(new Date())
+  const last = ordered.at(-1)?.transactionDateSortable ?? first
+
+  if (range.preset === 'custom' && range.from && range.to) {
+    return {
+      preset: 'custom',
+      from: toSortableDateKey(range.from),
+      to: toSortableDateKey(range.to)
+    }
+  }
+
+  if (range.preset === 'all-time') {
+    return { preset: 'all-time', from: first, to: last }
+  }
+
+  if (range.preset === 'year') {
+    return { preset: 'year', from: startOfYearIso(last), to: endOfYearIso(last) }
+  }
+
+  if (range.preset === 'month') {
+    return { preset: 'month', from: startOfMonthIso(last), to: endOfMonthIso(last) }
+  }
+
+  return { preset: 'week', from: startOfWeekIso(last), to: endOfWeekIso(last) }
+}
+
+const defaultDashboardPreferences = (rows: TransactionLedgerRow[]): DashboardPreferences => ({
+  range: resolveDashboardRange({ preset: 'month' }, rows),
+  compareEnabled: true
+})
+
+const resolveDashboardQuery = (query: DashboardSnapshotQuery, rows: TransactionLedgerRow[]): DashboardSnapshotQuery => {
+  const range = resolveDashboardRange(query.range, rows)
+  const compareEnabled = Boolean(query.compare?.enabled)
+  if (!compareEnabled) {
+    return { range, compare: { enabled: false } }
+  }
+
+  const span = differenceInDaysInclusive(range.from!, range.to!)
+  const compareTo = addDaysToIso(range.from!, -1)
+  const compareFrom = addDaysToIso(compareTo, -(span - 1))
+
+  return {
+    range,
+    compare: {
+      enabled: true,
+      from: compareFrom,
+      to: compareTo
+    }
+  }
+}
+
+const toTrend = (current: number, previous?: number) => {
+  if (previous === undefined || current === previous) {
+    return 'flat' as const
+  }
+
+  return current > previous ? 'up' as const : 'down' as const
+}
+
+const isSpendType = (type: TransactionNormalizedType) =>
+  type === 'expense' || type === 'atm-withdrawal' || type === 'credit-card-payment'
+
+const isIncomeType = (type: TransactionNormalizedType) => type === 'income' || type === 'refund'
+
+const bucketForPreset = (row: TransactionLedgerRow, preset: DashboardRangePreset) => {
+  if (preset === 'year' || preset === 'all-time') {
+    const from = startOfMonthIso(row.transactionDateSortable)
+    return {
+      bucketKey: from,
+      bucketLabel: formatTrendMonth(from),
+      from,
+      to: endOfMonthIso(row.transactionDateSortable)
+    }
+  }
+
+  if (preset === 'month') {
+    const from = startOfWeekIso(row.transactionDateSortable)
+    const to = endOfWeekIso(row.transactionDateSortable)
+    return {
+      bucketKey: from,
+      bucketLabel: `${formatTrendDay(from)} - ${formatTrendDay(to)}`,
+      from,
+      to
+    }
+  }
+
+  return {
+    bucketKey: row.transactionDateSortable,
+    bucketLabel: formatTrendDay(row.transactionDateSortable),
+    from: row.transactionDateSortable,
+    to: row.transactionDateSortable
+  }
+}
+
+const buildSpendTrend = (
+  rows: TransactionLedgerRow[],
+  compareRows: TransactionLedgerRow[],
+  preset: DashboardRangePreset
+): DashboardTrendPoint[] => {
+  const aggregate = (inputRows: TransactionLedgerRow[]) => {
+    const map = new Map<string, DashboardTrendPoint>()
+    for (const row of inputRows) {
+      const bucket = bucketForPreset(row, preset)
+      const current = map.get(bucket.bucketKey) ?? {
+        ...bucket,
+        spendMinor: 0,
+        incomeMinor: 0,
+        ledgerQuery: {
+          dateFrom: bucket.from,
+          dateTo: bucket.to
+        }
+      }
+      if (isSpendType(row.normalizedType)) {
+        current.spendMinor += row.debitAmountMinor ?? Math.abs(Math.min(row.signedAmountMinor, 0))
+      }
+      if (isIncomeType(row.normalizedType)) {
+        current.incomeMinor += row.creditAmountMinor ?? Math.abs(Math.max(row.signedAmountMinor, 0))
+      }
+      map.set(bucket.bucketKey, current)
+    }
+
+    return Array.from(map.values()).sort((left, right) => left.from.localeCompare(right.from))
+  }
+
+  const currentBuckets = aggregate(rows)
+  const previousBuckets = aggregate(compareRows)
+
+  return currentBuckets.map((bucket, index) => ({
+    ...bucket,
+    previousSpendMinor: previousBuckets[index]?.spendMinor,
+    previousIncomeMinor: previousBuckets[index]?.incomeMinor
+  }))
+}
+
+const buildRecurringItems = (rows: TransactionLedgerRow[], range: DashboardRange): DashboardRecurringItem[] => {
+  const map = new Map<
+    string,
+    {
+      id: string
+      description: string
+      direction: 'debit' | 'credit'
+      normalizedType: TransactionNormalizedType
+      occurrenceCount: number
+      totalAmountMinor: number
+      lastTransactionDateRaw: string
+    }
+  >()
+
+  for (const row of rows) {
+    const direction = row.signedAmountMinor >= 0 ? 'credit' : 'debit'
+    const id = `${row.normalizedType}|${direction}|${row.description.trim().toLowerCase()}`
+    const current = map.get(id) ?? {
+      id,
+      description: row.description,
+      direction,
+      normalizedType: row.normalizedType,
+      occurrenceCount: 0,
+      totalAmountMinor: 0,
+      lastTransactionDateRaw: row.transactionDateRaw
+    }
+    current.occurrenceCount += 1
+    current.totalAmountMinor += Math.abs(row.signedAmountMinor)
+    if (toSortableDateKey(row.transactionDateRaw) > toSortableDateKey(current.lastTransactionDateRaw)) {
+      current.lastTransactionDateRaw = row.transactionDateRaw
+    }
+    map.set(id, current)
+  }
+
+  return Array.from(map.values())
+    .filter((item) => item.occurrenceCount >= 2)
+    .sort((left, right) => right.occurrenceCount - left.occurrenceCount || right.totalAmountMinor - left.totalAmountMinor)
+    .slice(0, 6)
+    .map((item) => ({
+      id: item.id,
+      description: item.description,
+      direction: item.direction,
+      normalizedType: item.normalizedType,
+      occurrenceCount: item.occurrenceCount,
+      averageAmountMinor: Math.round(item.totalAmountMinor / item.occurrenceCount),
+      lastTransactionDateRaw: item.lastTransactionDateRaw,
+      cadenceLabel: `Repeats ${item.occurrenceCount} times`,
+      ledgerQuery: {
+        dateFrom: range.from,
+        dateTo: range.to,
+        search: item.description,
+        types: [item.normalizedType]
+      }
+    }))
 }
 
 const deriveNormalizedType = (description: string, rawNarration: string, reference: string | undefined, direction: 'debit' | 'credit'): TransactionNormalizedType => {
@@ -1403,6 +1683,243 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
   },
   async applyRuleToExisting(_input: ApplyRuleToExistingInput) {
     return readRules()
+  },
+  async getDashboardPreferences() {
+    const rows = flattenTransactions()
+    return readDashboardPreferences() ?? defaultDashboardPreferences(rows)
+  },
+  async setDashboardPreferences(input: DashboardPreferences) {
+    return writeDashboardPreferences(input)
+  },
+  async getDashboardSnapshot(input: DashboardSnapshotQuery): Promise<DashboardSnapshot> {
+    const allRows = flattenTransactions()
+    const query = resolveDashboardQuery(input, allRows)
+    const rows = await this.listTransactions({
+      dateFrom: query.range.from,
+      dateTo: query.range.to
+    })
+    const compareRows =
+      query.compare?.enabled && query.compare.from && query.compare.to
+        ? await this.listTransactions({
+            dateFrom: query.compare.from,
+            dateTo: query.compare.to
+          })
+        : []
+
+    const creditedTotalMinor = rows.reduce((total, row) => total + (row.creditAmountMinor ?? 0), 0)
+    const debitedTotalMinor = rows.reduce((total, row) => total + (row.debitAmountMinor ?? 0), 0)
+    const incomeTotalMinor = rows.reduce(
+      (total, row) => total + (isIncomeType(row.normalizedType) ? row.creditAmountMinor ?? 0 : 0),
+      0
+    )
+    const expenseTotalMinor = rows.reduce(
+      (total, row) => total + (isSpendType(row.normalizedType) ? row.debitAmountMinor ?? 0 : 0),
+      0
+    )
+
+    const compareCreditedMinor = compareRows.reduce((total, row) => total + (row.creditAmountMinor ?? 0), 0)
+    const compareDebitedMinor = compareRows.reduce((total, row) => total + (row.debitAmountMinor ?? 0), 0)
+    const compareIncomeMinor = compareRows.reduce(
+      (total, row) => total + (isIncomeType(row.normalizedType) ? row.creditAmountMinor ?? 0 : 0),
+      0
+    )
+    const compareExpenseMinor = compareRows.reduce(
+      (total, row) => total + (isSpendType(row.normalizedType) ? row.debitAmountMinor ?? 0 : 0),
+      0
+    )
+
+    const buildOperationalCard = (
+      id: 'transfer' | 'refund' | 'atm-withdrawal' | 'credit-card-payment',
+      label: string,
+      type: TransactionNormalizedType
+    ) => {
+      const totalMinor = rows.reduce((total, row) => total + (row.normalizedType === type ? Math.abs(row.signedAmountMinor) : 0), 0)
+      const previousTotalMinor = compareRows.reduce(
+        (total, row) => total + (row.normalizedType === type ? Math.abs(row.signedAmountMinor) : 0),
+        0
+      )
+      const transactionCount = rows.filter((row) => row.normalizedType === type).length
+
+      return {
+        id,
+        label,
+        totalMinor,
+        transactionCount,
+        previousTotalMinor: compareRows.length ? previousTotalMinor : undefined,
+        deltaMinor: compareRows.length ? totalMinor - previousTotalMinor : undefined,
+        trend: toTrend(totalMinor, compareRows.length ? previousTotalMinor : undefined),
+        helper: `${transactionCount} matching transactions in the selected period.`
+      }
+    }
+
+    const categorySpendRows = rows.filter((row) => isSpendType(row.normalizedType))
+    const categoryMap = new Map<string, { categoryId?: string; label: string; totalMinor: number; transactionCount: number }>()
+    for (const row of categorySpendRows) {
+      const label = row.categoryPath?.join(' > ') || row.category || 'Uncategorized'
+      const key = row.categoryId ?? label
+      const current = categoryMap.get(key) ?? {
+        categoryId: row.categoryId,
+        label,
+        totalMinor: 0,
+        transactionCount: 0
+      }
+      current.totalMinor += row.debitAmountMinor ?? Math.abs(Math.min(row.signedAmountMinor, 0))
+      current.transactionCount += 1
+      categoryMap.set(key, current)
+    }
+    const totalSpendMinor = Array.from(categoryMap.values()).reduce((sum, item) => sum + item.totalMinor, 0)
+
+    const merchantMap = new Map<string, { merchant: string; totalMinor: number; transactionCount: number }>()
+    for (const row of categorySpendRows) {
+      const current = merchantMap.get(row.description) ?? { merchant: row.description, totalMinor: 0, transactionCount: 0 }
+      current.totalMinor += row.debitAmountMinor ?? Math.abs(Math.min(row.signedAmountMinor, 0))
+      current.transactionCount += 1
+      merchantMap.set(row.description, current)
+    }
+
+    return {
+      query,
+      summaryCards: [
+        {
+          id: 'credited',
+          label: 'Total credited',
+          totalMinor: creditedTotalMinor,
+          previousTotalMinor: compareRows.length ? compareCreditedMinor : undefined,
+          deltaMinor: compareRows.length ? creditedTotalMinor - compareCreditedMinor : undefined,
+          trend: toTrend(creditedTotalMinor, compareRows.length ? compareCreditedMinor : undefined),
+          helper: 'All credit activity in the selected period.'
+        },
+        {
+          id: 'debited',
+          label: 'Total debited',
+          totalMinor: debitedTotalMinor,
+          previousTotalMinor: compareRows.length ? compareDebitedMinor : undefined,
+          deltaMinor: compareRows.length ? debitedTotalMinor - compareDebitedMinor : undefined,
+          trend: toTrend(debitedTotalMinor, compareRows.length ? compareDebitedMinor : undefined),
+          helper: 'All debit activity in the selected period.'
+        },
+        {
+          id: 'difference',
+          label: 'Difference',
+          totalMinor: creditedTotalMinor - debitedTotalMinor,
+          previousTotalMinor: compareRows.length ? compareCreditedMinor - compareDebitedMinor : undefined,
+          deltaMinor:
+            compareRows.length ? creditedTotalMinor - debitedTotalMinor - (compareCreditedMinor - compareDebitedMinor) : undefined,
+          trend: toTrend(
+            creditedTotalMinor - debitedTotalMinor,
+            compareRows.length ? compareCreditedMinor - compareDebitedMinor : undefined
+          ),
+          helper: 'Credited minus debited for the selected period.'
+        },
+        {
+          id: 'income',
+          label: 'Income vs refunds',
+          totalMinor: incomeTotalMinor,
+          previousTotalMinor: compareRows.length ? compareIncomeMinor : undefined,
+          deltaMinor: compareRows.length ? incomeTotalMinor - compareIncomeMinor : undefined,
+          trend: toTrend(incomeTotalMinor, compareRows.length ? compareIncomeMinor : undefined),
+          helper: 'Income includes refunds and reimbursements.'
+        },
+        {
+          id: 'expense',
+          label: 'Spend footprint',
+          totalMinor: expenseTotalMinor,
+          previousTotalMinor: compareRows.length ? compareExpenseMinor : undefined,
+          deltaMinor: compareRows.length ? expenseTotalMinor - compareExpenseMinor : undefined,
+          trend: toTrend(expenseTotalMinor, compareRows.length ? compareExpenseMinor : undefined),
+          helper: 'Spend includes expenses, ATM withdrawals, and credit-card payments.'
+        }
+      ],
+      operationalCards: [
+        buildOperationalCard('transfer', 'Transfers', 'transfer'),
+        buildOperationalCard('refund', 'Refunds', 'refund'),
+        buildOperationalCard('atm-withdrawal', 'ATM withdrawals', 'atm-withdrawal'),
+        buildOperationalCard('credit-card-payment', 'Credit card payments', 'credit-card-payment')
+      ],
+      spendTrend: buildSpendTrend(rows, compareRows, query.range.preset),
+      categoryBreakdown: Array.from(categoryMap.values())
+        .sort((left, right) => right.totalMinor - left.totalMinor)
+        .slice(0, 8)
+        .map((item) => ({
+          ...item,
+          percentageOfSpend: totalSpendMinor > 0 ? item.totalMinor / totalSpendMinor : 0,
+          ledgerQuery: {
+            dateFrom: query.range.from,
+            dateTo: query.range.to,
+            categories: item.categoryId ? [item.categoryId] : [item.label]
+          }
+        })),
+      topMerchants: Array.from(merchantMap.values())
+        .sort((left, right) => right.totalMinor - left.totalMinor)
+        .slice(0, 8)
+        .map((item) => ({
+          ...item,
+          ledgerQuery: {
+            dateFrom: query.range.from,
+            dateTo: query.range.to,
+            search: item.merchant
+          }
+        })),
+      largestTransactions: [...rows]
+        .sort((left, right) => Math.abs(right.signedAmountMinor) - Math.abs(left.signedAmountMinor))
+        .slice(0, 8)
+        .map((row) => ({
+          transactionId: row.id,
+          description: row.description,
+          transactionDateRaw: row.transactionDateRaw,
+          amountMinor: Math.abs(row.signedAmountMinor),
+          normalizedType: row.normalizedType,
+          ledgerQuery: {
+            dateFrom: query.range.from,
+            dateTo: query.range.to,
+            search: row.description
+          }
+        })),
+      recentTransactions: [...rows]
+        .sort((left, right) => right.transactionDateSortable.localeCompare(left.transactionDateSortable))
+        .slice(0, 6)
+        .map((row) => ({
+          transactionId: row.id,
+          description: row.description,
+          transactionDateRaw: row.transactionDateRaw,
+          signedAmountMinor: row.signedAmountMinor,
+          normalizedType: row.normalizedType,
+          ledgerQuery: {
+            dateFrom: query.range.from,
+            dateTo: query.range.to,
+            search: row.description
+          }
+        })),
+      recurringItems: buildRecurringItems(rows, query.range)
+    }
+  },
+  async getRecurringDetail(input: DashboardRecurringDetailInput): Promise<DashboardRecurringDetail> {
+    const snapshot = await this.getDashboardSnapshot(input.query)
+    const item = snapshot.recurringItems.find((candidate) => candidate.id === input.recurringId)
+    if (!item) {
+      throw new Error(`Recurring pattern ${input.recurringId} was not found.`)
+    }
+
+    const transactions = (await this.listTransactions({
+      dateFrom: snapshot.query.range.from,
+      dateTo: snapshot.query.range.to,
+      search: item.description,
+      types: [item.normalizedType]
+    }))
+      .filter((row) => (item.direction === 'credit' ? row.signedAmountMinor >= 0 : row.signedAmountMinor < 0))
+      .slice(0, 12)
+      .map((row) => ({
+        transactionId: row.id,
+        transactionDateRaw: row.transactionDateRaw,
+        description: row.description,
+        signedAmountMinor: row.signedAmountMinor,
+        normalizedType: row.normalizedType
+      }))
+
+    return {
+      item,
+      transactions
+    }
   },
   async ping() {
     return 'pong'

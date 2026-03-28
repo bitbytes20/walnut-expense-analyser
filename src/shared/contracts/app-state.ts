@@ -47,6 +47,13 @@ import type {
   UpdateTransactionInput,
   UpdateTransactionResult
 } from './transactions'
+import type {
+  DashboardPreferences,
+  DashboardRecurringDetail,
+  DashboardRecurringDetailInput,
+  DashboardSnapshot,
+  DashboardSnapshotQuery
+} from './dashboard'
 
 export type AppView = 'onboarding' | 'locked' | 'dashboard'
 
@@ -150,5 +157,9 @@ export interface WalnutApi {
   testRule: (input: RulePreviewInput) => Promise<RuleTestPreview>
   previewRuleApplyToExisting: (input: RulePreviewInput | ApplyRuleToExistingInput) => Promise<RuleApplyPreview>
   applyRuleToExisting: (input: ApplyRuleToExistingInput) => Promise<CategorizationRuleSummary[]>
+  getDashboardPreferences: () => Promise<DashboardPreferences>
+  setDashboardPreferences: (input: DashboardPreferences) => Promise<DashboardPreferences>
+  getDashboardSnapshot: (input: DashboardSnapshotQuery) => Promise<DashboardSnapshot>
+  getRecurringDetail: (input: DashboardRecurringDetailInput) => Promise<DashboardRecurringDetail>
   ping: () => Promise<string>
 }

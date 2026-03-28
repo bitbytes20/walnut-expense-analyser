@@ -40,6 +40,7 @@ Status: completed on `phase/5-categories-and-rules`.
 ### Phase 6: Dashboard Analytics
 
 Goal: turn trusted local data into fast, premium-feeling insight views.
+Status: completed on `phase/6-dashboard-analytics`.
 
 ### Phase 7: Audit and Diagnostics
 
@@ -172,6 +173,23 @@ Execution artifacts:
 - `.planning/phases/05-categories-and-rules/05-VERIFICATION.md`
 - GitHub epic `#5`
 - GitHub stories `#35`, `#36`, `#37`, and `#39`
+
+## Phase 6 Completed Waves
+
+Phase 6 was decomposed into four execution waves and is now implemented:
+
+- Wave 1: dashboard contracts, aggregate snapshot queries, recurring detection, and persisted range preferences
+- Wave 2: dashboard workspace, global controls, summary rows, comparison behavior, and compact-mode layout
+- Wave 3: recurring detail, recent/largest widgets, and dashboard drill-down into the ledger
+- Wave 4: repository, renderer, and browser verification coverage
+
+Execution artifacts:
+
+- `.planning/phases/06-dashboard-analytics/06-01-SUMMARY.md`
+- `.planning/phases/06-dashboard-analytics/06-02-SUMMARY.md`
+- `.planning/phases/06-dashboard-analytics/06-03-SUMMARY.md`
+- `.planning/phases/06-dashboard-analytics/06-04-SUMMARY.md`
+- `.planning/phases/06-dashboard-analytics/06-VERIFICATION.md`
 
 ## Active Enhancement Branches
 

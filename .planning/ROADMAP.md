@@ -159,6 +159,15 @@ Plans:
 
 **Requirements:** DASH-01, DASH-02, DASH-03, DASH-04
 
+**Plans:** 4 plans
+**Status:** Complete (2026-03-28)
+
+Plans:
+- [x] `06-01-PLAN.md` - Create the dashboard contracts, aggregate snapshot queries, recurring detection, and persisted dashboard preferences
+- [x] `06-02-PLAN.md` - Build the dashboard workspace, global controls, summary rows, and compact-mode layout
+- [x] `06-03-PLAN.md` - Implement recurring detail, recent/largest widgets, and dashboard drill-down into the ledger
+- [x] `06-04-PLAN.md` - Add repository, renderer, and end-to-end dashboard verification plus the formal handoff
+
 **Success criteria**
 1. Dashboard surfaces category, merchant, recurring, trend, and transaction insight blocks.
 2. Users can switch between week, month, year, all-time, and custom ranges.
@@ -204,7 +213,7 @@ Plans:
 
 ## Next Step
 
-Next recommended command: `$gsd-discuss-phase 6`
+Next recommended command: `$gsd-discuss-phase 7`
 
 ---
-*Last updated: 2026-03-28 after Phase 5 verification*
+*Last updated: 2026-03-28 after Phase 6 execution*

@@ -1,8 +1,8 @@
 import { FileSpreadsheet, History, LayoutDashboard, LockKeyhole, Rows3, ShieldCheck, Tags } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { AppShellState } from '../shared/contracts/app-state'
-import type { TransactionRuleSuggestion } from '../shared/contracts/transactions'
-import { EmptyDashboard } from './features/dashboard/EmptyDashboard'
+import type { TransactionLedgerQuery, TransactionRuleSuggestion } from '../shared/contracts/transactions'
+import { DashboardScreen } from './features/dashboard/DashboardScreen'
 import { CategoriesRulesScreen } from './features/categories-rules/CategoriesRulesScreen'
 import { ImportBatchDetailScreen } from './features/import/ImportBatchDetailScreen'
 import { ImportHistoryScreen } from './features/import/ImportHistoryScreen'
@@ -45,6 +45,8 @@ export const App = () => {
   const [workspaceScreen, setWorkspaceScreen] = useState<'home' | 'imports' | 'transactions' | 'categories-rules'>('home')
   const [importAreaScreen, setImportAreaScreen] = useState<ImportAreaScreen>({ type: 'workspace' })
   const [ruleSuggestionDraft, setRuleSuggestionDraft] = useState<TransactionRuleSuggestion['draft']>()
+  const [transactionsNavigationQuery, setTransactionsNavigationQuery] = useState<TransactionLedgerQuery>()
+  const [transactionsNavigationVersion, setTransactionsNavigationVersion] = useState(0)
   const [loading, setLoading] = useState(true)
 
   const workspaceSidebar = (
@@ -57,7 +59,10 @@ export const App = () => {
             ...sidebarStyles.navButton,
             ...(workspaceScreen === 'home' ? sidebarStyles.navButtonActive : undefined)
           }}
-          onClick={() => setWorkspaceScreen('home')}
+          onClick={() => {
+            setTransactionsNavigationQuery(undefined)
+            setWorkspaceScreen('home')
+          }}
         >
           <LayoutDashboard size={18} />
         </button>
@@ -69,6 +74,7 @@ export const App = () => {
             ...(workspaceScreen === 'imports' && importAreaScreen.type === 'workspace' ? sidebarStyles.navButtonActive : undefined)
           }}
           onClick={() => {
+            setTransactionsNavigationQuery(undefined)
             setWorkspaceScreen('imports')
             setImportAreaScreen({ type: 'workspace' })
           }}
@@ -82,7 +88,11 @@ export const App = () => {
             ...sidebarStyles.navButton,
             ...(workspaceScreen === 'transactions' ? sidebarStyles.navButtonActive : undefined)
           }}
-          onClick={() => setWorkspaceScreen('transactions')}
+          onClick={() => {
+            setTransactionsNavigationQuery(undefined)
+            setTransactionsNavigationVersion((current) => current + 1)
+            setWorkspaceScreen('transactions')
+          }}
         >
           <Rows3 size={18} />
         </button>
@@ -94,6 +104,7 @@ export const App = () => {
             ...(workspaceScreen === 'imports' && importAreaScreen.type === 'history' ? sidebarStyles.navButtonActive : undefined)
           }}
           onClick={() => {
+            setTransactionsNavigationQuery(undefined)
             setWorkspaceScreen('imports')
             setImportAreaScreen({ type: 'history' })
           }}
@@ -217,6 +228,8 @@ export const App = () => {
         )
       ) : workspaceScreen === 'transactions' ? (
         <TransactionsScreen
+          navigationQuery={transactionsNavigationQuery}
+          navigationVersion={transactionsNavigationVersion}
           onUseRuleSuggestion={(suggestion) => {
             setRuleSuggestionDraft(suggestion.draft)
             setWorkspaceScreen('categories-rules')
@@ -228,7 +241,14 @@ export const App = () => {
           onRuleDraftHandled={() => setRuleSuggestionDraft(undefined)}
         />
       ) : (
-        <EmptyDashboard onImport={() => setWorkspaceScreen('imports')} />
+        <DashboardScreen
+          onImport={() => setWorkspaceScreen('imports')}
+          onOpenLedger={(query) => {
+            setTransactionsNavigationQuery(query)
+            setTransactionsNavigationVersion((current) => current + 1)
+            setWorkspaceScreen('transactions')
+          }}
+        />
       )}
     </AppShell>
   )
