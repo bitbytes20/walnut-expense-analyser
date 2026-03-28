@@ -25,7 +25,8 @@ const dashboardState = {
     heading: 'Ready for your first import',
     body: 'Add your first ICICI statement to create the account timeline and unlock dashboard insights.',
     primaryActionLabel: 'Import your first statement'
-  }
+  },
+  deviceProfiles: []
 }
 
 const historyRows: ImportAttemptSummary[] = [
@@ -224,6 +225,8 @@ const createWalnutApi = () => {
     loadAppState: vi.fn().mockResolvedValue(dashboardState),
     saveOnboardingProgress: vi.fn(),
     completeOnboarding: vi.fn(),
+    startNewProfileSetup: vi.fn(),
+    switchDeviceProfile: vi.fn(),
     lockNow: vi.fn(),
     unlockWithPin: vi.fn(),
     beginRecoveryReset: vi.fn(),
@@ -261,6 +264,8 @@ const createMutationWalnutApi = () => {
     loadAppState: vi.fn().mockResolvedValue(dashboardState),
     saveOnboardingProgress: vi.fn(),
     completeOnboarding: vi.fn(),
+    startNewProfileSetup: vi.fn(),
+    switchDeviceProfile: vi.fn(),
     lockNow: vi.fn(),
     unlockWithPin: vi.fn(),
     beginRecoveryReset: vi.fn(),

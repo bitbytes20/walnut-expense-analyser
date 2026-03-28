@@ -125,6 +125,21 @@ Execution artifacts:
 - GitHub epic `#3`
 - GitHub stories `#22`, `#23`, `#24`, and `#25`
 
+## Active Enhancement Branches
+
+### UI Polish and Multi-Profile Lock Screen
+
+Goal: improve the product shell presentation between roadmap phases without changing the release roadmap shape.
+
+Current branch scope:
+
+- left-rail-first navigation with duplicate top-right actions removed
+- refreshed empty dashboard and import workspace spacing
+- multi-profile local lock screen with profile selection before PIN entry
+- dedicated create-new-profile screen instead of inline expansion
+- PIN reveal toggle on the lock screen
+- refreshed browser and unit tests covering the new shell and lock flows
+
 ## How We Track Delivery
 
 - GitHub Milestone: release-level target date

@@ -115,7 +115,7 @@ const styles = {
     gap: 'var(--space-lg)',
     alignItems: 'center',
     width: '100%',
-    padding: 'var(--space-lg)',
+    padding: '20px var(--space-lg)',
     borderRadius: 'var(--radius-md)',
     background: 'rgba(226, 215, 197, 0.72)',
     border: '1px solid var(--color-border)'
@@ -159,7 +159,8 @@ const styles = {
   statusBlock: {
     display: 'grid',
     gap: 'var(--space-sm)',
-    justifyItems: 'end' as const
+    justifyItems: 'end' as const,
+    alignContent: 'center'
   },
   statusBadge: {
     padding: '6px 12px',
@@ -176,7 +177,8 @@ const styles = {
     display: 'flex',
     gap: 'var(--space-sm)',
     flexWrap: 'wrap' as const,
-    justifyContent: 'flex-end'
+    justifyContent: 'flex-end',
+    alignItems: 'center'
   },
   ghostButton: {
     minHeight: 44,

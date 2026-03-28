@@ -24,7 +24,8 @@ const initDashboardState = async (page: import('@playwright/test').Page) => {
           heading: 'Ready for your first import',
           body: 'Add your first ICICI statement to create the account timeline and unlock dashboard insights.',
           primaryActionLabel: 'Import your first statement'
-        }
+        },
+        deviceProfiles: []
       })
     )
     window.localStorage.setItem('walnut.mock.security-events', '[]')
@@ -42,7 +43,7 @@ test('supports dashboard and dedicated import entry, worksheet resolution, dupli
   await page.getByRole('button', { name: 'Back to dashboard' }).click()
   await expect(page.getByRole('heading', { name: 'Bring in your ICICI statements' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Open import statements screen' }).click()
+  await page.getByRole('button', { name: 'Open import workspace' }).click()
   await expect(page.getByRole('heading', { name: 'Import statements' })).toBeVisible()
 
   const fileChooserPromise = page.waitForEvent('filechooser')

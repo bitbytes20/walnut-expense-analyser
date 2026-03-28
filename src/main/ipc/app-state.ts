@@ -11,6 +11,8 @@ export const registerAppStateIpc = () => {
   ipcMain.handle('app-state:load', () => repository.loadAppState())
   ipcMain.handle('app-state:ping', () => 'pong')
   ipcMain.handle('app-state:save-onboarding-progress', (_event, input: SaveOnboardingProgressInput) => repository.saveOnboardingProgress(input))
+  ipcMain.handle('app-state:start-new-profile-setup', () => repository.startNewProfileSetup())
+  ipcMain.handle('app-state:switch-device-profile', (_event, profileId: string) => repository.switchDeviceProfile(profileId))
   ipcMain.handle('app-state:save-account-profile', (_event, draft: AccountProfileDraft) => repository.saveAccountProfile(draft))
   ipcMain.handle('app-state:copy-recovery-ack', () => repository.acknowledgeRecoverySaved())
   ipcMain.handle('app-state:download-recovery-ack', () => repository.acknowledgeRecoverySaved())
