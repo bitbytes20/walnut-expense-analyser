@@ -1,13 +1,16 @@
-import { Landmark, LockKeyhole } from 'lucide-react'
+import { Landmark } from 'lucide-react'
 import type { PropsWithChildren, ReactNode } from 'react'
 
 interface AppShellProps extends PropsWithChildren {
   title: string
   eyebrow: string
   actions?: ReactNode
+  sidebar?: ReactNode
+  appName?: string
+  contentMode?: 'centered' | 'workspace'
 }
 
-export const AppShell = ({ title, eyebrow, actions, children }: AppShellProps) => (
+export const AppShell = ({ title, eyebrow, actions, sidebar, appName = 'Walnut Expense Analyser', contentMode = 'centered', children }: AppShellProps) => (
   <div style={shellStyles.root}>
     <header style={shellStyles.header}>
       <div style={shellStyles.brand}>
@@ -15,21 +18,17 @@ export const AppShell = ({ title, eyebrow, actions, children }: AppShellProps) =
           <Landmark size={18} strokeWidth={2.2} />
         </div>
         <div>
-          <div style={shellStyles.eyebrow}>Walnut Expense Analyser</div>
+          <div style={shellStyles.eyebrow}>{appName}</div>
           <h1 style={shellStyles.title}>{title}</h1>
           <div style={shellStyles.supporting}>{eyebrow}</div>
         </div>
       </div>
-      <div style={shellStyles.actions}>
-        {actions ?? (
-          <button type="button" style={shellStyles.ghostButton} disabled aria-disabled="true">
-            <LockKeyhole size={16} />
-            Lock now
-          </button>
-        )}
-      </div>
+      <div style={shellStyles.actions}>{actions ?? null}</div>
     </header>
-    <main style={shellStyles.main}>{children}</main>
+    <div style={contentMode === 'workspace' ? shellStyles.workspaceFrame : shellStyles.standardFrame}>
+      {sidebar ? <aside style={shellStyles.sidebar}>{sidebar}</aside> : null}
+      <main style={contentMode === 'workspace' ? shellStyles.workspaceMain : shellStyles.main}>{children}</main>
+    </div>
   </div>
 )
 
@@ -82,21 +81,33 @@ const shellStyles = {
     justifyContent: 'flex-end',
     minHeight: 48
   },
-  ghostButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 'var(--space-sm)',
-    minHeight: 44,
-    borderRadius: 999,
-    border: '1px solid rgba(30, 27, 22, 0.18)',
-    background: 'rgba(30, 27, 22, 0.04)',
-    color: 'var(--color-ink)',
-    padding: '0 18px',
-    fontWeight: 600
+  standardFrame: {
+    flex: 1,
+    display: 'grid'
+  },
+  workspaceFrame: {
+    flex: 1,
+    display: 'grid',
+    gridTemplateColumns: '92px minmax(0, 1fr)',
+    gap: 'var(--space-xl)',
+    alignItems: 'stretch'
+  },
+  sidebar: {
+    minHeight: '100%',
+    borderRadius: 'var(--radius-xl)',
+    border: '1px solid var(--color-border)',
+    background: 'rgba(226, 215, 197, 0.64)',
+    boxShadow: 'var(--shadow-panel)',
+    padding: 'var(--space-lg) var(--space-sm)'
   },
   main: {
     flex: 1,
     display: 'grid',
     placeItems: 'center'
+  },
+  workspaceMain: {
+    minWidth: 0,
+    display: 'grid',
+    alignItems: 'start'
   }
 }

@@ -11,6 +11,9 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
 **Current focus:** Phase 4 - Transaction Ledger and Search discussion
 
+**Active enhancement branch:** `enhancement/ui-polish`
+**Enhancement focus:** local profile selection on the lock screen, product-shell visual cleanup, and regression coverage for the updated shell flows
+
 ## Current Position
 
 - Repo now includes the initial desktop shell, onboarding flow, lock screen, and the full Phase 2 statement import pipeline.
@@ -60,10 +63,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-27: Phase 3 Plan 03 executed with summary at `.planning/phases/03-review-queue-and-import-history/03-03-SUMMARY.md`
 - 2026-03-27: Phase 3 Plan 04 executed with summary at `.planning/phases/03-review-queue-and-import-history/03-04-SUMMARY.md`
 - 2026-03-27: Phase 3 verification completed at `.planning/phases/03-review-queue-and-import-history/03-VERIFICATION.md`
+- 2026-03-28: UI polish branch refreshed the shell navigation, lock screen, local profile selection flow, and regression coverage on `enhancement/ui-polish`
 
 ## Immediate Next Action
 
 Run `$gsd-discuss-phase 4` to define the transaction ledger, transaction editing scope, and advanced search/filter behavior.
 
 ---
-*Last updated: 2026-03-27 after Phase 3 completion*
+*Last updated: 2026-03-28 after UI polish and regression hardening*

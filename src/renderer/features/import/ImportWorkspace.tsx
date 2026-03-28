@@ -149,13 +149,13 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
             <>
               <section style={styles.card}>
                 <div style={styles.cardHeader}>
-                  <div>
+                  <div style={styles.cardTitleBlock}>
                     <div style={styles.kicker}>Staged batch flow</div>
                     <h3 ref={stagingHeadingRef} tabIndex={-1} style={styles.cardHeading}>
                       {stagedFiles.length === 0 ? 'Select files' : 'Review staged files'}
                     </h3>
                   </div>
-                  <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                  <div style={styles.headerActions}>
                     <button type="button" style={styles.secondaryButton} onClick={onOpenHistory}>
                       Import history
                     </button>
@@ -169,6 +169,18 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
                     ? 'Use the file picker to stage one or more ICICI statements before importing them.'
                     : 'Review each file row, resolve any sheet choices, and keep rejected or duplicate-blocked files visible while you decide what to import.'}
                 </p>
+                {stagedFiles.length === 0 ? (
+                  <div style={styles.emptyStateStrip}>
+                    <div style={styles.emptyMetric}>
+                      <span style={styles.emptyMetricLabel}>Batch mode</span>
+                      <strong style={styles.emptyMetricValue}>Multi-file staging</strong>
+                    </div>
+                    <div style={styles.emptyMetric}>
+                      <span style={styles.emptyMetricLabel}>Trust posture</span>
+                      <strong style={styles.emptyMetricValue}>Source files never stored</strong>
+                    </div>
+                  </div>
+                ) : null}
               </section>
 
               {sectionOrder.map((section) => {
@@ -276,13 +288,13 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
 
 const styles = {
   root: {
-    width: 'min(100%, 1180px)',
+    width: 'min(100%, 1280px)',
     display: 'grid',
     gap: 'var(--space-xl)'
   },
   layout: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 760px) minmax(260px, 320px)',
+    gridTemplateColumns: 'minmax(0, 1.55fr) minmax(300px, 0.85fr)',
     gap: 'var(--space-xl)',
     alignItems: 'start'
   },
@@ -297,25 +309,36 @@ const styles = {
   card: {
     display: 'grid',
     gap: 'var(--space-md)',
-    padding: 'var(--space-lg)',
+    padding: 'var(--space-xl)',
     borderRadius: 'var(--radius-lg)',
     border: '1px solid var(--color-border)',
-    background: 'rgba(245, 241, 232, 0.72)',
+    background: 'rgba(245, 241, 232, 0.74)',
     boxShadow: 'var(--shadow-panel)'
   },
   guidanceCard: {
     display: 'grid',
     gap: 'var(--space-md)',
-    padding: 'var(--space-lg)',
-    borderRadius: 'var(--radius-md)',
+    padding: 'var(--space-xl)',
+    borderRadius: 'var(--radius-lg)',
     border: '1px solid var(--color-border)',
-    background: 'rgba(226, 215, 197, 0.72)'
+    background: 'linear-gradient(180deg, rgba(226, 215, 197, 0.88), rgba(245, 241, 232, 0.82))',
+    minHeight: 100
   },
   cardHeader: {
     display: 'flex',
     justifyContent: 'space-between',
-    gap: 'var(--space-md)',
-    alignItems: 'center'
+    gap: 'var(--space-lg)',
+    alignItems: 'flex-start'
+  },
+  cardTitleBlock: {
+    display: 'grid',
+    gap: 'var(--space-sm)'
+  },
+  headerActions: {
+    display: 'flex',
+    gap: 'var(--space-sm)',
+    flexWrap: 'wrap' as const,
+    justifyContent: 'flex-end'
   },
   kicker: {
     fontSize: 14,
@@ -331,6 +354,32 @@ const styles = {
     margin: 0,
     color: 'var(--color-muted)'
   },
+  emptyStateStrip: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: 'var(--space-md)',
+    marginTop: 'var(--space-sm)'
+  },
+  emptyMetric: {
+    display: 'grid',
+    gap: 'var(--space-xs)',
+    padding: 'var(--space-md)',
+    borderRadius: 'var(--radius-md)',
+    background: 'rgba(15, 118, 110, 0.06)',
+    border: '1px solid rgba(15, 118, 110, 0.12)'
+  },
+  emptyMetricLabel: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: 'var(--color-muted)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.06em'
+  },
+  emptyMetricValue: {
+    fontSize: 16,
+    lineHeight: 1.4,
+    color: 'var(--color-ink)'
+  },
   list: {
     display: 'grid',
     gap: 'var(--space-md)'
@@ -339,7 +388,7 @@ const styles = {
     minHeight: 44,
     borderRadius: 999,
     border: '1px solid rgba(30, 27, 22, 0.18)',
-    background: 'rgba(30, 27, 22, 0.04)',
+    background: 'rgba(30, 27, 22, 0.06)',
     color: 'var(--color-ink)',
     padding: '0 18px',
     fontWeight: 600
@@ -358,6 +407,7 @@ const styles = {
     paddingLeft: 'var(--space-lg)',
     color: 'var(--color-muted)',
     display: 'grid',
-    gap: 'var(--space-sm)'
+    gap: 'var(--space-md)',
+    lineHeight: 1.45
   }
 }

@@ -18,5 +18,5 @@ test('onboarding flow enforces recovery-key gating and reaches the empty dashboa
   await page.getByLabel('Account holder name').fill('Bit')
   await page.getByRole('button', { name: 'Next' }).click()
   await page.getByRole('button', { name: 'Finish' }).click()
-  await expect(page.getByRole('heading', { name: 'Ready for your first import' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bring in your ICICI statements' })).toBeVisible()
 })

@@ -32,15 +32,16 @@ const styles = {
   panel: {
     display: 'grid',
     gap: 'var(--space-lg)',
-    padding: 'var(--space-lg)',
-    borderRadius: 'var(--radius-md)',
+    padding: 'var(--space-xl)',
+    borderRadius: 'var(--radius-lg)',
     border: '1px solid var(--color-border)',
-    background: 'rgba(226, 215, 197, 0.72)'
+    background: 'linear-gradient(180deg, rgba(226, 215, 197, 0.88), rgba(245, 241, 232, 0.82))'
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    gap: 'var(--space-md)'
+    gap: 'var(--space-md)',
+    alignItems: 'flex-start'
   },
   kicker: {
     fontSize: 14,
@@ -67,7 +68,10 @@ const styles = {
   list: {
     margin: 0,
     paddingLeft: 'var(--space-lg)',
-    color: 'var(--color-ink)'
+    color: 'var(--color-ink)',
+    display: 'grid',
+    gap: 'var(--space-sm)',
+    lineHeight: 1.45
   },
   privacyLine: {
     fontSize: 14,

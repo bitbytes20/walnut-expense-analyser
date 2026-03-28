@@ -21,7 +21,13 @@ export const ImportWorkspaceHeader = ({ processedCount, totalCount, busyLabel, o
       </div>
     </div>
     <div style={styles.actionBlock}>
-      <div style={styles.progress}>{totalCount > 0 ? `${processedCount} of ${totalCount} files processed` : 'No files staged yet'}</div>
+      <div style={styles.progressLabel}>Workspace status</div>
+      <div style={styles.progressValue}>{totalCount > 0 ? `${processedCount} of ${totalCount} files processed` : 'No files staged yet'}</div>
+      <p style={styles.progressBody}>
+        {totalCount > 0
+          ? 'Keep staging more files, inspect any duplicates or worksheet choices, and import only when the batch feels ready.'
+          : 'Stage one or more ICICI exports to start building a clean batch without keeping the original files.'}
+      </p>
       <button type="button" aria-label="Import statements from workspace" style={styles.primaryButton} onClick={onImportClick}>
         <Upload size={18} strokeWidth={2.2} />
         {busyLabel ?? 'Import statements'}
@@ -32,15 +38,20 @@ export const ImportWorkspaceHeader = ({ processedCount, totalCount, busyLabel, o
 
 const styles = {
   root: {
-    display: 'flex',
-    flexWrap: 'wrap' as const,
-    justifyContent: 'space-between',
-    gap: 'var(--space-lg)'
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1.45fr) minmax(300px, 0.9fr)',
+    gap: 'var(--space-xl)',
+    alignItems: 'stretch'
   },
   copyBlock: {
     display: 'grid',
     gap: 'var(--space-md)',
-    maxWidth: 620
+    padding: 'var(--space-xl)',
+    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--color-border)',
+    background: 'rgba(245, 241, 232, 0.68)',
+    boxShadow: 'var(--shadow-panel)',
+    alignContent: 'start'
   },
   kicker: {
     fontSize: 14,
@@ -69,13 +80,30 @@ const styles = {
     display: 'grid',
     alignContent: 'start',
     gap: 'var(--space-md)',
-    minWidth: 240
+    padding: 'var(--space-xl)',
+    minWidth: 240,
+    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--color-border)',
+    background: 'linear-gradient(180deg, rgba(15, 118, 110, 0.14), rgba(245, 241, 232, 0.82) 42%)',
+    boxShadow: 'var(--shadow-panel)'
   },
-  progress: {
+  progressLabel: {
     fontSize: 14,
     fontWeight: 600,
     color: 'var(--color-muted)',
-    textAlign: 'right' as const
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em'
+  },
+  progressValue: {
+    fontSize: 28,
+    lineHeight: 1.15,
+    fontWeight: 800,
+    color: 'var(--color-ink)'
+  },
+  progressBody: {
+    margin: 0,
+    color: 'var(--color-muted)',
+    maxWidth: '34ch'
   },
   primaryButton: {
     display: 'inline-flex',
@@ -88,6 +116,8 @@ const styles = {
     background: 'var(--color-accent)',
     color: '#fff',
     padding: '0 24px',
-    fontWeight: 700
+    fontWeight: 700,
+    justifySelf: 'start' as const,
+    minWidth: 220
   }
 }

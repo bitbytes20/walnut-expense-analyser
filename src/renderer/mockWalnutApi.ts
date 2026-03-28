@@ -1,6 +1,7 @@
 import type {
   AppShellState,
   CompleteOnboardingInput,
+  DeviceProfileSummary,
   SaveOnboardingProgressInput,
   WalnutApi
 } from '../shared/contracts/app-state'
@@ -37,6 +38,9 @@ const STAGED_FILES_KEY = 'walnut.mock.staged-import-files'
 const IMPORT_HISTORY_KEY = 'walnut.mock.import-history'
 const IMPORT_BATCH_DETAILS_KEY = 'walnut.mock.import-batch-details'
 const RESOLVED_REVIEW_ITEMS_KEY = 'walnut.mock.resolved-review-items'
+const DEVICE_PROFILES_KEY = 'walnut.mock.device-profiles'
+const ACTIVE_PROFILE_KEY = 'walnut.mock.active-profile-id'
+const PROFILE_SNAPSHOTS_KEY = 'walnut.mock.profile-snapshots'
 
 type StoredState = AppShellState & {
   mockPin?: string
@@ -64,7 +68,8 @@ const defaultState = (): StoredState => ({
     heading: 'Ready for your first import',
     body: 'Add your first ICICI statement to create the account timeline and unlock dashboard insights.',
     primaryActionLabel: 'Import your first statement'
-  }
+  },
+  deviceProfiles: []
 })
 
 const readState = (): StoredState => {
@@ -145,6 +150,45 @@ const writeResolvedReviewItems = (items: Record<string, ImportBatchDetail['revie
   return items
 }
 
+const readDeviceProfiles = (): DeviceProfileSummary[] => {
+  const raw = window.localStorage.getItem(DEVICE_PROFILES_KEY)
+  return raw ? (JSON.parse(raw) as DeviceProfileSummary[]) : []
+}
+
+const writeDeviceProfiles = (profiles: DeviceProfileSummary[]) => {
+  window.localStorage.setItem(DEVICE_PROFILES_KEY, JSON.stringify(profiles))
+  return profiles
+}
+
+const readActiveProfileId = () => window.localStorage.getItem(ACTIVE_PROFILE_KEY) ?? undefined
+
+const writeActiveProfileId = (profileId?: string) => {
+  if (!profileId) {
+    window.localStorage.removeItem(ACTIVE_PROFILE_KEY)
+    return
+  }
+
+  window.localStorage.setItem(ACTIVE_PROFILE_KEY, profileId)
+}
+
+type ProfileSnapshot = {
+  state: StoredState
+  events: SecurityEvent[]
+  importHistory: ImportAttemptSummary[]
+  importBatchDetails: Record<string, ImportBatchDetail>
+  resolvedReviewItems: Record<string, ImportBatchDetail['reviewItems']>
+}
+
+const readProfileSnapshots = (): Record<string, ProfileSnapshot> => {
+  const raw = window.localStorage.getItem(PROFILE_SNAPSHOTS_KEY)
+  return raw ? (JSON.parse(raw) as Record<string, ProfileSnapshot>) : {}
+}
+
+const writeProfileSnapshots = (snapshots: Record<string, ProfileSnapshot>) => {
+  window.localStorage.setItem(PROFILE_SNAPSHOTS_KEY, JSON.stringify(snapshots))
+  return snapshots
+}
+
 const syncHistorySummary = (batchId: string, detail: ImportBatchDetail) => {
   const history = readImportHistory().map((row) =>
     row.batchId === batchId
@@ -205,7 +249,64 @@ const logEvent = (eventType: string, metadataJson?: string) => {
 
 const withoutMocks = (state: StoredState): AppShellState => {
   const { mockPin: _mockPin, mockRecoveryCode: _mockRecoveryCode, mockRecoveryWords: _mockRecoveryWords, ...rest } = state
-  return rest
+  const activeProfileId = readActiveProfileId()
+  return {
+    ...rest,
+    activeProfileId,
+    deviceProfiles: readDeviceProfiles().map((profile) => ({
+      ...profile,
+      isActive: profile.id === activeProfileId
+    }))
+  }
+}
+
+const createProfileSummary = (state: StoredState, profileId: string, existing?: DeviceProfileSummary): DeviceProfileSummary | undefined => {
+  const householdName = state.onboarding.profile?.householdName?.trim()
+  const ownerName = state.onboarding.profile?.ownerName?.trim()
+  if (!householdName || !ownerName) {
+    return undefined
+  }
+
+  const stamp = new Date().toISOString()
+  return {
+    id: profileId,
+    householdName,
+    ownerName,
+    accountLabel: state.accountProfile?.displayName ?? state.security.lastUnlockedAccountLabel,
+    lastUnlockedAt: state.security.lastUnlockedAt,
+    createdAt: existing?.createdAt ?? stamp,
+    updatedAt: stamp,
+    isActive: true
+  }
+}
+
+const captureProfileSnapshot = (state: StoredState): ProfileSnapshot => ({
+  state,
+  events: readEvents(),
+  importHistory: readImportHistory(),
+  importBatchDetails: readImportBatchDetails(),
+  resolvedReviewItems: readResolvedReviewItems()
+})
+
+const persistActiveProfile = (state: StoredState) => {
+  const activeProfileId = readActiveProfileId()
+  if (!activeProfileId || !state.onboarding.profile) {
+    return
+  }
+
+  const profiles = readDeviceProfiles()
+  const existing = profiles.find((profile) => profile.id === activeProfileId)
+  const summary = createProfileSummary(state, activeProfileId, existing)
+  if (!summary) {
+    return
+  }
+
+  writeDeviceProfiles([summary, ...profiles.filter((profile) => profile.id !== activeProfileId)])
+  const snapshots = readProfileSnapshots()
+  writeProfileSnapshots({
+    ...snapshots,
+    [activeProfileId]: captureProfileSnapshot(state)
+  })
 }
 
 const updateSecurity = (update: Partial<SecurityState>) => {
@@ -335,6 +436,18 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
       })
     )
   },
+  async startNewProfileSetup() {
+    persistActiveProfile(readState())
+    window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.removeItem(EVENTS_KEY)
+    window.localStorage.removeItem(STAGED_FILES_KEY)
+    window.localStorage.removeItem(IMPORT_HISTORY_KEY)
+    window.localStorage.removeItem(IMPORT_BATCH_DETAILS_KEY)
+    window.localStorage.removeItem(RESOLVED_REVIEW_ITEMS_KEY)
+    writeActiveProfileId(undefined)
+    const next = writeState(defaultState())
+    return withoutMocks(next)
+  },
   async completeOnboarding(input: CompleteOnboardingInput) {
     const current = readState()
     const recoveryKey = current.onboarding.recoveryKey ?? generateRecoveryKey()
@@ -369,16 +482,46 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
       mockRecoveryCode: recoveryKey.code,
       mockRecoveryWords: recoveryKey.words.join(' ')
     })
+    const profileId = readActiveProfileId() ?? crypto.randomUUID()
+    writeActiveProfileId(profileId)
+    persistActiveProfile(next)
+    return withoutMocks(next)
+  },
+  async switchDeviceProfile(profileId: string) {
+    persistActiveProfile(readState())
+    const snapshot = readProfileSnapshots()[profileId]
+    if (!snapshot) {
+      throw new Error('This local profile is no longer available on the device.')
+    }
+
+    writeState({
+      ...snapshot.state,
+      currentView: 'locked',
+      security: {
+        ...snapshot.state.security,
+        isLocked: true,
+        lockReason: 'manual',
+        lastLockedAt: new Date().toISOString()
+      }
+    })
+    writeEvents(snapshot.events)
+    writeImportHistory(snapshot.importHistory)
+    writeImportBatchDetails(snapshot.importBatchDetails)
+    writeResolvedReviewItems(snapshot.resolvedReviewItems)
+    writeActiveProfileId(profileId)
+
+    const next = readState()
+    persistActiveProfile(next)
     return withoutMocks(next)
   },
   async lockNow(reason?: LockReason) {
-    return withoutMocks(
-      updateSecurity({
+    const next = updateSecurity({
         isLocked: true,
         lockReason: reason ?? 'manual',
         lastLockedAt: new Date().toISOString()
       })
-    )
+    persistActiveProfile(next)
+    return withoutMocks(next)
   },
   async unlockWithPin(pin: string): Promise<UnlockResult> {
     const current = readState()
@@ -400,6 +543,7 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
         cooldownUntil: undefined,
         lastUnlockedAt: new Date().toISOString()
       })
+      persistActiveProfile(next)
       logEvent('security.unlock_succeeded')
       return { ok: true, state: next.security }
     }
@@ -466,6 +610,7 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
         ...draft
       }
     })
+    persistActiveProfile(next)
     return withoutMocks(next)
   },
   async copyRecoveryKeyAcknowledged() {

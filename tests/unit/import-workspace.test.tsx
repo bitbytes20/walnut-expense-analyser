@@ -28,7 +28,8 @@ const dashboardState = {
     heading: 'Ready for your first import',
     body: 'Add your first ICICI statement to create the account timeline and unlock dashboard insights.',
     primaryActionLabel: 'Import your first statement'
-  }
+  },
+  deviceProfiles: []
 }
 
 beforeEach(() => {
@@ -46,6 +47,14 @@ afterEach(() => {
 })
 
 describe('import workspace', () => {
+  it('uses the left rail as the only lock surface and does not render the old top-right lock action', async () => {
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Bring in your ICICI statements' })
+    expect(screen.queryByRole('button', { name: 'Lock now' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Lock workspace from sidebar' })).toBeVisible()
+  })
+
   it('renders the shared import workspace, staged actions, Esc close behavior, and focus transfer after file selection', async () => {
     const user = userEvent.setup()
     const { container } = render(<App />)

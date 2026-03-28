@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path'
 import type {
   AppShellState,
   CompleteOnboardingInput,
+  DeviceProfileSummary,
   OnboardingProgress,
   SaveOnboardingProgressInput
 } from '../../shared/contracts/app-state'
@@ -94,6 +95,20 @@ interface ReviewItemRow extends Record<string, unknown> {
   restored_at?: string | null
 }
 
+interface DeviceProfileSnapshot {
+  onboardingProgress: Record<string, unknown>
+  securityState: Record<string, unknown>
+  accountProfiles: Record<string, unknown>[]
+  importBatches: Record<string, unknown>[]
+  importAttempts: Record<string, unknown>[]
+  importSourceFiles: Record<string, unknown>[]
+  importedTransactions: Record<string, unknown>[]
+  reviewItems: Record<string, unknown>[]
+  securityEvents: Record<string, unknown>[]
+}
+
+const activeProfileKey = 'active_profile_id'
+
 const buildDbPath = () => {
   const configuredPath = process.env.WALNUT_DB_PATH
   if (configuredPath) {
@@ -128,6 +143,20 @@ export class WalnutRepository {
       CREATE TABLE IF NOT EXISTS app_settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS device_profiles (
+        id TEXT PRIMARY KEY,
+        household_name TEXT NOT NULL,
+        owner_name TEXT NOT NULL,
+        account_label TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        last_unlocked_at TEXT
+      );
+      CREATE TABLE IF NOT EXISTS device_profile_snapshots (
+        profile_id TEXT PRIMARY KEY,
+        snapshot_json TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS onboarding_progress (
@@ -297,10 +326,379 @@ export class WalnutRepository {
     this.sqlite.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition};`)
   }
 
-  loadAppState(): AppShellState {
+  private getAppSetting(key: string) {
+    const row = this.sqlite.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value?: string } | undefined
+    return row?.value
+  }
+
+  private setAppSetting(key: string, value: string | null) {
+    if (value === null) {
+      this.sqlite.prepare('DELETE FROM app_settings WHERE key = ?').run(key)
+      return
+    }
+
+    this.sqlite
+      .prepare(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+      )
+      .run(key, value, nowIso())
+  }
+
+  private getActiveProfileId() {
+    return this.getAppSetting(activeProfileKey)
+  }
+
+  private setActiveProfileId(profileId?: string) {
+    this.setAppSetting(activeProfileKey, profileId ?? null)
+  }
+
+  private clearWorkspaceTables() {
+    this.sqlite.exec(`
+      DELETE FROM account_profiles;
+      DELETE FROM import_batches;
+      DELETE FROM import_attempts;
+      DELETE FROM import_source_files;
+      DELETE FROM imported_transactions;
+      DELETE FROM review_items;
+      DELETE FROM security_events;
+    `)
+  }
+
+  private resetWorkspaceRows(stamp = nowIso()) {
+    this.sqlite
+      .prepare(
+        `UPDATE onboarding_progress
+         SET current_step = ?, completed_steps_json = ?, household_name = NULL, owner_name = NULL, draft_pin = NULL,
+             recovery_code = NULL, recovery_words_json = NULL, recovery_confirmed = 0, recovery_saved_to_device = 0,
+             account_draft_json = NULL, completed_at = NULL, updated_at = ?
+         WHERE id = ?`
+      )
+      .run(defaultOnboardingProgress.currentStep, JSON.stringify(defaultOnboardingProgress.completedSteps), stamp, singleRowId)
+
+    this.sqlite
+      .prepare(
+        `UPDATE security_state
+         SET pin_hash = NULL, failed_attempts = 0, cooldown_until = NULL, recovery_code_ciphertext = NULL,
+             recovery_words_ciphertext = NULL, last_unlocked_account_label = NULL, is_locked = 0, lock_reason = NULL,
+             last_locked_at = NULL, last_unlocked_at = NULL, recovery_setup_confirmed_at = NULL, updated_at = ?
+         WHERE id = ?`
+      )
+      .run(stamp, singleRowId)
+  }
+
+  private captureWorkspaceSnapshot(): DeviceProfileSnapshot {
+    return {
+      onboardingProgress: (this.sqlite.prepare('SELECT * FROM onboarding_progress WHERE id = ?').get(singleRowId) as Record<string, unknown>) ?? {},
+      securityState: (this.sqlite.prepare('SELECT * FROM security_state WHERE id = ?').get(singleRowId) as Record<string, unknown>) ?? {},
+      accountProfiles: this.sqlite.prepare('SELECT * FROM account_profiles ORDER BY updated_at ASC').all() as Record<string, unknown>[],
+      importBatches: this.sqlite.prepare('SELECT * FROM import_batches ORDER BY imported_at ASC').all() as Record<string, unknown>[],
+      importAttempts: this.sqlite.prepare('SELECT * FROM import_attempts ORDER BY imported_at ASC').all() as Record<string, unknown>[],
+      importSourceFiles: this.sqlite.prepare('SELECT * FROM import_source_files ORDER BY created_at ASC').all() as Record<string, unknown>[],
+      importedTransactions: this.sqlite.prepare('SELECT * FROM imported_transactions ORDER BY id ASC').all() as Record<string, unknown>[],
+      reviewItems: this.sqlite.prepare('SELECT * FROM review_items ORDER BY created_at ASC').all() as Record<string, unknown>[],
+      securityEvents: this.sqlite.prepare('SELECT * FROM security_events ORDER BY created_at ASC').all() as Record<string, unknown>[]
+    }
+  }
+
+  private persistSnapshot(profileId: string, snapshot: DeviceProfileSnapshot, updatedAt = nowIso()) {
+    this.sqlite
+      .prepare(
+        `INSERT INTO device_profile_snapshots (profile_id, snapshot_json, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(profile_id) DO UPDATE SET snapshot_json = excluded.snapshot_json, updated_at = excluded.updated_at`
+      )
+      .run(profileId, JSON.stringify(snapshot), updatedAt)
+  }
+
+  private upsertDeviceProfileSummary(profileId: string, createdAt?: string) {
     const onboardingRow = this.sqlite.prepare('SELECT * FROM onboarding_progress WHERE id = ?').get(singleRowId) as Record<string, unknown>
     const securityRow = this.sqlite.prepare('SELECT * FROM security_state WHERE id = ?').get(singleRowId) as Record<string, unknown>
     const accountRow = this.sqlite.prepare('SELECT * FROM account_profiles ORDER BY updated_at DESC LIMIT 1').get() as Record<string, unknown> | undefined
+    const existing = this.sqlite.prepare('SELECT created_at FROM device_profiles WHERE id = ?').get(profileId) as { created_at?: string } | undefined
+    const stamp = nowIso()
+
+    const householdName = String(onboardingRow.household_name ?? '').trim()
+    const ownerName = String(onboardingRow.owner_name ?? '').trim()
+    if (!householdName || !ownerName) {
+      return
+    }
+
+    this.sqlite
+      .prepare(
+        `INSERT INTO device_profiles (id, household_name, owner_name, account_label, created_at, updated_at, last_unlocked_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           household_name = excluded.household_name,
+           owner_name = excluded.owner_name,
+           account_label = excluded.account_label,
+           updated_at = excluded.updated_at,
+           last_unlocked_at = excluded.last_unlocked_at`
+      )
+      .run(
+        profileId,
+        householdName,
+        ownerName,
+        accountRow?.display_name ? String(accountRow.display_name) : securityRow.last_unlocked_account_label ? String(securityRow.last_unlocked_account_label) : null,
+        existing?.created_at ?? createdAt ?? stamp,
+        stamp,
+        securityRow.last_unlocked_at ? String(securityRow.last_unlocked_at) : null
+      )
+  }
+
+  private syncActiveProfileSnapshot() {
+    const activeProfileId = this.getActiveProfileId()
+    if (!activeProfileId) {
+      return
+    }
+
+    const onboardingRow = this.sqlite.prepare('SELECT completed_at, household_name, owner_name FROM onboarding_progress WHERE id = ?').get(singleRowId) as Record<string, unknown>
+    if (!onboardingRow.completed_at || !onboardingRow.household_name || !onboardingRow.owner_name) {
+      return
+    }
+
+    this.upsertDeviceProfileSummary(activeProfileId)
+    this.persistSnapshot(activeProfileId, this.captureWorkspaceSnapshot())
+  }
+
+  private ensureLegacyDeviceProfile() {
+    const onboardingRow = this.sqlite.prepare('SELECT completed_at, household_name, owner_name FROM onboarding_progress WHERE id = ?').get(singleRowId) as Record<string, unknown>
+    if (!onboardingRow.completed_at || !onboardingRow.household_name || !onboardingRow.owner_name) {
+      return
+    }
+
+    const activeProfileId = this.getActiveProfileId()
+    if (activeProfileId) {
+      const existingSnapshot = this.sqlite.prepare('SELECT profile_id FROM device_profile_snapshots WHERE profile_id = ?').get(activeProfileId) as { profile_id?: string } | undefined
+      if (!existingSnapshot) {
+        this.syncActiveProfileSnapshot()
+      }
+      return
+    }
+
+    const profileId = crypto.randomUUID()
+    const completedAt = String(onboardingRow.completed_at)
+    this.setActiveProfileId(profileId)
+    this.upsertDeviceProfileSummary(profileId, completedAt)
+    this.persistSnapshot(profileId, this.captureWorkspaceSnapshot(), completedAt)
+  }
+
+  private listDeviceProfiles(activeProfileId?: string): DeviceProfileSummary[] {
+    const rows = this.sqlite
+      .prepare('SELECT * FROM device_profiles ORDER BY updated_at DESC, created_at DESC')
+      .all() as Array<Record<string, unknown>>
+
+    return rows.map((row) => ({
+      id: String(row.id),
+      householdName: String(row.household_name),
+      ownerName: String(row.owner_name),
+      accountLabel: row.account_label ? String(row.account_label) : undefined,
+      lastUnlockedAt: row.last_unlocked_at ? String(row.last_unlocked_at) : undefined,
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+      isActive: String(row.id) === activeProfileId
+    }))
+  }
+
+  private restoreWorkspaceSnapshot(snapshot: DeviceProfileSnapshot) {
+    this.clearWorkspaceTables()
+    this.resetWorkspaceRows()
+
+    const onboarding = snapshot.onboardingProgress
+    const security = snapshot.securityState
+
+    this.sqlite
+      .prepare(
+        `UPDATE onboarding_progress
+         SET current_step = ?, completed_steps_json = ?, household_name = ?, owner_name = ?, draft_pin = ?,
+             recovery_code = ?, recovery_words_json = ?, recovery_confirmed = ?, recovery_saved_to_device = ?,
+             account_draft_json = ?, completed_at = ?, updated_at = ?
+         WHERE id = ?`
+      )
+      .run(
+        onboarding.current_step ?? 'welcome',
+        JSON.stringify(onboarding.completed_steps_json ? JSON.parse(String(onboarding.completed_steps_json)) : []),
+        onboarding.household_name ?? null,
+        onboarding.owner_name ?? null,
+        onboarding.draft_pin ?? null,
+        onboarding.recovery_code ?? null,
+        onboarding.recovery_words_json ?? null,
+        onboarding.recovery_confirmed ? 1 : 0,
+        onboarding.recovery_saved_to_device ? 1 : 0,
+        onboarding.account_draft_json ?? null,
+        onboarding.completed_at ?? null,
+        onboarding.updated_at ?? nowIso(),
+        singleRowId
+      )
+
+    this.sqlite
+      .prepare(
+        `UPDATE security_state
+         SET pin_hash = ?, failed_attempts = ?, cooldown_until = ?, recovery_code_ciphertext = ?,
+             recovery_words_ciphertext = ?, last_unlocked_account_label = ?, is_locked = ?, lock_reason = ?,
+             last_locked_at = ?, last_unlocked_at = ?, recovery_setup_confirmed_at = ?, updated_at = ?
+         WHERE id = ?`
+      )
+      .run(
+        security.pin_hash ?? null,
+        security.failed_attempts ?? 0,
+        security.cooldown_until ?? null,
+        security.recovery_code_ciphertext ?? null,
+        security.recovery_words_ciphertext ?? null,
+        security.last_unlocked_account_label ?? null,
+        security.is_locked ? 1 : 0,
+        security.lock_reason ?? null,
+        security.last_locked_at ?? null,
+        security.last_unlocked_at ?? null,
+        security.recovery_setup_confirmed_at ?? null,
+        security.updated_at ?? nowIso(),
+        singleRowId
+      )
+
+    const insertAccount = this.sqlite.prepare(
+      `INSERT INTO account_profiles
+       (id, bank_name, display_name, account_holder_name, masked_account_number, nickname, base_currency,
+        opening_balance, opening_balance_date, skipped_during_onboarding, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const row of snapshot.accountProfiles) {
+      insertAccount.run(
+        row.id,
+        row.bank_name ?? 'ICICI',
+        row.display_name,
+        row.account_holder_name,
+        row.masked_account_number ?? null,
+        row.nickname ?? null,
+        row.base_currency,
+        row.opening_balance ?? null,
+        row.opening_balance_date ?? null,
+        row.skipped_during_onboarding ?? 0,
+        row.created_at,
+        row.updated_at
+      )
+    }
+
+    const insertImportBatch = this.sqlite.prepare(
+      'INSERT INTO import_batches (id, batch_label, imported_at, file_count, transaction_count, created_account_profile) VALUES (?, ?, ?, ?, ?, ?)'
+    )
+    for (const row of snapshot.importBatches) {
+      insertImportBatch.run(row.id, row.batch_label, row.imported_at, row.file_count, row.transaction_count, row.created_account_profile ?? 0)
+    }
+
+    const insertImportAttempt = this.sqlite.prepare(
+      `INSERT INTO import_attempts
+       (id, batch_id, batch_label, status, imported_at, account_label, file_count, accepted_transaction_count, blocked_duplicate_count,
+        unresolved_review_count, error_count, last_updated_at, created_account_profile, imported_files_json, rejected_files_json, duplicate_blocked_files_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const row of snapshot.importAttempts) {
+      insertImportAttempt.run(
+        row.id,
+        row.batch_id,
+        row.batch_label,
+        row.status,
+        row.imported_at,
+        row.account_label ?? null,
+        row.file_count,
+        row.accepted_transaction_count,
+        row.blocked_duplicate_count,
+        row.unresolved_review_count,
+        row.error_count,
+        row.last_updated_at,
+        row.created_account_profile ?? 0,
+        row.imported_files_json,
+        row.rejected_files_json,
+        row.duplicate_blocked_files_json
+      )
+    }
+
+    const insertSourceFile = this.sqlite.prepare(
+      `INSERT INTO import_source_files
+       (id, import_batch_id, file_name, file_extension, file_fingerprint, account_label, statement_period_label, worksheet_name, row_count, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const row of snapshot.importSourceFiles) {
+      insertSourceFile.run(
+        row.id,
+        row.import_batch_id,
+        row.file_name,
+        row.file_extension,
+        row.file_fingerprint,
+        row.account_label ?? null,
+        row.statement_period_label ?? null,
+        row.worksheet_name ?? null,
+        row.row_count,
+        row.created_at
+      )
+    }
+
+    const insertImportedTransaction = this.sqlite.prepare(
+      `INSERT INTO imported_transactions
+       (id, import_batch_id, source_file_id, transaction_date_raw, value_date_raw, raw_narration, cleaned_description,
+        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, reference, transaction_signature, tags_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const row of snapshot.importedTransactions) {
+      insertImportedTransaction.run(
+        row.id,
+        row.import_batch_id,
+        row.source_file_id,
+        row.transaction_date_raw,
+        row.value_date_raw ?? null,
+        row.raw_narration,
+        row.cleaned_description,
+        row.debit_amount_minor ?? null,
+        row.credit_amount_minor ?? null,
+        row.running_balance_minor ?? null,
+        row.direction,
+        row.reference ?? null,
+        row.transaction_signature,
+        row.tags_json ?? null
+      )
+    }
+
+    const insertReviewItem = this.sqlite.prepare(
+      `INSERT INTO review_items
+       (id, import_attempt_id, batch_id, source_file_id, reason_code, severity, state, title, description, snapshot_json,
+        created_at, updated_at, resolution_action, resolution_payload_json, resolved_at, restored_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const row of snapshot.reviewItems) {
+      insertReviewItem.run(
+        row.id,
+        row.import_attempt_id,
+        row.batch_id,
+        row.source_file_id ?? null,
+        row.reason_code,
+        row.severity,
+        row.state,
+        row.title,
+        row.description,
+        row.snapshot_json,
+        row.created_at,
+        row.updated_at,
+        row.resolution_action ?? null,
+        row.resolution_payload_json ?? null,
+        row.resolved_at ?? null,
+        row.restored_at ?? null
+      )
+    }
+
+    const insertSecurityEvent = this.sqlite.prepare(
+      'INSERT INTO security_events (id, event_type, metadata_json, created_at) VALUES (?, ?, ?, ?)'
+    )
+    for (const row of snapshot.securityEvents) {
+      insertSecurityEvent.run(row.id, row.event_type, row.metadata_json ?? null, row.created_at)
+    }
+  }
+
+  loadAppState(): AppShellState {
+    this.ensureLegacyDeviceProfile()
+    const onboardingRow = this.sqlite.prepare('SELECT * FROM onboarding_progress WHERE id = ?').get(singleRowId) as Record<string, unknown>
+    const securityRow = this.sqlite.prepare('SELECT * FROM security_state WHERE id = ?').get(singleRowId) as Record<string, unknown>
+    const accountRow = this.sqlite.prepare('SELECT * FROM account_profiles ORDER BY updated_at DESC LIMIT 1').get() as Record<string, unknown> | undefined
+    const activeProfileId = this.getActiveProfileId()
 
     const onboarding = this.mapOnboardingRow(onboardingRow)
     const security = this.mapSecurityRow(securityRow)
@@ -316,7 +714,9 @@ export class WalnutRepository {
       onboarding,
       security,
       accountProfile,
-      dashboard: { ...DASHBOARD_STATE }
+      dashboard: { ...DASHBOARD_STATE },
+      activeProfileId: activeProfileId ?? undefined,
+      deviceProfiles: this.listDeviceProfiles(activeProfileId ?? undefined)
     }
   }
 
@@ -382,9 +782,58 @@ export class WalnutRepository {
       this.saveAccountProfile(input.accountDraft)
     }
 
+    const profileId = this.getActiveProfileId() ?? crypto.randomUUID()
+    this.setActiveProfileId(profileId)
+    this.syncActiveProfileSnapshot()
+
     return {
       ...this.loadAppState(),
       currentView: 'dashboard'
+    }
+  }
+
+  startNewProfileSetup() {
+    this.ensureLegacyDeviceProfile()
+    this.syncActiveProfileSnapshot()
+    this.clearWorkspaceTables()
+    this.resetWorkspaceRows()
+    this.setActiveProfileId(undefined)
+
+    return {
+      ...this.loadAppState(),
+      currentView: 'onboarding'
+    }
+  }
+
+  switchDeviceProfile(profileId: string) {
+    this.ensureLegacyDeviceProfile()
+    this.syncActiveProfileSnapshot()
+
+    const snapshotRow = this.sqlite
+      .prepare('SELECT snapshot_json FROM device_profile_snapshots WHERE profile_id = ?')
+      .get(profileId) as { snapshot_json?: string } | undefined
+
+    if (!snapshotRow?.snapshot_json) {
+      throw new Error('This local profile is no longer available on the device.')
+    }
+
+    const snapshot = JSON.parse(snapshotRow.snapshot_json) as DeviceProfileSnapshot
+    this.restoreWorkspaceSnapshot(snapshot)
+    this.setActiveProfileId(profileId)
+
+    const stamp = nowIso()
+    this.sqlite
+      .prepare(
+        `UPDATE security_state
+         SET is_locked = 1, lock_reason = ?, last_locked_at = ?, updated_at = ?
+         WHERE id = ?`
+      )
+      .run('manual', stamp, stamp, singleRowId)
+
+    this.syncActiveProfileSnapshot()
+    return {
+      ...this.loadAppState(),
+      currentView: 'locked'
     }
   }
 
@@ -428,10 +877,12 @@ export class WalnutRepository {
       })
 
     const current = this.loadAppState()
-    return {
+    const nextState = {
       ...current,
       accountProfile: this.loadAccountProfile()
     }
+    this.syncActiveProfileSnapshot()
+    return nextState
   }
 
   loadAccountProfile(): AccountProfile | undefined {
@@ -465,6 +916,7 @@ export class WalnutRepository {
         nowIso(),
         singleRowId
       )
+    this.syncActiveProfileSnapshot()
     return this.loadAppState()
   }
 

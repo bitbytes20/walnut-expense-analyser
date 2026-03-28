@@ -56,12 +56,25 @@ export interface DashboardState {
   primaryActionLabel: string
 }
 
+export interface DeviceProfileSummary {
+  id: string
+  householdName: string
+  ownerName: string
+  accountLabel?: string
+  lastUnlockedAt?: string
+  createdAt: string
+  updatedAt: string
+  isActive: boolean
+}
+
 export interface AppShellState {
   currentView: AppView
   onboarding: OnboardingProgress
   accountProfile?: AccountProfile
   security: SecurityState
   dashboard: DashboardState
+  activeProfileId?: string
+  deviceProfiles: DeviceProfileSummary[]
 }
 
 export interface SaveOnboardingProgressInput extends Partial<OnboardingProgress> {
@@ -78,6 +91,8 @@ export interface WalnutApi {
   loadAppState: () => Promise<AppShellState>
   saveOnboardingProgress: (input: SaveOnboardingProgressInput) => Promise<AppShellState>
   completeOnboarding: (input: CompleteOnboardingInput) => Promise<AppShellState>
+  startNewProfileSetup: () => Promise<AppShellState>
+  switchDeviceProfile: (profileId: string) => Promise<AppShellState>
   lockNow: (reason?: LockReason) => Promise<AppShellState>
   unlockWithPin: (pin: string) => Promise<UnlockResult>
   beginRecoveryReset: (payload: RecoveryResetPayload) => Promise<AppShellState>

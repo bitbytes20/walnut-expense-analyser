@@ -210,6 +210,8 @@ When a phase completes:
 - Phase 2 tracking items are epic `#2` and stories `#18`, `#19`, and `#20`
 - Phase 3 implementation is complete on `phase/3-review-queue-and-import-history`
 - Phase 3 tracking items are epic `#3` and stories `#22`, `#23`, `#24`, and `#25`
+- An active polish branch, `enhancement/ui-polish`, is refining the shared shell and lock-screen experience ahead of Phase 4
+- The current polish scope adds multi-profile local selection on the lock screen, a dedicated new-profile flow, cleaner dashboard/import shell navigation, and updated browser/unit coverage for those paths
 - Next discussion track is Phase 4: Transaction Ledger and Search
 
 ## Documentation Expectations
