@@ -69,6 +69,25 @@ export const importBatches = sqliteTable('import_batches', {
   createdAccountProfile: integer('created_account_profile', { mode: 'boolean' }).notNull().default(false)
 })
 
+export const importAttempts = sqliteTable('import_attempts', {
+  id: text('id').primaryKey(),
+  batchId: text('batch_id').notNull(),
+  batchLabel: text('batch_label').notNull(),
+  status: text('status').notNull(),
+  importedAt: text('imported_at').notNull(),
+  accountLabel: text('account_label'),
+  fileCount: integer('file_count').notNull(),
+  acceptedTransactionCount: integer('accepted_transaction_count').notNull(),
+  blockedDuplicateCount: integer('blocked_duplicate_count').notNull(),
+  unresolvedReviewCount: integer('unresolved_review_count').notNull(),
+  errorCount: integer('error_count').notNull(),
+  lastUpdatedAt: text('last_updated_at').notNull(),
+  createdAccountProfile: integer('created_account_profile', { mode: 'boolean' }).notNull().default(false),
+  importedFilesJson: text('imported_files_json').notNull(),
+  rejectedFilesJson: text('rejected_files_json').notNull(),
+  duplicateBlockedFilesJson: text('duplicate_blocked_files_json').notNull()
+})
+
 export const importSourceFiles = sqliteTable('import_source_files', {
   id: text('id').primaryKey(),
   importBatchId: text('import_batch_id').notNull(),
@@ -96,4 +115,19 @@ export const importedTransactions = sqliteTable('imported_transactions', {
   direction: text('direction').notNull(),
   reference: text('reference'),
   transactionSignature: text('transaction_signature').notNull()
+})
+
+export const reviewItems = sqliteTable('review_items', {
+  id: text('id').primaryKey(),
+  importAttemptId: text('import_attempt_id').notNull(),
+  batchId: text('batch_id').notNull(),
+  sourceFileId: text('source_file_id'),
+  reasonCode: text('reason_code').notNull(),
+  severity: text('severity').notNull(),
+  state: text('state').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  snapshotJson: text('snapshot_json').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
 })

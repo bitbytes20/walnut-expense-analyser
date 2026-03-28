@@ -25,6 +25,7 @@ Status: implemented on `phase/2-statement-import-pipeline`.
 ### Phase 3: Review Queue and Import History
 
 Goal: handle ambiguous imports explicitly and preserve trust through review workflows.
+Status: completed on `phase/3-review-queue-and-import-history`.
 
 ### Phase 4: Transaction Ledger and Search
 
@@ -104,6 +105,25 @@ Execution artifacts:
 - `.planning/phases/02-statement-import-pipeline/02-03-PLAN.md`
 - GitHub epic `#2`
 - GitHub stories `#18`, `#19`, and `#20`
+
+## Phase 3 Completed Waves
+
+Phase 3 was decomposed into four execution waves and is now implemented:
+
+- Wave 1: review-item persistence, import attempts, and mixed gating
+- Wave 2: import history and batch detail receipt views
+- Wave 3: auditable review mutations and restore-capable backend flows
+- Wave 4: dedicated review queue UI, restore UX, and end-to-end review coverage
+
+Execution artifacts:
+
+- `.planning/phases/03-review-queue-and-import-history/03-01-SUMMARY.md`
+- `.planning/phases/03-review-queue-and-import-history/03-02-SUMMARY.md`
+- `.planning/phases/03-review-queue-and-import-history/03-03-SUMMARY.md`
+- `.planning/phases/03-review-queue-and-import-history/03-04-SUMMARY.md`
+- `.planning/phases/03-review-queue-and-import-history/03-VERIFICATION.md`
+- GitHub epic `#3`
+- GitHub stories `#22`, `#23`, `#24`, and `#25`
 
 ## How We Track Delivery
 

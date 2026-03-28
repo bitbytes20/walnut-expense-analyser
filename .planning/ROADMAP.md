@@ -90,6 +90,15 @@ Plans:
 
 **Requirements:** IMPT-05, IMPT-06, IMPT-07, REVW-01
 
+**Plans:** 4 plans
+**Status:** Complete (2026-03-27)
+
+Plans:
+- [x] `03-01-PLAN.md` - Persist review items and import attempts with severity-aware mixed import gating
+- [x] `03-02-PLAN.md` - Expose import history and batch detail as trustworthy all-attempt receipt views
+- [x] `03-03-PLAN.md` - Implement auditable review mutations and persisted soft-restore backend flows
+- [x] `03-04-PLAN.md` - Build the dedicated review queue UI, batch re-entry, and end-to-end restore coverage
+
 **Success criteria**
 1. Ambiguous duplicates or parser uncertainties are sent to review rather than guessed silently.
 2. Critical issues block import completion while lower-risk items can remain unresolved.
@@ -177,7 +186,7 @@ Plans:
 
 ## Next Step
 
-Next recommended command: `$gsd-discuss-phase 3`
+Next recommended command: `$gsd-execute-phase 3`
 
 ---
-*Last updated: 2026-03-27 after Phase 2 execution*
+*Last updated: 2026-03-27 after Phase 3 Plan 03 execution*

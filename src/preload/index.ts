@@ -17,6 +17,11 @@ const walnutApi: WalnutApi = {
   removeStagedFile: (input) => ipcRenderer.invoke('import:remove-staged-file', input),
   commitImportBatch: (input) => ipcRenderer.invoke('import:commit-batch', input),
   inspectPriorImportBatch: (priorBatchId) => ipcRenderer.invoke('import:inspect-prior-batch', priorBatchId),
+  listImportHistory: (input) => ipcRenderer.invoke('import:list-history', input),
+  getImportBatchDetail: (input) => ipcRenderer.invoke('import:get-batch-detail', input),
+  getReviewQueue: (input) => ipcRenderer.invoke('import:get-review-queue', input),
+  resolveReviewItems: (input) => ipcRenderer.invoke('import:resolve-review-items', input),
+  restoreReviewItems: (input) => ipcRenderer.invoke('import:restore-review-items', input),
   ping: () => ipcRenderer.invoke('app-state:ping')
 }
 

@@ -8,6 +8,7 @@ import { WorksheetChoicePanel } from './WorksheetChoicePanel'
 
 interface ImportWorkspaceProps {
   onBackToDashboard: () => void
+  onOpenHistory: () => void
 }
 
 type ActivePanel =
@@ -26,7 +27,7 @@ const sectionOrder: Array<{ status: StagedImportFile['status']; heading: string 
 
 const isMockWalnut = () => Boolean((window.walnut as typeof window.walnut & { __mock?: true }).__mock)
 
-export const ImportWorkspace = ({ onBackToDashboard }: ImportWorkspaceProps) => {
+export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWorkspaceProps) => {
   const [stagedFiles, setStagedFiles] = useState<StagedImportFile[]>([])
   const [summary, setSummary] = useState<CommitImportBatchResult | undefined>()
   const [activePanel, setActivePanel] = useState<ActivePanel>()
@@ -154,9 +155,14 @@ export const ImportWorkspace = ({ onBackToDashboard }: ImportWorkspaceProps) => 
                       {stagedFiles.length === 0 ? 'Select files' : 'Review staged files'}
                     </h3>
                   </div>
-                  <button type="button" style={styles.secondaryButton} onClick={onBackToDashboard}>
-                    Back to dashboard
-                  </button>
+                  <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                    <button type="button" style={styles.secondaryButton} onClick={onOpenHistory}>
+                      Import history
+                    </button>
+                    <button type="button" style={styles.secondaryButton} onClick={onBackToDashboard}>
+                      Back to dashboard
+                    </button>
+                  </div>
                 </div>
                 <p style={styles.helper}>
                   {stagedFiles.length === 0

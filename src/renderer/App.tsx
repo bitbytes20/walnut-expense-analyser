@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { AppShellState } from '../shared/contracts/app-state'
 import { EmptyDashboard } from './features/dashboard/EmptyDashboard'
+import { ImportBatchDetailScreen } from './features/import/ImportBatchDetailScreen'
+import { ImportHistoryScreen } from './features/import/ImportHistoryScreen'
 import { ImportWorkspace } from './features/import/ImportWorkspace'
+import { ReviewQueueScreen } from './features/import/ReviewQueueScreen'
 import { LockScreen } from './features/lock-screen/LockScreen'
 import { OnboardingFlow } from './features/onboarding/OnboardingFlow'
 import { AppShell } from './features/app-shell/AppShell'
@@ -26,9 +29,16 @@ const fallbackState: AppShellState = {
   }
 }
 
+type ImportAreaScreen =
+  | { type: 'workspace' }
+  | { type: 'history' }
+  | { type: 'batch-detail'; batchId: string; batchLabel: string }
+  | { type: 'review-queue'; batchId?: string; batchLabel?: string }
+
 export const App = () => {
   const [state, setState] = useState<AppShellState>(fallbackState)
   const [dashboardScreen, setDashboardScreen] = useState<'home' | 'imports'>('home')
+  const [importAreaScreen, setImportAreaScreen] = useState<ImportAreaScreen>({ type: 'workspace' })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -44,6 +54,7 @@ export const App = () => {
   useEffect(() => {
     if (state.currentView !== 'dashboard') {
       setDashboardScreen('home')
+      setImportAreaScreen({ type: 'workspace' })
     }
   }, [state.currentView])
 
@@ -126,7 +137,36 @@ export const App = () => {
       }
     >
       {dashboardScreen === 'imports' ? (
-        <ImportWorkspace onBackToDashboard={() => setDashboardScreen('home')} />
+        importAreaScreen.type === 'workspace' ? (
+          <ImportWorkspace
+            onBackToDashboard={() => setDashboardScreen('home')}
+            onOpenHistory={() => setImportAreaScreen({ type: 'history' })}
+          />
+        ) : importAreaScreen.type === 'history' ? (
+          <ImportHistoryScreen
+            onBackToWorkspace={() => setImportAreaScreen({ type: 'workspace' })}
+            onOpenBatchDetail={(batchId, batchLabel) => setImportAreaScreen({ type: 'batch-detail', batchId, batchLabel })}
+            onOpenReviewQueue={(batchId, batchLabel) => setImportAreaScreen({ type: 'review-queue', batchId, batchLabel })}
+          />
+        ) : importAreaScreen.type === 'batch-detail' ? (
+          <ImportBatchDetailScreen
+            batchId={importAreaScreen.batchId}
+            batchLabel={importAreaScreen.batchLabel}
+            onBackToHistory={() => setImportAreaScreen({ type: 'history' })}
+            onReviewUnresolvedItems={() =>
+              setImportAreaScreen({
+                type: 'review-queue',
+                batchId: importAreaScreen.batchId,
+                batchLabel: importAreaScreen.batchLabel
+              })
+            }
+          />
+        ) : (
+          <ReviewQueueScreen
+            initialBatchId={importAreaScreen.batchId}
+            onBackToHistory={() => setImportAreaScreen({ type: 'history' })}
+          />
+        )
       ) : (
         <EmptyDashboard onImport={() => setDashboardScreen('imports')} />
       )}

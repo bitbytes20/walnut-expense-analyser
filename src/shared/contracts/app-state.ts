@@ -3,7 +3,14 @@ import type {
   ChooseImportSheetInput,
   CommitImportBatchInput,
   CommitImportBatchResult,
+  GetImportBatchDetailInput,
+  GetReviewQueueInput,
+  ImportBatchDetail,
+  ImportAttemptSummary,
+  ListImportHistoryInput,
   PriorImportBatchInspection,
+  ReviewItemResolutionInput,
+  ReviewItemRestoreInput,
   RemoveStagedFileInput,
   StageImportFilesInput,
   StageImportFilesResult
@@ -83,5 +90,10 @@ export interface WalnutApi {
   removeStagedFile: (input: RemoveStagedFileInput) => Promise<StageImportFilesResult>
   commitImportBatch: (input?: CommitImportBatchInput) => Promise<CommitImportBatchResult>
   inspectPriorImportBatch: (priorBatchId: string) => Promise<PriorImportBatchInspection>
+  listImportHistory: (input?: ListImportHistoryInput) => Promise<ImportAttemptSummary[]>
+  getImportBatchDetail: (input: GetImportBatchDetailInput) => Promise<ImportBatchDetail>
+  getReviewQueue: (input?: GetReviewQueueInput) => Promise<ImportBatchDetail[]>
+  resolveReviewItems: (input: ReviewItemResolutionInput) => Promise<ImportBatchDetail>
+  restoreReviewItems: (input: ReviewItemRestoreInput) => Promise<ImportBatchDetail>
   ping: () => Promise<string>
 }

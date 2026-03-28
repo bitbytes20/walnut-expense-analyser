@@ -19,13 +19,13 @@
 - [ ] **IMPT-02**: App rejects unsupported or variant statement formats with clear errors.
 - [ ] **IMPT-03**: App stores parsed records and import metadata only, and does not retain uploaded statement files.
 - [ ] **IMPT-04**: App blocks clear duplicate imports automatically.
-- [ ] **IMPT-05**: App routes uncertain duplicate or parsing cases into review instead of silently accepting them.
-- [ ] **IMPT-06**: Import flow blocks completion on critical issues but allows lower-risk review items to remain queued.
-- [ ] **IMPT-07**: User can view import history with batch status, counts, and errors.
+- [x] **IMPT-05**: App routes uncertain duplicate or parsing cases into review instead of silently accepting them.
+- [x] **IMPT-06**: Import flow blocks completion on critical issues but allows lower-risk review items to remain queued.
+- [x] **IMPT-07**: User can view import history with batch status, counts, and errors.
 
 ### Review and Transactions
 
-- [ ] **REVW-01**: User can return to a dedicated review queue to resolve pending review items after import.
+- [x] **REVW-01**: User can return to a dedicated review queue to resolve pending review items after import.
 - [ ] **TRAN-01**: App normalizes transactions into types including expense, income, transfer, refund, ATM withdrawal, and credit-card payment.
 - [ ] **TRAN-02**: User can edit transaction amount, date, description, type, category, tags, and rule associations.
 - [ ] **TRAN-03**: Every transaction edit creates an audit event with before/after context.
@@ -110,10 +110,10 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 | IMPT-02 | Phase 2 | Pending |
 | IMPT-03 | Phase 2 | Pending |
 | IMPT-04 | Phase 2 | Pending |
-| IMPT-05 | Phase 3 | Pending |
-| IMPT-06 | Phase 3 | Pending |
-| IMPT-07 | Phase 3 | Pending |
-| REVW-01 | Phase 3 | Pending |
+| IMPT-05 | Phase 3 | Complete |
+| IMPT-06 | Phase 3 | Complete |
+| IMPT-07 | Phase 3 | Complete |
+| REVW-01 | Phase 3 | Complete |
 | TRAN-01 | Phase 4 | Pending |
 | TRAN-02 | Phase 4 | Pending |
 | TRAN-03 | Phase 7 | Pending |
@@ -143,4 +143,4 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after initial definition*
+*Last updated: 2026-03-27 after Phase 3 completion*

@@ -1,15 +1,15 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 3 context captured, ready for planning
-**Roadmap status:** Release 1 Phases 1 and 2 complete
+**Project status:** Phase 3 complete, ready for Phase 4 discussion
+**Roadmap status:** Release 1 Phases 1, 2, and 3 complete
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 3 - Review Queue and Import History planning
+**Current focus:** Phase 4 - Transaction Ledger and Search discussion
 
 ## Current Position
 
@@ -28,6 +28,12 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - Starter categories and rules with user-rule precedence
 - Premium dashboard with both themes
 - Full audit ledger, redacted diagnostics, and local crash reports
+- Duplicate candidates and worksheet/parser uncertainty persist as blocking review items
+- Import attempts persist durable file outcomes and counters in SQLite for history and queue refetches
+- Import history summaries derive live counts and final status from repository aggregates instead of stale stored attempt counters
+- Batch detail now uses a receipt payload with summary, file outcomes, and grouped transaction drill-down
+- Review mutations now emit durable audit rows through the existing local event ledger and persist resolution metadata for restore semantics
+- Renderer queue work should refetch authoritative batch detail after resolve or restore instead of keeping mutation state locally
 
 ## Delivery Expectations
 
@@ -46,10 +52,18 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-27: Phase 2 execution plans created at `.planning/phases/02-statement-import-pipeline/02-01-PLAN.md`, `.planning/phases/02-statement-import-pipeline/02-02-PLAN.md`, and `.planning/phases/02-statement-import-pipeline/02-03-PLAN.md`
 - 2026-03-27: Phase 2 executed with summaries at `.planning/phases/02-statement-import-pipeline/02-01-SUMMARY.md`, `.planning/phases/02-statement-import-pipeline/02-02-SUMMARY.md`, `.planning/phases/02-statement-import-pipeline/02-03-SUMMARY.md`, and `.planning/phases/02-statement-import-pipeline/02-VERIFICATION.md`
 - 2026-03-27: Phase 3 context gathered at `.planning/phases/03-review-queue-and-import-history/03-CONTEXT.md`
+- 2026-03-27: Phase 3 research captured at `.planning/phases/03-review-queue-and-import-history/03-RESEARCH.md`
+- 2026-03-27: Phase 3 UI design contract approved at `.planning/phases/03-review-queue-and-import-history/03-UI-SPEC.md`
+- 2026-03-27: Phase 3 execution plans created at `.planning/phases/03-review-queue-and-import-history/03-01-PLAN.md`, `.planning/phases/03-review-queue-and-import-history/03-02-PLAN.md`, `.planning/phases/03-review-queue-and-import-history/03-03-PLAN.md`, and `.planning/phases/03-review-queue-and-import-history/03-04-PLAN.md`
+- 2026-03-27: Phase 3 Plan 01 executed with summary at `.planning/phases/03-review-queue-and-import-history/03-01-SUMMARY.md`
+- 2026-03-27: Phase 3 Plan 02 executed with summary at `.planning/phases/03-review-queue-and-import-history/03-02-SUMMARY.md`
+- 2026-03-27: Phase 3 Plan 03 executed with summary at `.planning/phases/03-review-queue-and-import-history/03-03-SUMMARY.md`
+- 2026-03-27: Phase 3 Plan 04 executed with summary at `.planning/phases/03-review-queue-and-import-history/03-04-SUMMARY.md`
+- 2026-03-27: Phase 3 verification completed at `.planning/phases/03-review-queue-and-import-history/03-VERIFICATION.md`
 
 ## Immediate Next Action
 
-Run `$gsd-ui-phase 3` and then `$gsd-plan-phase 3` to turn the locked review-queue and import-history behavior into an execution-ready phase.
+Run `$gsd-discuss-phase 4` to define the transaction ledger, transaction editing scope, and advanced search/filter behavior.
 
 ---
-*Last updated: 2026-03-27 after Phase 3 discussion*
+*Last updated: 2026-03-27 after Phase 3 completion*
