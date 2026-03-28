@@ -7,6 +7,22 @@ import type {
 } from '../shared/contracts/app-state'
 import type { AccountProfileDraft } from '../shared/contracts/account'
 import type {
+  ApplyRuleToExistingInput,
+  CategoryTreeNode,
+  CategorizationRuleSummary,
+  CreateCategoryInput,
+  CreateCategorizationRuleInput,
+  DeleteCategoryInput,
+  DeleteCategorizationRuleInput,
+  MergeCategoryInput,
+  RuleApplyPreview,
+  RulePreviewInput,
+  RuleTestPreview,
+  ToggleCategorizationRuleInput,
+  UpdateCategoryInput,
+  UpdateCategorizationRuleInput
+} from '../shared/contracts/categories'
+import type {
   ChooseImportSheetInput,
   CommitImportBatchInput,
   GetImportBatchDetailInput,
@@ -51,6 +67,8 @@ const RESOLVED_REVIEW_ITEMS_KEY = 'walnut.mock.resolved-review-items'
 const DEVICE_PROFILES_KEY = 'walnut.mock.device-profiles'
 const ACTIVE_PROFILE_KEY = 'walnut.mock.active-profile-id'
 const PROFILE_SNAPSHOTS_KEY = 'walnut.mock.profile-snapshots'
+const CATEGORIES_KEY = 'walnut.mock.categories'
+const RULES_KEY = 'walnut.mock.rules'
 
 type StoredState = AppShellState & {
   mockPin?: string
@@ -61,6 +79,57 @@ type StoredState = AppShellState & {
 type MockWalnutApi = WalnutApi & {
   __mock: true
 }
+
+const defaultCategories = (): CategoryTreeNode[] => [
+  {
+    id: 'cat:food-dining',
+    name: 'Food & Dining',
+    kind: 'system',
+    path: ['Food & Dining'],
+    isActive: true,
+    isIncomeCategory: false,
+    sortOrder: 10,
+    counts: { directTransactionCount: 0, totalTransactionCount: 0 },
+    children: []
+  },
+  {
+    id: 'cat:income',
+    name: 'Income',
+    kind: 'system',
+    path: ['Income'],
+    isActive: true,
+    isIncomeCategory: true,
+    sortOrder: 160,
+    counts: { directTransactionCount: 0, totalTransactionCount: 0 },
+    children: [
+      {
+        id: 'cat:income-salary',
+        name: 'Salary',
+        kind: 'system',
+        parentId: 'cat:income',
+        path: ['Income', 'Salary'],
+        isActive: true,
+        isIncomeCategory: true,
+        sortOrder: 161,
+        counts: { directTransactionCount: 0, totalTransactionCount: 0 },
+        children: []
+      }
+    ]
+  },
+  {
+    id: 'cat:uncategorized',
+    name: 'Uncategorized',
+    kind: 'system',
+    path: ['Uncategorized'],
+    isActive: true,
+    isIncomeCategory: false,
+    sortOrder: 190,
+    counts: { directTransactionCount: 0, totalTransactionCount: 0 },
+    children: []
+  }
+]
+
+const defaultRules = (): CategorizationRuleSummary[] => []
 
 const defaultState = (): StoredState => ({
   currentView: 'onboarding',
@@ -199,6 +268,26 @@ const writeProfileSnapshots = (snapshots: Record<string, ProfileSnapshot>) => {
   return snapshots
 }
 
+const readCategories = (): CategoryTreeNode[] => {
+  const raw = window.localStorage.getItem(CATEGORIES_KEY)
+  return raw ? (JSON.parse(raw) as CategoryTreeNode[]) : defaultCategories()
+}
+
+const writeCategories = (categories: CategoryTreeNode[]) => {
+  window.localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories))
+  return categories
+}
+
+const readRules = (): CategorizationRuleSummary[] => {
+  const raw = window.localStorage.getItem(RULES_KEY)
+  return raw ? (JSON.parse(raw) as CategorizationRuleSummary[]) : defaultRules()
+}
+
+const writeRules = (rules: CategorizationRuleSummary[]) => {
+  window.localStorage.setItem(RULES_KEY, JSON.stringify(rules))
+  return rules
+}
+
 const syncHistorySummary = (batchId: string, detail: ImportBatchDetail) => {
   const history = readImportHistory().map((row) =>
     row.batchId === batchId
@@ -316,6 +405,8 @@ const flattenTransactions = (): TransactionDetail[] => {
             transaction.reference,
             transaction.direction
           ),
+          categoryId: (transaction as typeof transaction & { categoryId?: string }).categoryId,
+          categoryPath: (transaction as typeof transaction & { categoryPath?: string[] }).categoryPath,
           category: (transaction as typeof transaction & { category?: string }).category,
           tags: transaction.tags ?? [],
           reference: transaction.reference,
@@ -1202,10 +1293,116 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
               fromType: previousType,
               toType: input.normalizedType,
               title: 'Create a rule from this type change later',
-              description: 'Walnut can use this correction as a suggestion when reusable rules are introduced.'
+              description: 'Walnut can use this correction as a suggestion when reusable rules are introduced.',
+              draft: {
+                name: `${updatedDetail.description} rule`,
+                condition: {
+                  descriptionContains: updatedDetail.description
+                    .split(/\s+/)
+                    .map((token) => token.trim().toLowerCase())
+                    .filter((token) => token.length >= 3)
+                    .slice(0, 3),
+                  transactionTypes: [previousType],
+                  tags: updatedDetail.tags,
+                  directions: [updatedDetail.direction]
+                },
+                action: {
+                  categoryId: updatedDetail.categoryId,
+                  type: input.normalizedType,
+                  appendTags: updatedDetail.tags
+                }
+              }
             }
           : undefined
     }
+  },
+  async listCategories() {
+    return readCategories()
+  },
+  async createCategory(input: CreateCategoryInput) {
+    const next: CategoryTreeNode = {
+      id: crypto.randomUUID(),
+      name: input.name.trim(),
+      kind: 'user',
+      parentId: input.parentId,
+      path: input.parentId ? ['Parent', input.name.trim()] : [input.name.trim()],
+      isActive: true,
+      isIncomeCategory: Boolean(input.isIncomeCategory),
+      sortOrder: Date.now(),
+      counts: { directTransactionCount: 0, totalTransactionCount: 0 },
+      children: []
+    }
+    return writeCategories([...readCategories(), next])
+  },
+  async updateCategory(input: UpdateCategoryInput) {
+    return writeCategories(
+      readCategories().map((category) =>
+        category.id === input.categoryId
+          ? {
+              ...category,
+              name: input.name ?? category.name,
+              parentId: input.parentId === undefined ? category.parentId : input.parentId ?? undefined,
+              isActive: input.isActive ?? category.isActive
+            }
+          : category
+      )
+    )
+  },
+  async mergeCategory(input: MergeCategoryInput) {
+    return writeCategories(readCategories().filter((category) => category.id !== input.sourceCategoryId))
+  },
+  async deleteCategory(input: DeleteCategoryInput) {
+    return writeCategories(readCategories().filter((category) => category.id !== input.categoryId))
+  },
+  async listRules() {
+    return readRules()
+  },
+  async createRule(input: CreateCategorizationRuleInput) {
+    return writeRules([
+      ...readRules(),
+      {
+        id: crypto.randomUUID(),
+        name: input.name,
+        kind: 'user',
+        isEnabled: true,
+        condition: input.condition,
+        action: input.action,
+        specificityScore: 1,
+        affectedTransactionCount: 0,
+        updatedAt: new Date().toISOString()
+      }
+    ])
+  },
+  async updateRule(input: UpdateCategorizationRuleInput) {
+    return writeRules(
+      readRules().map((rule) =>
+        rule.id === input.ruleId
+          ? {
+              ...rule,
+              name: input.name ?? rule.name,
+              condition: input.condition ?? rule.condition,
+              action: input.action ?? rule.action,
+              isEnabled: input.isEnabled ?? rule.isEnabled,
+              updatedAt: new Date().toISOString()
+            }
+          : rule
+      )
+    )
+  },
+  async toggleRule(input: ToggleCategorizationRuleInput) {
+    return writeRules(readRules().map((rule) => (rule.id === input.ruleId ? { ...rule, isEnabled: input.isEnabled } : rule)))
+  },
+  async deleteRule(input: DeleteCategorizationRuleInput) {
+    return writeRules(readRules().filter((rule) => rule.id !== input.ruleId))
+  },
+  async testRule(_input: RulePreviewInput): Promise<RuleTestPreview> {
+    return { matchCount: 0, samples: [] }
+  },
+  async previewRuleApplyToExisting(_input: RulePreviewInput | ApplyRuleToExistingInput): Promise<RuleApplyPreview> {
+    return { matchCount: 0, samples: [] }
+  },
+  async applyRuleToExisting(_input: ApplyRuleToExistingInput) {
+    return readRules()
   },
   async ping() {
     return 'pong'

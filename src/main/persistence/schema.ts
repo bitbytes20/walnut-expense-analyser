@@ -115,11 +115,38 @@ export const importedTransactions = sqliteTable('imported_transactions', {
   runningBalanceMinor: integer('running_balance_minor'),
   direction: text('direction').notNull(),
   normalizedType: text('normalized_type'),
+  categoryId: text('category_id'),
   categoryLabel: text('category_label'),
   reviewStateOverride: text('review_state_override'),
   reference: text('reference'),
   transactionSignature: text('transaction_signature').notNull(),
   tagsJson: text('tags_json')
+})
+
+export const categories = sqliteTable('categories', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  parentId: text('parent_id'),
+  kind: text('kind').notNull(),
+  isSystem: integer('is_system', { mode: 'boolean' }).notNull().default(false),
+  isIncomeCategory: integer('is_income_category', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
+export const categorizationRules = sqliteTable('categorization_rules', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  kind: text('kind').notNull(),
+  isSystem: integer('is_system', { mode: 'boolean' }).notNull().default(false),
+  isEnabled: integer('is_enabled', { mode: 'boolean' }).notNull().default(true),
+  conditionJson: text('condition_json').notNull(),
+  actionJson: text('action_json').notNull(),
+  specificityScore: integer('specificity_score').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
 })
 
 export const reviewItems = sqliteTable('review_items', {

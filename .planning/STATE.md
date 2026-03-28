@@ -1,18 +1,18 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 4 complete with UI polish and responsive-shell refinements, ready for Phase 5 discussion
-**Roadmap status:** Release 1 Phases 1, 2, 3, and 4 complete
+**Project status:** Phase 5 complete, ready for Phase 6 discussion
+**Roadmap status:** Release 1 Phases 1, 2, 3, 4, and 5 complete
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 5 - Categories and Rules discussion
+**Current focus:** Phase 6 - Dashboard Analytics discussion
 
-**Active implementation branch:** `phase/4-transaction-ledger-and-search`
-**Current branch focus:** Phase 4 delivery plus shell, lock-screen, import-workspace, and ledger polish refinements
+**Active implementation branch:** `phase/5-categories-and-rules`
+**Current branch focus:** Phase 5 implementation, verification, and handoff for starter categories, protected taxonomy, and reusable rules
 
 ## Current Position
 
@@ -30,6 +30,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - Strict ICICI import support in release 1
 - Dedicated review queue with mixed import gating
 - Starter categories and rules with user-rule precedence
+- Protected system taxonomy with optional user subcategories and preview-first bulk rule application
 - Premium dashboard with both themes
 - Full audit ledger, redacted diagnostics, and local crash reports
 - Duplicate candidates and worksheet/parser uncertainty persist as blocking review items
@@ -68,10 +69,15 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-28: Phase 4 context, research, UI contract, validation, and execution plans created at `.planning/phases/04-transaction-ledger-and-search/`
 - 2026-03-28: Phase 4 executed with summaries at `.planning/phases/04-transaction-ledger-and-search/04-01-SUMMARY.md`, `.planning/phases/04-transaction-ledger-and-search/04-02-SUMMARY.md`, `.planning/phases/04-transaction-ledger-and-search/04-03-SUMMARY.md`, `.planning/phases/04-transaction-ledger-and-search/04-04-SUMMARY.md`, and `.planning/phases/04-transaction-ledger-and-search/04-VERIFICATION.md`
 - 2026-03-28: Phase 4 branch absorbed the active shell polish work, including responsive lock-screen behavior, multi-profile selection, import-workspace layout cleanup, and ledger summary/filter refinements
+- 2026-03-28: Phase 5 context gathered at `.planning/phases/05-categories-and-rules/05-CONTEXT.md`
+- 2026-03-28: Phase 5 research captured at `.planning/phases/05-categories-and-rules/05-RESEARCH.md`
+- 2026-03-28: Phase 5 UI design contract approved at `.planning/phases/05-categories-and-rules/05-UI-SPEC.md`
+- 2026-03-28: Phase 5 validation strategy and execution plans created at `.planning/phases/05-categories-and-rules/05-VALIDATION.md`, `.planning/phases/05-categories-and-rules/05-01-PLAN.md`, `.planning/phases/05-categories-and-rules/05-02-PLAN.md`, `.planning/phases/05-categories-and-rules/05-03-PLAN.md`, and `.planning/phases/05-categories-and-rules/05-04-PLAN.md`
+- 2026-03-28: Phase 5 executed with summaries at `.planning/phases/05-categories-and-rules/05-01-SUMMARY.md`, `.planning/phases/05-categories-and-rules/05-02-SUMMARY.md`, `.planning/phases/05-categories-and-rules/05-03-SUMMARY.md`, `.planning/phases/05-categories-and-rules/05-04-SUMMARY.md`, and `.planning/phases/05-categories-and-rules/05-VERIFICATION.md`
 
 ## Immediate Next Action
 
-Run `$gsd-discuss-phase 5` to define the starter categories, user-category management, and reusable rule behavior.
+Run `$gsd-discuss-phase 6` to define the dashboard analytics surface and insight interactions.
 
 ---
-*Last updated: 2026-03-28 after Phase 4 delivery polish and verification*
+*Last updated: 2026-03-28 after Phase 5 execution*

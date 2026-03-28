@@ -1,7 +1,9 @@
-import { FileSpreadsheet, History, LayoutDashboard, LockKeyhole, Rows3, ShieldCheck } from 'lucide-react'
+import { FileSpreadsheet, History, LayoutDashboard, LockKeyhole, Rows3, ShieldCheck, Tags } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { AppShellState } from '../shared/contracts/app-state'
+import type { TransactionRuleSuggestion } from '../shared/contracts/transactions'
 import { EmptyDashboard } from './features/dashboard/EmptyDashboard'
+import { CategoriesRulesScreen } from './features/categories-rules/CategoriesRulesScreen'
 import { ImportBatchDetailScreen } from './features/import/ImportBatchDetailScreen'
 import { ImportHistoryScreen } from './features/import/ImportHistoryScreen'
 import { ImportWorkspace } from './features/import/ImportWorkspace'
@@ -40,8 +42,9 @@ type ImportAreaScreen =
 
 export const App = () => {
   const [state, setState] = useState<AppShellState>(fallbackState)
-  const [workspaceScreen, setWorkspaceScreen] = useState<'home' | 'imports' | 'transactions'>('home')
+  const [workspaceScreen, setWorkspaceScreen] = useState<'home' | 'imports' | 'transactions' | 'categories-rules'>('home')
   const [importAreaScreen, setImportAreaScreen] = useState<ImportAreaScreen>({ type: 'workspace' })
+  const [ruleSuggestionDraft, setRuleSuggestionDraft] = useState<TransactionRuleSuggestion['draft']>()
   const [loading, setLoading] = useState(true)
 
   const workspaceSidebar = (
@@ -96,6 +99,17 @@ export const App = () => {
           }}
         >
           <History size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label="Open categories and rules workspace"
+          style={{
+            ...sidebarStyles.navButton,
+            ...(workspaceScreen === 'categories-rules' ? sidebarStyles.navButtonActive : undefined)
+          }}
+          onClick={() => setWorkspaceScreen('categories-rules')}
+        >
+          <Tags size={18} />
         </button>
       </div>
 
@@ -163,6 +177,8 @@ export const App = () => {
           ? 'Stage, review, and import without storing source files'
           : workspaceScreen === 'transactions'
             ? 'Search, filter, and correct imported records from one local ledger'
+            : workspaceScreen === 'categories-rules'
+              ? 'Manage protected categories, user taxonomy, and reusable rule automation'
             : 'Your local finance workspace is ready'
       }
       sidebar={workspaceSidebar}
@@ -200,7 +216,17 @@ export const App = () => {
           />
         )
       ) : workspaceScreen === 'transactions' ? (
-        <TransactionsScreen />
+        <TransactionsScreen
+          onUseRuleSuggestion={(suggestion) => {
+            setRuleSuggestionDraft(suggestion.draft)
+            setWorkspaceScreen('categories-rules')
+          }}
+        />
+      ) : workspaceScreen === 'categories-rules' ? (
+        <CategoriesRulesScreen
+          initialRuleDraft={ruleSuggestionDraft}
+          onRuleDraftHandled={() => setRuleSuggestionDraft(undefined)}
+        />
       ) : (
         <EmptyDashboard onImport={() => setWorkspaceScreen('imports')} />
       )}
