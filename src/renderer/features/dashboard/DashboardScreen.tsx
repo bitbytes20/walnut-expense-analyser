@@ -5,6 +5,8 @@ import {
   CreditCard,
   Landmark,
   RefreshCcw,
+  Sparkles,
+  Upload,
   Wallet
 } from 'lucide-react'
 import { startTransition, useEffect, useMemo, useState } from 'react'
@@ -22,7 +24,6 @@ import {
 } from 'recharts'
 import type { DashboardPreferences, DashboardRecurringDetail, DashboardSnapshot, DashboardSnapshotQuery } from '../../../shared/contracts/dashboard'
 import type { TransactionLedgerQuery } from '../../../shared/contracts/transactions'
-import { EmptyDashboard } from './EmptyDashboard'
 
 interface DashboardScreenProps {
   onImport: () => void
@@ -68,6 +69,9 @@ const operationTint = {
 
 const formatAmount = (minor: number) => currencyFormatter.format(minor / 100)
 const formatCompactAmount = (minor: number) => compactCurrencyFormatter.format(minor / 100)
+const snapshotHasData = (snapshot?: DashboardSnapshot) =>
+  Boolean(snapshot) &&
+  (snapshot.summaryCards.some((card) => card.totalMinor !== 0) || snapshot.recentTransactions.length > 0 || snapshot.spendTrend.length > 0)
 
 export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps) => {
   const supportsDashboardApi =
@@ -102,8 +106,24 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
           range: nextPreferences.range,
           compare: { enabled: nextPreferences.compareEnabled }
         })
+        const resolvedSnapshot =
+          !snapshotHasData(nextSnapshot) && nextPreferences.range.preset !== 'all-time'
+            ? await window.walnut.getDashboardSnapshot({
+                range: { preset: 'all-time' },
+                compare: { enabled: nextPreferences.compareEnabled }
+              })
+            : nextSnapshot
         if (!cancelled) {
-          startTransition(() => setSnapshot(nextSnapshot))
+          const resolvedPreferences = {
+            range: resolvedSnapshot.query.range,
+            compareEnabled: Boolean(resolvedSnapshot.query.compare?.enabled)
+          }
+          setPreferences(resolvedPreferences)
+          setCompareEnabled(resolvedPreferences.compareEnabled)
+          if (resolvedPreferences.range.preset !== nextPreferences.range.preset) {
+            await window.walnut.setDashboardPreferences(resolvedPreferences)
+          }
+          startTransition(() => setSnapshot(resolvedSnapshot))
         }
       } finally {
         if (!cancelled) {
@@ -125,7 +145,7 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
   }, [])
 
   if (!supportsDashboardApi) {
-    return <EmptyDashboard onImport={onImport} />
+    return <section style={styles.loadingCard}>Dashboard analytics are not available in this build.</section>
   }
 
   const compactMode = viewportWidth < 1360
@@ -169,13 +189,7 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
     })
   }
 
-  const hasData = useMemo(() => {
-    if (!snapshot) {
-      return false
-    }
-
-    return snapshot.summaryCards.some((card) => card.totalMinor !== 0) || snapshot.recentTransactions.length > 0 || snapshot.spendTrend.length > 0
-  }, [snapshot])
+  const hasData = useMemo(() => snapshotHasData(snapshot), [snapshot])
 
   const loadRecurringDetail = async (recurringId: string) => {
     if (!snapshot) {
@@ -197,14 +211,11 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
     }
   }
 
-  if (!loading && snapshot && !hasData) {
-    return <EmptyDashboard onImport={onImport} />
-  }
-
   if (!preferences || !snapshot) {
     return <section style={styles.loadingCard}>Loading dashboard analytics…</section>
   }
 
+  const isEmptyState = !hasData
   const trendData = snapshot.spendTrend.map((point) => ({
     label: point.bucketLabel,
     spend: Number((point.spendMinor / 100).toFixed(2)),
@@ -224,10 +235,26 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
       >
         <div style={styles.heroIntro}>
           <div style={styles.kicker}>Dashboard analytics</div>
-          <h2 style={styles.heroHeading}>See how this household earns, spends, and repeats over time.</h2>
+          <h2 style={styles.heroHeading}>
+            {isEmptyState ? 'Import statements to light up your finance dashboard.' : 'See how this household earns, spends, and repeats over time.'}
+          </h2>
           <p style={styles.heroBody}>
-            Walnut keeps the full view local, fast, and connected to the transaction ledger whenever you want to drill into a pattern.
+            {isEmptyState
+              ? 'The dashboard widgets are ready now. Bring in one or more ICICI statements to populate trends, categories, merchants, and recurring activity without storing the source files.'
+              : 'Walnut keeps the full view local, fast, and connected to the transaction ledger whenever you want to drill into a pattern.'}
           </p>
+          {isEmptyState ? (
+            <div style={styles.heroActionRow}>
+              <button type="button" aria-label="Import statements from dashboard" style={styles.primaryButton} onClick={onImport}>
+                <Upload size={16} />
+                Import statements
+              </button>
+              <div style={styles.inlineNote}>
+                <Sparkles size={16} />
+                <span>Widgets will start filling in as soon as your first batch is imported.</span>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div style={styles.controlPanel}>
@@ -346,20 +373,24 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
             </div>
           </div>
           <div style={styles.chartWrap}>
-            <ResponsiveContainer width="100%" height={290}>
-              <AreaChart data={trendData}>
-                <CartesianGrid stroke="rgba(30, 27, 22, 0.08)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: '#6d6557', fontSize: 12 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fill: '#6d6557', fontSize: 12 }} tickLine={false} axisLine={false} />
-                <Tooltip
-                  formatter={(value: number, name: string) => [currencyFormatter.format(value), name === 'spend' ? 'Spend' : name === 'income' ? 'Income' : name]}
-                  contentStyle={styles.tooltip}
-                />
-                {compareEnabled ? <Area type="monotone" dataKey="previousSpend" stroke="rgba(30,27,22,0.18)" fill="rgba(30,27,22,0.06)" /> : null}
-                <Area type="monotone" dataKey="spend" stroke="#0f766e" fill="rgba(15,118,110,0.22)" activeDot={{ r: 5 }} onClick={(data) => data?.payload?.ledgerQuery && onOpenLedger(data.payload.ledgerQuery)} />
-                <Area type="monotone" dataKey="income" stroke="#b0781d" fill="rgba(176,120,29,0.18)" activeDot={{ r: 5 }} onClick={(data) => data?.payload?.ledgerQuery && onOpenLedger(data.payload.ledgerQuery)} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {trendData.length === 0 ? (
+              <div style={styles.emptyPanel}>Import transactions to see weekly, monthly, or yearly income-versus-spend trends here.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={290}>
+                <AreaChart data={trendData}>
+                  <CartesianGrid stroke="rgba(30, 27, 22, 0.08)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fill: '#6d6557', fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: '#6d6557', fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [currencyFormatter.format(value), name === 'spend' ? 'Spend' : name === 'income' ? 'Income' : name]}
+                    contentStyle={styles.tooltip}
+                  />
+                  {compareEnabled ? <Area type="monotone" dataKey="previousSpend" stroke="rgba(30,27,22,0.18)" fill="rgba(30,27,22,0.06)" /> : null}
+                  <Area type="monotone" dataKey="spend" stroke="#0f766e" fill="rgba(15,118,110,0.22)" activeDot={{ r: 5 }} onClick={(data) => data?.payload?.ledgerQuery && onOpenLedger(data.payload.ledgerQuery)} />
+                  <Area type="monotone" dataKey="income" stroke="#b0781d" fill="rgba(176,120,29,0.18)" activeDot={{ r: 5 }} onClick={(data) => data?.payload?.ledgerQuery && onOpenLedger(data.payload.ledgerQuery)} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </article>
 
@@ -371,19 +402,23 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
             </div>
           </div>
           <div style={styles.chartWrapSmall}>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={snapshot.categoryBreakdown.map((item) => ({ ...item, total: Number((item.totalMinor / 100).toFixed(2)) }))} layout="vertical">
-                <CartesianGrid stroke="rgba(30, 27, 22, 0.08)" horizontal={false} />
-                <XAxis type="number" hide />
-                <YAxis dataKey="label" type="category" tick={{ fill: '#6d6557', fontSize: 12 }} tickLine={false} axisLine={false} width={120} />
-                <Tooltip formatter={(value: number) => currencyFormatter.format(value)} contentStyle={styles.tooltip} />
-                <Bar dataKey="total" radius={[0, 12, 12, 0]} onClick={(data) => data?.payload?.ledgerQuery && onOpenLedger(data.payload.ledgerQuery)}>
-                  {snapshot.categoryBreakdown.map((item, index) => (
-                    <Cell key={item.label} fill={index % 2 === 0 ? '#0f766e' : '#79a79f'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {snapshot.categoryBreakdown.length === 0 ? (
+              <div style={styles.emptyPanel}>Categories will show up here after Walnut classifies imported transactions.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={snapshot.categoryBreakdown.map((item) => ({ ...item, total: Number((item.totalMinor / 100).toFixed(2)) }))} layout="vertical">
+                  <CartesianGrid stroke="rgba(30, 27, 22, 0.08)" horizontal={false} />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="label" type="category" tick={{ fill: '#6d6557', fontSize: 12 }} tickLine={false} axisLine={false} width={120} />
+                  <Tooltip formatter={(value: number) => currencyFormatter.format(value)} contentStyle={styles.tooltip} />
+                  <Bar dataKey="total" radius={[0, 12, 12, 0]} onClick={(data) => data?.payload?.ledgerQuery && onOpenLedger(data.payload.ledgerQuery)}>
+                    {snapshot.categoryBreakdown.map((item, index) => (
+                      <Cell key={item.label} fill={index % 2 === 0 ? '#0f766e' : '#79a79f'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </article>
 
@@ -405,16 +440,20 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
             </label>
           </div>
           <div style={styles.listStack}>
-            {snapshot.topMerchants.slice(0, merchantCount).map((item, index) => (
-              <button key={item.merchant} type="button" style={styles.listRowButton} onClick={() => item.ledgerQuery && onOpenLedger(item.ledgerQuery)}>
-                <div style={styles.listRank}>{index + 1}</div>
-                <div style={styles.listCopy}>
-                  <div style={styles.listTitle}>{item.merchant}</div>
-                  <div style={styles.listMeta}>{item.transactionCount} transactions</div>
-                </div>
-                <div style={styles.listAmount}>{formatAmount(item.totalMinor)}</div>
-              </button>
-            ))}
+            {snapshot.topMerchants.length === 0 ? (
+              <div style={styles.emptyPanel}>Top merchants will appear here once spend starts coming into the current range.</div>
+            ) : (
+              snapshot.topMerchants.slice(0, merchantCount).map((item, index) => (
+                <button key={item.merchant} type="button" style={styles.listRowButton} onClick={() => item.ledgerQuery && onOpenLedger(item.ledgerQuery)}>
+                  <div style={styles.listRank}>{index + 1}</div>
+                  <div style={styles.listCopy}>
+                    <div style={styles.listTitle}>{item.merchant}</div>
+                    <div style={styles.listMeta}>{item.transactionCount} transactions</div>
+                  </div>
+                  <div style={styles.listAmount}>{formatAmount(item.totalMinor)}</div>
+                </button>
+              ))
+            )}
           </div>
         </article>
 
@@ -453,15 +492,19 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
             </div>
           </div>
           <div style={styles.listStack}>
-            {snapshot.largestTransactions.map((item) => (
-              <button key={item.transactionId} type="button" style={styles.listRowButton} onClick={() => item.ledgerQuery && onOpenLedger(item.ledgerQuery)}>
-                <div style={styles.listCopy}>
-                  <div style={styles.listTitle}>{item.description}</div>
-                  <div style={styles.listMeta}>{item.transactionDateRaw}</div>
-                </div>
-                <div style={styles.listAmount}>{formatAmount(item.amountMinor)}</div>
-              </button>
-            ))}
+            {snapshot.largestTransactions.length === 0 ? (
+              <div style={styles.emptyPanel}>Largest transactions will populate after imported records land in this date range.</div>
+            ) : (
+              snapshot.largestTransactions.map((item) => (
+                <button key={item.transactionId} type="button" style={styles.listRowButton} onClick={() => item.ledgerQuery && onOpenLedger(item.ledgerQuery)}>
+                  <div style={styles.listCopy}>
+                    <div style={styles.listTitle}>{item.description}</div>
+                    <div style={styles.listMeta}>{item.transactionDateRaw}</div>
+                  </div>
+                  <div style={styles.listAmount}>{formatAmount(item.amountMinor)}</div>
+                </button>
+              ))
+            )}
           </div>
         </article>
 
@@ -473,17 +516,21 @@ export const DashboardScreen = ({ onImport, onOpenLedger }: DashboardScreenProps
             </div>
           </div>
           <div style={styles.listStack}>
-            {snapshot.recentTransactions.map((item) => (
-              <button key={item.transactionId} type="button" style={styles.listRowButton} onClick={() => item.ledgerQuery && onOpenLedger(item.ledgerQuery)}>
-                <div style={styles.listCopy}>
-                  <div style={styles.listTitle}>{item.description}</div>
-                  <div style={styles.listMeta}>{item.transactionDateRaw}</div>
-                </div>
-                <div style={{ ...styles.listAmount, color: item.signedAmountMinor >= 0 ? 'var(--color-accent)' : 'var(--color-ink)' }}>
-                  {formatAmount(item.signedAmountMinor)}
-                </div>
-              </button>
-            ))}
+            {snapshot.recentTransactions.length === 0 ? (
+              <div style={styles.emptyPanel}>Recent activity previews will appear here after your first imported batch.</div>
+            ) : (
+              snapshot.recentTransactions.map((item) => (
+                <button key={item.transactionId} type="button" style={styles.listRowButton} onClick={() => item.ledgerQuery && onOpenLedger(item.ledgerQuery)}>
+                  <div style={styles.listCopy}>
+                    <div style={styles.listTitle}>{item.description}</div>
+                    <div style={styles.listMeta}>{item.transactionDateRaw}</div>
+                  </div>
+                  <div style={{ ...styles.listAmount, color: item.signedAmountMinor >= 0 ? 'var(--color-accent)' : 'var(--color-ink)' }}>
+                    {formatAmount(item.signedAmountMinor)}
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </article>
       </section>
@@ -581,6 +628,32 @@ const styles = {
     fontSize: 17,
     lineHeight: 1.55,
     color: 'var(--color-muted)'
+  },
+  heroActionRow: {
+    display: 'grid',
+    gap: 'var(--space-md)',
+    justifyItems: 'start'
+  },
+  primaryButton: {
+    minHeight: 52,
+    borderRadius: 999,
+    border: 0,
+    background: 'var(--color-accent)',
+    color: '#fff',
+    padding: '0 22px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 'var(--space-sm)',
+    fontWeight: 700,
+    fontSize: 17
+  },
+  inlineNote: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 'var(--space-sm)',
+    color: 'var(--color-muted)',
+    fontWeight: 600,
+    lineHeight: 1.5
   },
   controlPanel: {
     display: 'grid',

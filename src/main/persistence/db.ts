@@ -2903,21 +2903,26 @@ export class WalnutRepository {
   }
 
   private getTransactionDateBounds() {
-    const row = this.sqlite
+    const rows = this.sqlite
       .prepare(
-        `SELECT MIN(COALESCE(transaction_date_sortable, transaction_date_raw)) AS from_date,
-                MAX(COALESCE(transaction_date_sortable, transaction_date_raw)) AS to_date
+        `SELECT transaction_date_sortable, transaction_date_raw
          FROM imported_transactions`
       )
-      .get() as { from_date?: string | null; to_date?: string | null } | undefined
+      .all() as { transaction_date_sortable?: string | null; transaction_date_raw?: string | null }[]
 
-    if (!row?.from_date || !row?.to_date) {
+    const normalized = rows
+      .map((row) => row.transaction_date_sortable ?? row.transaction_date_raw)
+      .filter((value): value is string => Boolean(value))
+      .map((value) => toSortableDateKey(String(value)))
+      .sort((left, right) => left.localeCompare(right))
+
+    if (normalized.length === 0) {
       return undefined
     }
 
     return {
-      from: String(row.from_date),
-      to: String(row.to_date)
+      from: normalized[0],
+      to: normalized[normalized.length - 1]
     }
   }
 

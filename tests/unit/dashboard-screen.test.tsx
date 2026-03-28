@@ -161,6 +161,99 @@ afterEach(() => {
 })
 
 describe('dashboard analytics screen', () => {
+  it('renders a zero-state dashboard with real widgets and an import CTA when no analytics data exists yet', async () => {
+    const walnut = createWalnutApi()
+    walnut.getDashboardSnapshot.mockResolvedValue({
+      ...snapshot,
+      summaryCards: snapshot.summaryCards.map((card) => ({
+        ...card,
+        totalMinor: 0,
+        previousTotalMinor: 0,
+        deltaMinor: 0,
+        trend: 'flat' as const
+      })),
+      operationalCards: snapshot.operationalCards.map((card) => ({
+        ...card,
+        totalMinor: 0,
+        transactionCount: 0,
+        trend: 'flat' as const
+      })),
+      spendTrend: [],
+      categoryBreakdown: [],
+      topMerchants: [],
+      largestTransactions: [],
+      recentTransactions: [],
+      recurringItems: []
+    })
+    window.walnut = walnut
+
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Import statements to light up your finance dashboard.' })
+    expect(screen.getByRole('button', { name: 'Import statements from dashboard' })).toBeVisible()
+    expect(screen.getByText('Total credited')).toBeVisible()
+    expect(screen.getByText('Total debited')).toBeVisible()
+    expect(screen.getByText('Difference')).toBeVisible()
+    expect(screen.getByText('Import transactions to see weekly, monthly, or yearly income-versus-spend trends here.')).toBeVisible()
+    expect(screen.getByText('Recent activity previews will appear here after your first imported batch.')).toBeVisible()
+  })
+
+  it('falls back to all-time analytics when the saved range is empty but records exist historically', async () => {
+    const user = userEvent.setup()
+    const walnut = createWalnutApi()
+    walnut.getDashboardPreferences.mockResolvedValue({ range: { preset: 'month', from: '2026-03-01', to: '2026-03-31' }, compareEnabled: true })
+    walnut.getDashboardSnapshot
+      .mockResolvedValueOnce({
+        ...snapshot,
+        query: {
+          range: { preset: 'month' as const, from: '2026-03-01', to: '2026-03-31' },
+          compare: { enabled: true, from: '2026-02-01', to: '2026-02-28' }
+        },
+        summaryCards: snapshot.summaryCards.map((card) => ({
+          ...card,
+          totalMinor: 0,
+          previousTotalMinor: 0,
+          deltaMinor: 0,
+          trend: 'flat' as const
+        })),
+        operationalCards: snapshot.operationalCards.map((card) => ({
+          ...card,
+          totalMinor: 0,
+          transactionCount: 0,
+          trend: 'flat' as const
+        })),
+        spendTrend: [],
+        categoryBreakdown: [],
+        topMerchants: [],
+        largestTransactions: [],
+        recentTransactions: [],
+        recurringItems: []
+      })
+      .mockResolvedValueOnce({
+        ...snapshot,
+        query: {
+          range: { preset: 'all-time' as const, from: '2024-02-01', to: '2024-02-29' },
+          compare: { enabled: true, from: '2024-01-01', to: '2024-01-31' }
+        }
+      })
+    window.walnut = walnut
+
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'See how this household earns, spends, and repeats over time.' })
+    expect(walnut.getDashboardSnapshot).toHaveBeenCalledTimes(2)
+    expect(walnut.getDashboardSnapshot).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ range: expect.objectContaining({ preset: 'all-time' }) })
+    )
+    expect(walnut.setDashboardPreferences).toHaveBeenCalledWith(
+      expect.objectContaining({ range: expect.objectContaining({ preset: 'all-time' }) })
+    )
+
+    await user.click(screen.getAllByRole('button', { name: /Burger King/ })[0])
+    await waitFor(() => expect(walnut.listTransactions).toHaveBeenCalledWith(expect.objectContaining({ search: 'Burger King' })))
+  })
+
   it('renders dashboard analytics and drills into the ledger from dashboard widgets', async () => {
     const user = userEvent.setup()
     const walnut = createWalnutApi()
