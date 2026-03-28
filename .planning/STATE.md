@@ -1,15 +1,15 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 3 complete, ready for Phase 4 discussion
-**Roadmap status:** Release 1 Phases 1, 2, and 3 complete
+**Project status:** Phase 4 planned, ready for execution
+**Roadmap status:** Release 1 Phases 1, 2, and 3 complete; Phase 4 planned
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 4 - Transaction Ledger and Search discussion
+**Current focus:** Phase 4 - Transaction Ledger and Search execution
 
 **Active enhancement branch:** `enhancement/ui-polish`
 **Enhancement focus:** local profile selection on the lock screen, product-shell visual cleanup, and regression coverage for the updated shell flows
@@ -64,10 +64,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-27: Phase 3 Plan 04 executed with summary at `.planning/phases/03-review-queue-and-import-history/03-04-SUMMARY.md`
 - 2026-03-27: Phase 3 verification completed at `.planning/phases/03-review-queue-and-import-history/03-VERIFICATION.md`
 - 2026-03-28: UI polish branch refreshed the shell navigation, lock screen, local profile selection flow, and regression coverage on `enhancement/ui-polish`
+- 2026-03-28: Phase 4 context, research, UI contract, validation, and execution plans created at `.planning/phases/04-transaction-ledger-and-search/`
 
 ## Immediate Next Action
 
-Run `$gsd-discuss-phase 4` to define the transaction ledger, transaction editing scope, and advanced search/filter behavior.
+Run `$gsd-execute-phase 4` to implement the transaction ledger, search/filter workflow, and drawer-based transaction corrections.
 
 ---
-*Last updated: 2026-03-28 after UI polish and regression hardening*
+*Last updated: 2026-03-28 after Phase 4 planning artifacts were created*
