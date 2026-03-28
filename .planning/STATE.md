@@ -1,18 +1,18 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 5 complete, ready for Phase 6 discussion
-**Roadmap status:** Release 1 Phases 1, 2, 3, 4, and 5 complete
+**Project status:** Phase 5 complete, ready for Phase 6 execution
+**Roadmap status:** Release 1 Phases 1, 2, 3, 4, and 5 complete; Phase 6 planned
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 6 - Dashboard Analytics discussion
+**Current focus:** Phase 6 - Dashboard Analytics execution
 
-**Active implementation branch:** `phase/5-categories-and-rules`
-**Current branch focus:** Phase 5 implementation, verification, and handoff for starter categories, protected taxonomy, and reusable rules
+**Active implementation branch:** `phase/6-dashboard-analytics`
+**Current branch focus:** Phase 6 dashboard analytics research, UI contract, and planning
 
 ## Current Position
 
@@ -74,10 +74,14 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-28: Phase 5 UI design contract approved at `.planning/phases/05-categories-and-rules/05-UI-SPEC.md`
 - 2026-03-28: Phase 5 validation strategy and execution plans created at `.planning/phases/05-categories-and-rules/05-VALIDATION.md`, `.planning/phases/05-categories-and-rules/05-01-PLAN.md`, `.planning/phases/05-categories-and-rules/05-02-PLAN.md`, `.planning/phases/05-categories-and-rules/05-03-PLAN.md`, and `.planning/phases/05-categories-and-rules/05-04-PLAN.md`
 - 2026-03-28: Phase 5 executed with summaries at `.planning/phases/05-categories-and-rules/05-01-SUMMARY.md`, `.planning/phases/05-categories-and-rules/05-02-SUMMARY.md`, `.planning/phases/05-categories-and-rules/05-03-SUMMARY.md`, `.planning/phases/05-categories-and-rules/05-04-SUMMARY.md`, and `.planning/phases/05-categories-and-rules/05-VERIFICATION.md`
+- 2026-03-28: Phase 6 context gathered at `.planning/phases/06-dashboard-analytics/06-CONTEXT.md`
+- 2026-03-28: Phase 6 research captured at `.planning/phases/06-dashboard-analytics/06-RESEARCH.md`
+- 2026-03-28: Phase 6 UI design contract approved at `.planning/phases/06-dashboard-analytics/06-UI-SPEC.md`
+- 2026-03-28: Phase 6 validation strategy and execution plans created at `.planning/phases/06-dashboard-analytics/06-VALIDATION.md`, `.planning/phases/06-dashboard-analytics/06-01-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-02-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-03-PLAN.md`, and `.planning/phases/06-dashboard-analytics/06-04-PLAN.md`
 
 ## Immediate Next Action
 
-Run `$gsd-discuss-phase 6` to define the dashboard analytics surface and insight interactions.
+Run `$gsd-execute-phase 6` to build the dashboard snapshot layer, analytics workspace, drill-down flows, and verification coverage.
 
 ---
-*Last updated: 2026-03-28 after Phase 5 execution*
+*Last updated: 2026-03-28 after Phase 6 planning*
