@@ -47,7 +47,7 @@ Each epic should include:
 
 Create stories only for phases that already have `*-PLAN.md` files.
 
-At the moment, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 have plan files, so the active story set is:
+At the moment, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6 have plan files, so the active story set is:
 
 - Phase 1 / Wave 1
 - Phase 1 / Wave 2
@@ -67,6 +67,10 @@ At the moment, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 have plan files, 
 - Phase 5 / Wave 2
 - Phase 5 / Wave 3
 - Phase 5 / Wave 4
+- Phase 6 / Wave 1
+- Phase 6 / Wave 2
+- Phase 6 / Wave 3
+- Phase 6 / Wave 4
 
 ## Phase 1 Story Breakdown
 
@@ -308,6 +312,60 @@ Plan reference:
 
 - `.planning/phases/05-categories-and-rules/05-04-PLAN.md`
 
+## Phase 6 Story Breakdown
+
+### Wave 1 Story
+
+Scope:
+
+- dashboard contracts
+- aggregate snapshot queries
+- recurring detection
+- persisted dashboard preferences
+
+Plan reference:
+
+- `.planning/phases/06-dashboard-analytics/06-01-PLAN.md`
+
+### Wave 2 Story
+
+Scope:
+
+- dashboard workspace
+- global date controls
+- summary and operational cards
+- compact-mode layout
+
+Plan reference:
+
+- `.planning/phases/06-dashboard-analytics/06-02-PLAN.md`
+
+### Wave 3 Story
+
+Scope:
+
+- recurring detail panel
+- recent and largest widgets
+- dashboard-to-ledger drill-down
+- widget interaction flows
+
+Plan reference:
+
+- `.planning/phases/06-dashboard-analytics/06-03-PLAN.md`
+
+### Wave 4 Story
+
+Scope:
+
+- repository analytics tests
+- renderer dashboard tests
+- browser dashboard coverage
+- verification handoff
+
+Plan reference:
+
+- `.planning/phases/06-dashboard-analytics/06-04-PLAN.md`
+
 ## Completion Workflow
 
 When a phase completes:
@@ -332,7 +390,8 @@ When a phase completes:
 - That polish scope now includes multi-profile local selection on the lock screen, a dedicated new-profile flow, responsive lock-screen behavior, cleaner import workspace hierarchy, and updated ledger summaries/search/pagination coverage
 - Phase 5 implementation is complete on `phase/5-categories-and-rules`
 - Phase 5 tracking items are epic `#5` and stories `#35`, `#36`, `#37`, and `#39`
-- Next discussion track is Phase 6: Dashboard Analytics
+- Phase 6 implementation is complete on `phase/6-dashboard-analytics`
+- Next discussion track is Phase 7: Audit and Diagnostics
 
 ## Documentation Expectations
 

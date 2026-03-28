@@ -216,7 +216,6 @@ test('keeps partial review progress across reload and supports restoring destruc
   await seedReviewQueueState(page)
   await page.goto('/')
 
-  await page.getByRole('button', { name: 'Import statements from dashboard' }).click()
   await page.getByRole('button', { name: 'Open import history workspace' }).click()
   await page.getByRole('button', { name: 'Open review queue for Needs review batch' }).click()
   await page.getByRole('button', { name: 'Open details for Possible duplicate candidate' }).click()
@@ -227,7 +226,6 @@ test('keeps partial review progress across reload and supports restoring destruc
   await expect(page.getByText('Needs review: 2')).toBeVisible()
 
   await page.reload()
-  await page.getByRole('button', { name: 'Import statements from dashboard' }).click()
   await page.getByRole('button', { name: 'Open import history workspace' }).click()
   await expect(page.getByText('Needs review: 2')).toBeVisible()
 

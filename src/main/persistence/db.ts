@@ -1,4 +1,17 @@
 import Database from 'better-sqlite3'
+import {
+  addDays,
+  differenceInCalendarDays,
+  endOfMonth,
+  endOfWeek,
+  endOfYear,
+  format,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+  startOfYear,
+  subDays
+} from 'date-fns'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { app } from 'electron'
 import { existsSync, mkdirSync } from 'node:fs'
@@ -11,6 +24,16 @@ import type {
   SaveOnboardingProgressInput
 } from '../../shared/contracts/app-state'
 import type { AccountProfile, AccountProfileDraft } from '../../shared/contracts/account'
+import type {
+  DashboardPreferences,
+  DashboardRangePreset,
+  DashboardRecurringDetail,
+  DashboardRecurringDetailInput,
+  DashboardRecurringItem,
+  DashboardSnapshot,
+  DashboardSnapshotQuery,
+  DashboardTrendPoint
+} from '../../shared/contracts/dashboard'
 import type {
   ApplyRuleToExistingInput,
   CategoryDirection,
@@ -328,6 +351,7 @@ interface DeviceProfileSnapshot {
 }
 
 const activeProfileKey = 'active_profile_id'
+const dashboardPreferencesKey = 'dashboard_preferences'
 
 const buildDbPath = () => {
   const configuredPath = process.env.WALNUT_DB_PATH
@@ -1855,6 +1879,199 @@ export class WalnutRepository {
     return this.listRules()
   }
 
+  getDashboardPreferences(): DashboardPreferences {
+    const stored = this.getAppSetting(dashboardPreferencesKey)
+    if (!stored) {
+      return this.getDefaultDashboardPreferences()
+    }
+
+    const parsed = JSON.parse(stored) as DashboardPreferences
+    return {
+      range: {
+        preset: parsed.range.preset,
+        from: parsed.range.from,
+        to: parsed.range.to
+      },
+      compareEnabled: Boolean(parsed.compareEnabled)
+    }
+  }
+
+  setDashboardPreferences(input: DashboardPreferences): DashboardPreferences {
+    const normalized: DashboardPreferences = {
+      range: {
+        preset: input.range.preset,
+        from: input.range.from,
+        to: input.range.to
+      },
+      compareEnabled: Boolean(input.compareEnabled)
+    }
+    this.setAppSetting(dashboardPreferencesKey, JSON.stringify(normalized))
+    return normalized
+  }
+
+  getDashboardSnapshot(input: DashboardSnapshotQuery): DashboardSnapshot {
+    const resolvedQuery = this.resolveDashboardQuery(input)
+    const rows = this.listTransactions({
+      dateFrom: resolvedQuery.range.from,
+      dateTo: resolvedQuery.range.to
+    })
+
+    const compareRows =
+      resolvedQuery.compare?.enabled && resolvedQuery.compare.from && resolvedQuery.compare.to
+        ? this.listTransactions({
+            dateFrom: resolvedQuery.compare.from,
+            dateTo: resolvedQuery.compare.to
+          })
+        : []
+
+    const creditedTotalMinor = rows.reduce((total, row) => total + (row.creditAmountMinor ?? 0), 0)
+    const debitedTotalMinor = rows.reduce((total, row) => total + (row.debitAmountMinor ?? 0), 0)
+    const incomeTotalMinor = rows.reduce(
+      (total, row) => total + (row.normalizedType === 'income' || row.normalizedType === 'refund' ? row.creditAmountMinor ?? 0 : 0),
+      0
+    )
+    const expenseTotalMinor = rows.reduce(
+      (total, row) =>
+        total +
+        (row.normalizedType === 'expense' || row.normalizedType === 'atm-withdrawal' || row.normalizedType === 'credit-card-payment'
+          ? row.debitAmountMinor ?? 0
+          : 0),
+      0
+    )
+
+    const compareCreditedMinor = compareRows.reduce((total, row) => total + (row.creditAmountMinor ?? 0), 0)
+    const compareDebitedMinor = compareRows.reduce((total, row) => total + (row.debitAmountMinor ?? 0), 0)
+    const compareIncomeMinor = compareRows.reduce(
+      (total, row) => total + (row.normalizedType === 'income' || row.normalizedType === 'refund' ? row.creditAmountMinor ?? 0 : 0),
+      0
+    )
+    const compareExpenseMinor = compareRows.reduce(
+      (total, row) =>
+        total +
+        (row.normalizedType === 'expense' || row.normalizedType === 'atm-withdrawal' || row.normalizedType === 'credit-card-payment'
+          ? row.debitAmountMinor ?? 0
+          : 0),
+      0
+    )
+
+    const summaryCards: DashboardSnapshot['summaryCards'] = [
+      {
+        id: 'credited',
+        label: 'Total credited',
+        totalMinor: creditedTotalMinor,
+        previousTotalMinor: compareRows.length ? compareCreditedMinor : undefined,
+        deltaMinor: compareRows.length ? creditedTotalMinor - compareCreditedMinor : undefined,
+        trend: this.toTrend(creditedTotalMinor, compareCreditedMinor, compareRows.length > 0),
+        helper: 'All credit activity in the selected period.'
+      },
+      {
+        id: 'debited',
+        label: 'Total debited',
+        totalMinor: debitedTotalMinor,
+        previousTotalMinor: compareRows.length ? compareDebitedMinor : undefined,
+        deltaMinor: compareRows.length ? debitedTotalMinor - compareDebitedMinor : undefined,
+        trend: this.toTrend(debitedTotalMinor, compareDebitedMinor, compareRows.length > 0),
+        helper: 'All debit activity in the selected period.'
+      },
+      {
+        id: 'difference',
+        label: 'Difference',
+        totalMinor: creditedTotalMinor - debitedTotalMinor,
+        previousTotalMinor: compareRows.length ? compareCreditedMinor - compareDebitedMinor : undefined,
+        deltaMinor:
+          compareRows.length ? (creditedTotalMinor - debitedTotalMinor) - (compareCreditedMinor - compareDebitedMinor) : undefined,
+        trend: this.toTrend(
+          creditedTotalMinor - debitedTotalMinor,
+          compareCreditedMinor - compareDebitedMinor,
+          compareRows.length > 0
+        ),
+        helper: 'Credited minus debited for the selected period.'
+      },
+      {
+        id: 'income',
+        label: 'Income vs refunds',
+        totalMinor: incomeTotalMinor,
+        previousTotalMinor: compareRows.length ? compareIncomeMinor : undefined,
+        deltaMinor: compareRows.length ? incomeTotalMinor - compareIncomeMinor : undefined,
+        trend: this.toTrend(incomeTotalMinor, compareIncomeMinor, compareRows.length > 0),
+        helper: 'Income includes refunds and reimbursements.'
+      },
+      {
+        id: 'expense',
+        label: 'Spend footprint',
+        totalMinor: expenseTotalMinor,
+        previousTotalMinor: compareRows.length ? compareExpenseMinor : undefined,
+        deltaMinor: compareRows.length ? expenseTotalMinor - compareExpenseMinor : undefined,
+        trend: this.toTrend(expenseTotalMinor, compareExpenseMinor, compareRows.length > 0),
+        helper: 'Spend includes expenses, ATM withdrawals, and credit-card payments.'
+      }
+    ]
+
+    const buildOperationalCard = (
+      id: 'transfer' | 'refund' | 'atm-withdrawal' | 'credit-card-payment',
+      label: string,
+      type: TransactionNormalizedType
+    ) => {
+      const currentTotal = rows.reduce((total, row) => total + (row.normalizedType === type ? Math.abs(row.signedAmountMinor) : 0), 0)
+      const previousTotal = compareRows.reduce((total, row) => total + (row.normalizedType === type ? Math.abs(row.signedAmountMinor) : 0), 0)
+      const currentCount = rows.filter((row) => row.normalizedType === type).length
+      return {
+        id,
+        label,
+        totalMinor: currentTotal,
+        transactionCount: currentCount,
+        previousTotalMinor: compareRows.length ? previousTotal : undefined,
+        deltaMinor: compareRows.length ? currentTotal - previousTotal : undefined,
+        trend: this.toTrend(currentTotal, previousTotal, compareRows.length > 0),
+        helper: `${currentCount} matching transactions in the selected period.`
+      }
+    }
+
+    return {
+      query: resolvedQuery,
+      summaryCards,
+      operationalCards: [
+        buildOperationalCard('transfer', 'Transfers', 'transfer'),
+        buildOperationalCard('refund', 'Refunds', 'refund'),
+        buildOperationalCard('atm-withdrawal', 'ATM withdrawals', 'atm-withdrawal'),
+        buildOperationalCard('credit-card-payment', 'Credit card payments', 'credit-card-payment')
+      ],
+      spendTrend: this.buildSpendTrend(rows, compareRows, resolvedQuery.range.preset),
+      categoryBreakdown: this.buildCategoryBreakdown(rows, resolvedQuery.range),
+      topMerchants: this.buildTopMerchants(rows, resolvedQuery.range),
+      largestTransactions: this.buildLargestTransactions(rows, resolvedQuery.range),
+      recentTransactions: this.buildRecentTransactions(rows, resolvedQuery.range),
+      recurringItems: this.buildRecurringItems(rows, resolvedQuery.range)
+    }
+  }
+
+  getRecurringDetail(input: DashboardRecurringDetailInput): DashboardRecurringDetail {
+    const resolvedQuery = this.resolveDashboardQuery(input.query)
+    const rows = this.listTransactions({
+      dateFrom: resolvedQuery.range.from,
+      dateTo: resolvedQuery.range.to
+    })
+    const items = this.buildRecurringItems(rows, resolvedQuery.range)
+    const item = items.find((candidate) => candidate.id === input.recurringId)
+    if (!item) {
+      throw new Error(`Recurring pattern ${input.recurringId} was not found.`)
+    }
+
+    const transactions = rows
+      .filter((row) => this.toRecurringId(row.description, row.normalizedType, row.signedAmountMinor >= 0 ? 'credit' : 'debit') === input.recurringId)
+      .sort((left, right) => right.transactionDateSortable.localeCompare(left.transactionDateSortable))
+      .slice(0, 12)
+      .map((row) => ({
+        transactionId: row.id,
+        transactionDateRaw: row.transactionDateRaw,
+        description: row.description,
+        signedAmountMinor: row.signedAmountMinor,
+        normalizedType: row.normalizedType
+      }))
+
+    return { item, transactions }
+  }
+
   resolveReviewItems(input: ReviewItemResolutionInput): ImportBatchDetail {
     const stamp = nowIso()
     const sanitized = this.sanitizeResolutionInput(input)
@@ -2599,6 +2816,344 @@ export class WalnutRepository {
       nextType: action.type ?? ledgerRow.normalizedType,
       tags: Array.from(new Set([...ledgerRow.tags, ...(action.appendTags ?? [])]))
     }
+  }
+
+  private getDefaultDashboardPreferences(): DashboardPreferences {
+    const now = new Date()
+    return {
+      range: {
+        preset: 'month',
+        from: format(startOfMonth(now), 'yyyy-MM-dd'),
+        to: format(endOfMonth(now), 'yyyy-MM-dd')
+      },
+      compareEnabled: true
+    }
+  }
+
+  private resolveDashboardQuery(input: DashboardSnapshotQuery): DashboardSnapshotQuery {
+    const range = this.resolveDashboardRange(input.range)
+    const compare =
+      input.compare?.enabled
+        ? {
+            enabled: true,
+            ...this.resolveDashboardCompare(range, input.compare.from, input.compare.to)
+          }
+        : undefined
+
+    return { range, compare }
+  }
+
+  private resolveDashboardRange(range: DashboardSnapshotQuery['range']): DashboardSnapshotQuery['range'] {
+    const now = new Date()
+    if (range.preset === 'custom') {
+      const from = range.from ?? format(startOfMonth(now), 'yyyy-MM-dd')
+      const to = range.to ?? format(endOfMonth(now), 'yyyy-MM-dd')
+      return { preset: 'custom', from, to }
+    }
+
+    if (range.preset === 'all-time') {
+      const bounds = this.getTransactionDateBounds()
+      return {
+        preset: 'all-time',
+        from: bounds?.from ?? format(startOfMonth(now), 'yyyy-MM-dd'),
+        to: bounds?.to ?? format(endOfMonth(now), 'yyyy-MM-dd')
+      }
+    }
+
+    if (range.preset === 'week') {
+      return {
+        preset: 'week',
+        from: format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+        to: format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+      }
+    }
+
+    if (range.preset === 'year') {
+      return {
+        preset: 'year',
+        from: format(startOfYear(now), 'yyyy-MM-dd'),
+        to: format(endOfYear(now), 'yyyy-MM-dd')
+      }
+    }
+
+    return {
+      preset: 'month',
+      from: format(startOfMonth(now), 'yyyy-MM-dd'),
+      to: format(endOfMonth(now), 'yyyy-MM-dd')
+    }
+  }
+
+  private resolveDashboardCompare(range: DashboardSnapshotQuery['range'], compareFrom?: string, compareTo?: string) {
+    if (compareFrom && compareTo) {
+      return {
+        from: compareFrom,
+        to: compareTo
+      }
+    }
+
+    const from = parseISO(range.from ?? format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+    const to = parseISO(range.to ?? format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+    const spanDays = Math.max(0, differenceInCalendarDays(to, from))
+    const previousTo = subDays(from, 1)
+    const previousFrom = subDays(previousTo, spanDays)
+    return {
+      from: format(previousFrom, 'yyyy-MM-dd'),
+      to: format(previousTo, 'yyyy-MM-dd')
+    }
+  }
+
+  private getTransactionDateBounds() {
+    const row = this.sqlite
+      .prepare(
+        `SELECT MIN(COALESCE(transaction_date_sortable, transaction_date_raw)) AS from_date,
+                MAX(COALESCE(transaction_date_sortable, transaction_date_raw)) AS to_date
+         FROM imported_transactions`
+      )
+      .get() as { from_date?: string | null; to_date?: string | null } | undefined
+
+    if (!row?.from_date || !row?.to_date) {
+      return undefined
+    }
+
+    return {
+      from: String(row.from_date),
+      to: String(row.to_date)
+    }
+  }
+
+  private toTrend(current: number, previous: number, hasCompare: boolean): 'up' | 'down' | 'flat' {
+    if (!hasCompare || current === previous) {
+      return 'flat'
+    }
+
+    return current > previous ? 'up' : 'down'
+  }
+
+  private buildSpendTrend(
+    rows: TransactionLedgerRow[],
+    compareRows: TransactionLedgerRow[],
+    preset: DashboardRangePreset
+  ): DashboardTrendPoint[] {
+    const bucketForRow = (row: TransactionLedgerRow) => {
+      const date = parseISO(row.transactionDateSortable)
+      if (preset === 'year' || preset === 'all-time') {
+        return {
+          key: format(date, 'yyyy-MM'),
+          label: format(date, 'MMM'),
+          from: format(startOfMonth(date), 'yyyy-MM-dd'),
+          to: format(endOfMonth(date), 'yyyy-MM-dd')
+        }
+      }
+
+      if (preset === 'month') {
+        const start = startOfWeek(date, { weekStartsOn: 1 })
+        const end = endOfWeek(date, { weekStartsOn: 1 })
+        return {
+          key: format(start, 'yyyy-MM-dd'),
+          label: `${format(start, 'dd MMM')} - ${format(end, 'dd MMM')}`,
+          from: format(start, 'yyyy-MM-dd'),
+          to: format(end, 'yyyy-MM-dd')
+        }
+      }
+
+      return {
+        key: row.transactionDateSortable,
+        label: format(date, 'dd MMM'),
+        from: row.transactionDateSortable,
+        to: row.transactionDateSortable
+      }
+    }
+
+    const aggregateRows = (inputRows: TransactionLedgerRow[]) => {
+      const bucketMap = new Map<string, DashboardTrendPoint>()
+      for (const row of inputRows) {
+        const bucket = bucketForRow(row)
+        const existing = bucketMap.get(bucket.key) ?? {
+          bucketKey: bucket.key,
+          bucketLabel: bucket.label,
+          from: bucket.from,
+          to: bucket.to,
+          spendMinor: 0,
+          incomeMinor: 0,
+          ledgerQuery: {
+            dateFrom: bucket.from,
+            dateTo: bucket.to
+          }
+        }
+        if (row.normalizedType === 'expense' || row.normalizedType === 'atm-withdrawal' || row.normalizedType === 'credit-card-payment') {
+          existing.spendMinor += row.debitAmountMinor ?? Math.abs(Math.min(row.signedAmountMinor, 0))
+        }
+        if (row.normalizedType === 'income' || row.normalizedType === 'refund') {
+          existing.incomeMinor += row.creditAmountMinor ?? Math.abs(Math.max(row.signedAmountMinor, 0))
+        }
+        bucketMap.set(bucket.key, existing)
+      }
+
+      return Array.from(bucketMap.values()).sort((left, right) => left.from.localeCompare(right.from))
+    }
+
+    const currentBuckets = aggregateRows(rows)
+    const previousBuckets = aggregateRows(compareRows)
+
+    return currentBuckets.map((bucket, index) => ({
+      ...bucket,
+      previousSpendMinor: previousBuckets[index]?.spendMinor,
+      previousIncomeMinor: previousBuckets[index]?.incomeMinor
+    }))
+  }
+
+  private buildCategoryBreakdown(rows: TransactionLedgerRow[], range: DashboardSnapshotQuery['range']) {
+    const categoryMap = new Map<string, { categoryId?: string; label: string; totalMinor: number; transactionCount: number }>()
+    for (const row of rows) {
+      if (!(row.normalizedType === 'expense' || row.normalizedType === 'atm-withdrawal' || row.normalizedType === 'credit-card-payment')) {
+        continue
+      }
+      const label = row.categoryPath?.join(' > ') || row.category || 'Uncategorized'
+      const key = row.categoryId ?? label
+      const existing = categoryMap.get(key) ?? {
+        categoryId: row.categoryId,
+        label,
+        totalMinor: 0,
+        transactionCount: 0
+      }
+      existing.totalMinor += row.debitAmountMinor ?? Math.abs(Math.min(row.signedAmountMinor, 0))
+      existing.transactionCount += 1
+      categoryMap.set(key, existing)
+    }
+    const totalSpend = Array.from(categoryMap.values()).reduce((sum, item) => sum + item.totalMinor, 0)
+    return Array.from(categoryMap.values())
+      .sort((left, right) => right.totalMinor - left.totalMinor)
+      .slice(0, 8)
+      .map((item) => ({
+        ...item,
+        percentageOfSpend: totalSpend > 0 ? item.totalMinor / totalSpend : 0,
+        ledgerQuery: {
+          dateFrom: range.from,
+          dateTo: range.to,
+          categories: item.categoryId ? [item.categoryId] : [item.label]
+        }
+      }))
+  }
+
+  private buildTopMerchants(rows: TransactionLedgerRow[], range: DashboardSnapshotQuery['range']) {
+    const merchantMap = new Map<string, { merchant: string; totalMinor: number; transactionCount: number }>()
+    for (const row of rows) {
+      if (!(row.normalizedType === 'expense' || row.normalizedType === 'atm-withdrawal' || row.normalizedType === 'credit-card-payment')) {
+        continue
+      }
+      const merchant = row.description
+      const existing = merchantMap.get(merchant) ?? { merchant, totalMinor: 0, transactionCount: 0 }
+      existing.totalMinor += row.debitAmountMinor ?? Math.abs(Math.min(row.signedAmountMinor, 0))
+      existing.transactionCount += 1
+      merchantMap.set(merchant, existing)
+    }
+    return Array.from(merchantMap.values())
+      .sort((left, right) => right.totalMinor - left.totalMinor)
+      .slice(0, 8)
+      .map((item) => ({
+        ...item,
+        ledgerQuery: {
+          dateFrom: range.from,
+          dateTo: range.to,
+          search: item.merchant
+        }
+      }))
+  }
+
+  private buildLargestTransactions(rows: TransactionLedgerRow[], range: DashboardSnapshotQuery['range']) {
+    return [...rows]
+      .sort((left, right) => Math.abs(right.signedAmountMinor) - Math.abs(left.signedAmountMinor))
+      .slice(0, 8)
+      .map((row) => ({
+        transactionId: row.id,
+        description: row.description,
+        transactionDateRaw: row.transactionDateRaw,
+        amountMinor: Math.abs(row.signedAmountMinor),
+        normalizedType: row.normalizedType,
+        ledgerQuery: {
+          dateFrom: range.from,
+          dateTo: range.to,
+          search: row.description
+        }
+      }))
+  }
+
+  private buildRecentTransactions(rows: TransactionLedgerRow[], range: DashboardSnapshotQuery['range']) {
+    return [...rows]
+      .sort((left, right) => right.transactionDateSortable.localeCompare(left.transactionDateSortable))
+      .slice(0, 6)
+      .map((row) => ({
+        transactionId: row.id,
+        description: row.description,
+        transactionDateRaw: row.transactionDateRaw,
+        signedAmountMinor: row.signedAmountMinor,
+        normalizedType: row.normalizedType,
+        ledgerQuery: {
+          dateFrom: range.from,
+          dateTo: range.to,
+          search: row.description
+        }
+      }))
+  }
+
+  private buildRecurringItems(rows: TransactionLedgerRow[], range: DashboardSnapshotQuery['range']): DashboardRecurringItem[] {
+    const recurringMap = new Map<
+      string,
+      {
+        id: string
+        description: string
+        direction: 'debit' | 'credit'
+        normalizedType: TransactionNormalizedType
+        occurrenceCount: number
+        totalAmountMinor: number
+        lastTransactionDateRaw: string
+      }
+    >()
+
+    for (const row of rows) {
+      const direction = row.signedAmountMinor >= 0 ? 'credit' : 'debit'
+      const key = this.toRecurringId(row.description, row.normalizedType, direction)
+      const existing = recurringMap.get(key) ?? {
+        id: key,
+        description: row.description,
+        direction,
+        normalizedType: row.normalizedType,
+        occurrenceCount: 0,
+        totalAmountMinor: 0,
+        lastTransactionDateRaw: row.transactionDateRaw
+      }
+      existing.occurrenceCount += 1
+      existing.totalAmountMinor += Math.abs(row.signedAmountMinor)
+      if (row.transactionDateSortable > toSortableDateKey(existing.lastTransactionDateRaw)) {
+        existing.lastTransactionDateRaw = row.transactionDateRaw
+      }
+      recurringMap.set(key, existing)
+    }
+
+    return Array.from(recurringMap.values())
+      .filter((item) => item.occurrenceCount >= 2)
+      .sort((left, right) => right.occurrenceCount - left.occurrenceCount || right.totalAmountMinor - left.totalAmountMinor)
+      .slice(0, 8)
+      .map((item) => ({
+        id: item.id,
+        description: item.description,
+        direction: item.direction,
+        normalizedType: item.normalizedType,
+        occurrenceCount: item.occurrenceCount,
+        averageAmountMinor: Math.round(item.totalAmountMinor / item.occurrenceCount),
+        lastTransactionDateRaw: item.lastTransactionDateRaw,
+        cadenceLabel: `Repeats ${item.occurrenceCount} times`,
+        ledgerQuery: {
+          dateFrom: range.from,
+          dateTo: range.to,
+          search: item.description,
+          types: [item.normalizedType]
+        }
+      }))
+  }
+
+  private toRecurringId(description: string, normalizedType: TransactionNormalizedType, direction: 'debit' | 'credit') {
+    return `${normalizedType}|${direction}|${description.trim().toLowerCase()}`
   }
 
   private applyRuleActionToTransaction(transactionId: string, action: CategorizationRuleAction) {

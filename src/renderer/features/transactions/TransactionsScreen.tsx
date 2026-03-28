@@ -22,10 +22,12 @@ const formatAmount = (minor: number) =>
   }).format(minor / 100)
 
 interface TransactionsScreenProps {
+  navigationQuery?: TransactionLedgerQuery
+  navigationVersion?: number
   onUseRuleSuggestion?: (suggestion: TransactionRuleSuggestion) => void
 }
 
-export const TransactionsScreen = ({ onUseRuleSuggestion }: TransactionsScreenProps) => {
+export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRuleSuggestion }: TransactionsScreenProps) => {
   const [pendingSearch, setPendingSearch] = useState('')
   const [submittedSearch, setSubmittedSearch] = useState('')
   const [filters, setFilters] = useState<TransactionLedgerQuery>({})
@@ -78,6 +80,19 @@ export const TransactionsScreen = ({ onUseRuleSuggestion }: TransactionsScreenPr
   useEffect(() => {
     setCurrentPage(1)
   }, [submittedSearch, filters])
+
+  useEffect(() => {
+    if (!navigationQuery) {
+      return
+    }
+
+    setPendingSearch(navigationQuery.search ?? '')
+    setSubmittedSearch(navigationQuery.search ?? '')
+    setFilters({
+      ...navigationQuery,
+      search: undefined
+    })
+  }, [navigationQuery, navigationVersion])
 
   const openTransaction = async (transactionId: string) => {
     setActiveTransactionId(transactionId)

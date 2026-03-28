@@ -40,6 +40,10 @@ const walnutApi: WalnutApi = {
   testRule: (input) => ipcRenderer.invoke('rules:test', input),
   previewRuleApplyToExisting: (input) => ipcRenderer.invoke('rules:preview-apply', input),
   applyRuleToExisting: (input) => ipcRenderer.invoke('rules:apply', input),
+  getDashboardPreferences: () => ipcRenderer.invoke('dashboard:get-preferences'),
+  setDashboardPreferences: (input) => ipcRenderer.invoke('dashboard:set-preferences', input),
+  getDashboardSnapshot: (input) => ipcRenderer.invoke('dashboard:get-snapshot', input),
+  getRecurringDetail: (input) => ipcRenderer.invoke('dashboard:get-recurring-detail', input),
   ping: () => ipcRenderer.invoke('app-state:ping')
 }
 

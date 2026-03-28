@@ -1,18 +1,18 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 5 complete, ready for Phase 6 execution
-**Roadmap status:** Release 1 Phases 1, 2, 3, 4, and 5 complete; Phase 6 planned
+**Project status:** Phase 6 complete, ready for Phase 7 discussion
+**Roadmap status:** Release 1 Phases 1, 2, 3, 4, 5, and 6 complete; Phase 7 next
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 6 - Dashboard Analytics execution
+**Current focus:** Phase 7 - Audit and Diagnostics discussion
 
 **Active implementation branch:** `phase/6-dashboard-analytics`
-**Current branch focus:** Phase 6 dashboard analytics research, UI contract, and planning
+**Current branch focus:** Phase 6 dashboard analytics implementation and verification
 
 ## Current Position
 
@@ -32,6 +32,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - Starter categories and rules with user-rule precedence
 - Protected system taxonomy with optional user subcategories and preview-first bulk rule application
 - Premium dashboard with both themes
+- Repository-backed dashboard snapshot aggregation with recurring detection and ledger drill-down
 - Full audit ledger, redacted diagnostics, and local crash reports
 - Duplicate candidates and worksheet/parser uncertainty persist as blocking review items
 - Import attempts persist durable file outcomes and counters in SQLite for history and queue refetches
@@ -78,10 +79,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-28: Phase 6 research captured at `.planning/phases/06-dashboard-analytics/06-RESEARCH.md`
 - 2026-03-28: Phase 6 UI design contract approved at `.planning/phases/06-dashboard-analytics/06-UI-SPEC.md`
 - 2026-03-28: Phase 6 validation strategy and execution plans created at `.planning/phases/06-dashboard-analytics/06-VALIDATION.md`, `.planning/phases/06-dashboard-analytics/06-01-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-02-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-03-PLAN.md`, and `.planning/phases/06-dashboard-analytics/06-04-PLAN.md`
+- 2026-03-28: Phase 6 executed with summaries at `.planning/phases/06-dashboard-analytics/06-01-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-02-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-03-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-04-SUMMARY.md`, and `.planning/phases/06-dashboard-analytics/06-VERIFICATION.md`
 
 ## Immediate Next Action
 
-Run `$gsd-execute-phase 6` to build the dashboard snapshot layer, analytics workspace, drill-down flows, and verification coverage.
+Run `$gsd-discuss-phase 7` to plan the audit ledger, diagnostics, and supportability phase.
 
 ---
-*Last updated: 2026-03-28 after Phase 6 planning*
+*Last updated: 2026-03-28 after Phase 6 execution*
