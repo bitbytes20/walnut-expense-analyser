@@ -17,6 +17,11 @@ export const LockScreen = ({ state, setState }: LockScreenProps) => {
   const [showNewProfilePrompt, setShowNewProfilePrompt] = useState(false)
   const [startingFreshProfile, setStartingFreshProfile] = useState(false)
   const [switchingProfileId, setSwitchingProfileId] = useState<string>()
+  const [cooldownSecondsLeft, setCooldownSecondsLeft] = useState(0)
+  const [viewport, setViewport] = useState(() => ({
+    width: typeof window === 'undefined' ? 1440 : window.innerWidth,
+    height: typeof window === 'undefined' ? 900 : window.innerHeight
+  }))
 
   const accountLabel = useMemo(
     () => state.accountProfile?.displayName ?? state.security.lastUnlockedAccountLabel ?? 'Primary household account',
@@ -32,10 +37,54 @@ export const LockScreen = ({ state, setState }: LockScreenProps) => {
     pinField?.focus()
   }, [state.activeProfileId])
 
+  useEffect(() => {
+    const cooldownUntil = state.security.cooldownUntil ? new Date(state.security.cooldownUntil).getTime() : 0
+
+    if (!cooldownUntil || cooldownUntil <= Date.now()) {
+      setCooldownSecondsLeft(0)
+      return
+    }
+
+    const updateCountdown = () => {
+      const remainingMs = cooldownUntil - Date.now()
+      setCooldownSecondsLeft(remainingMs > 0 ? Math.ceil(remainingMs / 1000) : 0)
+    }
+
+    updateCountdown()
+    const timer = window.setInterval(updateCountdown, 1000)
+    return () => window.clearInterval(timer)
+  }, [state.security.cooldownUntil])
+
+  useEffect(() => {
+    const syncViewport = () =>
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+
+    syncViewport()
+    window.addEventListener('resize', syncViewport)
+    return () => window.removeEventListener('resize', syncViewport)
+  }, [])
+
+  const isNarrow = viewport.width < 1360
+  const isStacked = viewport.width < 1120
+  const isShort = viewport.height < 920
+  const isVeryShort = viewport.height < 820
+  const isCompact = isNarrow || isShort
+
   const unlock = async () => {
     const result = await window.walnut.unlockWithPin(pin)
     if (!result.ok) {
-      setError(result.message ?? "We couldn't verify that PIN. Check the digits and try again. If you're locked out, use your recovery key.")
+      setState({
+        ...state,
+        security: result.state
+      })
+      setError(
+        result.state.cooldownUntil
+          ? "We couldn't verify that PIN. Check the digits and try again. If you're locked out, use your recovery key."
+          : result.message ?? "We couldn't verify that PIN. Check the digits and try again. If you're locked out, use your recovery key."
+      )
       return
     }
 
@@ -109,8 +158,18 @@ export const LockScreen = ({ state, setState }: LockScreenProps) => {
     return (
       <AppShell title="Create a new local profile" eyebrow="Fresh setup on this device">
         <div style={styles.recoveryWrap}>
-          <section style={styles.newProfileScreen}>
-            <aside style={styles.newProfileAside}>
+          <section
+            style={{
+              ...styles.newProfileScreen,
+              gridTemplateColumns: isStacked ? 'minmax(0, 1fr)' : styles.newProfileScreen.gridTemplateColumns
+            }}
+          >
+            <aside
+              style={{
+                ...styles.newProfileAside,
+                padding: isCompact ? '28px 24px' : '36px 32px'
+              }}
+            >
               <div style={styles.newProfileAsideBadge}>
                 <BadgePlus size={18} />
               </div>
@@ -125,7 +184,12 @@ export const LockScreen = ({ state, setState }: LockScreenProps) => {
               </div>
             </aside>
 
-            <div style={styles.newProfileMain}>
+            <div
+              style={{
+                ...styles.newProfileMain,
+                padding: isCompact ? '28px 24px' : '40px 44px'
+              }}
+            >
               <div style={styles.newProfileMainHeader}>
                 <div style={styles.newProfileKicker}>New local profile</div>
                 <h3 style={styles.newProfileScreenHeading}>Start a new local profile on this device?</h3>
@@ -165,25 +229,80 @@ export const LockScreen = ({ state, setState }: LockScreenProps) => {
   }
 
   return (
-    <AppShell title={householdLabel} eyebrow="This workspace is locked">
-      <div style={styles.layout}>
-        <section style={styles.visualPanel}>
+      <AppShell title={householdLabel} eyebrow="This workspace is locked">
+      <div
+        style={{
+          ...styles.layout,
+          gridTemplateColumns: isStacked
+            ? 'minmax(0, 1fr)'
+            : isNarrow
+              ? 'minmax(340px, 0.96fr) minmax(340px, 1fr)'
+              : 'minmax(420px, 1fr) minmax(420px, 0.94fr)',
+          gap: isCompact ? '24px' : '40px'
+        }}
+      >
+        <section
+          style={{
+            ...styles.visualPanel,
+            gap: isCompact ? 'var(--space-md)' : 'var(--space-lg)',
+            padding: isCompact ? (isVeryShort ? '24px' : '28px') : '36px'
+          }}
+        >
           <div style={styles.visualTop}>
-            <div style={styles.visualBrand}>
-              <div style={styles.visualBadge}>
+            <div
+              style={{
+                ...styles.visualBrand,
+                gap: isCompact ? 'var(--space-md)' : 'var(--space-lg)'
+              }}
+            >
+              <div
+                style={{
+                  ...styles.visualBadge,
+                  width: isCompact ? 52 : 60,
+                  height: isCompact ? 52 : 60
+                }}
+              >
                 <Landmark size={22} strokeWidth={2.2} />
               </div>
               <div style={styles.visualCopy}>
                 <div style={styles.visualEyebrow}>Walnut Expense Analyser</div>
-                <h2 style={styles.visualHeading}>{ownerLabel}</h2>
-                <p style={styles.visualBody}>This device stays private, local, and ready for the household owner to step back in.</p>
+                <h2
+                  style={{
+                    ...styles.visualHeading,
+                    fontSize: isCompact ? 'clamp(2rem, 2.7vw, 3rem)' : styles.visualHeading.fontSize
+                  }}
+                >
+                  {ownerLabel}
+                </h2>
+                <p
+                  style={{
+                    ...styles.visualBody,
+                    fontSize: isCompact ? 16 : 17
+                  }}
+                >
+                  This device stays private, local, and ready for the household owner to step back in.
+                </p>
               </div>
             </div>
           </div>
 
           <div style={styles.visualCenter}>
-            <div style={styles.heroFrame}>
-              <div style={styles.heroWindow}>
+            <div
+              style={{
+                ...styles.heroFrame,
+                maxWidth: isCompact ? (isStacked ? '100%' : 420) : 500,
+                aspectRatio: isVeryShort ? '1.16 / 0.56' : isCompact ? '1.18 / 0.62' : '1.18 / 0.68',
+                padding: isCompact ? 12 : 14
+              }}
+            >
+              <div
+                style={{
+                  ...styles.heroWindow,
+                  gridTemplateColumns: isCompact ? '74px 1fr' : '96px 1fr',
+                  gap: isCompact ? 12 : 16,
+                  padding: isCompact ? 12 : 16
+                }}
+              >
                 <div style={styles.heroSidebar} />
                 <div style={styles.heroContent}>
                   <div style={styles.heroBars}>
@@ -192,41 +311,93 @@ export const LockScreen = ({ state, setState }: LockScreenProps) => {
                     <span style={styles.heroBarMedium} />
                   </div>
                   <div style={styles.heroCards}>
-                    <div style={styles.heroCardPrimary} />
-                    <div style={styles.heroCardSecondary} />
+                    <div
+                      style={{
+                        ...styles.heroCardPrimary,
+                        minHeight: isCompact ? 88 : 132
+                      }}
+                    />
+                    <div
+                      style={{
+                        ...styles.heroCardSecondary,
+                        minHeight: isCompact ? 88 : 132
+                      }}
+                    />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div style={styles.infoGrid}>
-            <article style={styles.infoCard}>
+          <div
+            style={{
+              ...styles.infoGrid,
+              gridTemplateColumns: isStacked ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))',
+              gap: isCompact ? 'var(--space-sm)' : 'var(--space-md)'
+            }}
+          >
+            <article
+              style={{
+                ...styles.infoCard,
+                padding: isCompact ? '14px' : '18px'
+              }}
+            >
               <div style={styles.infoIcon}>
                 <ShieldCheck size={18} />
               </div>
               <div style={styles.infoLabel}>Last unlocked account</div>
-              <div style={styles.infoValue}>{accountLabel}</div>
+              <div
+                style={{
+                  ...styles.infoValue,
+                  fontSize: isCompact ? 18 : 20
+                }}
+              >
+                {accountLabel}
+              </div>
               <div style={styles.infoHint}>Local household data remains on this device.</div>
             </article>
-            <article style={styles.infoCard}>
+            <article
+              style={{
+                ...styles.infoCard,
+                padding: isCompact ? '14px' : '18px'
+              }}
+            >
               <div style={styles.infoIcon}>
                 <Landmark size={18} />
               </div>
               <div style={styles.infoLabel}>Saved profiles</div>
-              <div style={styles.infoValue}>{visibleProfiles.length}</div>
+              <div
+                style={{
+                  ...styles.infoValue,
+                  fontSize: isCompact ? 18 : 20
+                }}
+              >
+                {visibleProfiles.length}
+              </div>
               <div style={styles.infoHint}>Select any saved household from the profile list on the right and unlock with that PIN.</div>
             </article>
           </div>
         </section>
 
-        <section style={styles.authPanel}>
+        <section
+          style={{
+            ...styles.authPanel,
+            gap: isCompact ? '16px' : '20px',
+            padding: isCompact ? (isVeryShort ? '22px 22px' : '24px 26px') : '28px 32px'
+          }}
+        >
           <div style={styles.profileStrip}>
             <div style={styles.profileStripHeader}>
               <div style={styles.profileStripKicker}>Local profiles on this device</div>
               <div style={styles.profileStripHint}>Choose a household profile first, then enter the matching PIN.</div>
             </div>
-            <div style={styles.profileList} aria-label="Local profile list">
+            <div
+              style={{
+                ...styles.profileList,
+                maxHeight: isVeryShort ? 136 : isCompact ? 156 : 188
+              }}
+              aria-label="Local profile list"
+            >
               {visibleProfiles.map((profile) => (
                 <button
                   key={profile.id}
@@ -252,8 +423,22 @@ export const LockScreen = ({ state, setState }: LockScreenProps) => {
 
           <div style={styles.authHeader}>
             <div style={styles.stepLabel}>Unlock this device</div>
-            <h2 style={styles.authHeading}>Enter the household PIN to continue.</h2>
-            <p style={styles.authBody}>Pick up exactly where this device left off, with the same local data and review history intact.</p>
+            <h2
+              style={{
+                ...styles.authHeading,
+                fontSize: isCompact ? 'clamp(1.9rem, 3.1vw, 2.5rem)' : styles.authHeading.fontSize
+              }}
+            >
+              Enter the household PIN to continue.
+            </h2>
+            <p
+              style={{
+                ...styles.authBody,
+                fontSize: isCompact ? 15 : 16
+              }}
+            >
+              Pick up exactly where this device left off, with the same local data and review history intact.
+            </p>
           </div>
 
           <div style={styles.fieldStack}>
@@ -287,9 +472,10 @@ export const LockScreen = ({ state, setState }: LockScreenProps) => {
               </button>
             </div>
             {error ? <div style={styles.error}>{error}</div> : null}
+            {cooldownSecondsLeft > 0 ? <div style={styles.error}>Try again in {cooldownSecondsLeft}s</div> : null}
           </div>
 
-          <button type="button" style={styles.primaryButton} onClick={() => void unlock()}>
+          <button type="button" style={styles.primaryButton} onClick={() => void unlock()} disabled={cooldownSecondsLeft > 0}>
             <span>Unlock</span>
             <ArrowRight size={16} />
           </button>
@@ -303,7 +489,7 @@ export const LockScreen = ({ state, setState }: LockScreenProps) => {
               <LockKeyhole size={16} />
               Use recovery key
             </button>
-            <button type="button" style={styles.linkButton} onClick={() => setShowNewProfilePrompt((current) => !current)}>
+            <button type="button" style={styles.linkButton} onClick={() => setShowNewProfilePrompt(true)}>
               <BadgePlus size={16} />
               Create new profile
             </button>
@@ -327,9 +513,7 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'minmax(420px, 1fr) minmax(420px, 0.94fr)',
     gap: '40px',
-    alignItems: 'stretch',
-    height: 'calc(100dvh - 184px)',
-    maxHeight: 'calc(100dvh - 184px)'
+    alignItems: 'start'
   },
   recoveryWrap: {
     width: 'min(100%, 920px)',
@@ -576,7 +760,7 @@ const styles = {
     padding: '28px 32px',
     background: 'rgba(245, 241, 232, 0.9)',
     minHeight: 0,
-    overflow: 'hidden'
+    overflowY: 'auto' as const
   },
   profileStrip: {
     display: 'grid',

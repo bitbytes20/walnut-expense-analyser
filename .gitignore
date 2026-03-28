@@ -140,3 +140,4 @@ vite.config.ts.timestamp-*
 
 #Sample import files
 /sample_files/
+/test-results/

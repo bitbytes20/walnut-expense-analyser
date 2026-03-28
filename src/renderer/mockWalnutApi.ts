@@ -30,6 +30,16 @@ import type {
   SecurityState,
   UnlockResult
 } from '../shared/contracts/security'
+import type {
+  GetTransactionDetailInput,
+  TransactionDetail,
+  TransactionLedgerQuery,
+  TransactionLedgerRow,
+  TransactionNormalizedType,
+  TransactionReviewState,
+  UpdateTransactionInput,
+  UpdateTransactionResult
+} from '../shared/contracts/transactions'
 import { generateRecoveryKey, isValidPin } from '../shared/security-utils'
 
 const STORAGE_KEY = 'walnut.mock.app-state'
@@ -235,6 +245,87 @@ const applyReviewEdits = (detail: ImportBatchDetail, input: ReviewItemResolution
       })
     }))
   }
+}
+
+const toSortableDateKey = (raw: string) => {
+  const trimmed = raw.trim()
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed)
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`
+  }
+
+  const slashMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed)
+  if (slashMatch) {
+    const [, day, month, year] = slashMatch
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+  }
+
+  return trimmed
+}
+
+const deriveNormalizedType = (description: string, rawNarration: string, reference: string | undefined, direction: 'debit' | 'credit'): TransactionNormalizedType => {
+  const text = `${description} ${rawNarration} ${reference ?? ''}`.toLowerCase()
+
+  if (text.includes('atm')) {
+    return 'atm-withdrawal'
+  }
+  if (text.includes('refund') && direction === 'credit') {
+    return 'refund'
+  }
+  if (text.includes('credit card payment') || text.includes('card payment') || text.includes('cc payment')) {
+    return 'credit-card-payment'
+  }
+  if (text.includes('transfer') || text.includes('imps') || text.includes('neft') || text.includes('rtgs') || text.includes('upi')) {
+    return 'transfer'
+  }
+
+  return direction === 'credit' ? 'income' : 'expense'
+}
+
+const flattenTransactions = (): TransactionDetail[] => {
+  const details = Object.values(readImportBatchDetails())
+
+  return details.flatMap((detail) =>
+    detail.transactionGroups.flatMap((group) =>
+      group.transactions.map((transaction) => {
+        const signedAmountMinor =
+          transaction.creditAmountMinor !== undefined
+            ? transaction.creditAmountMinor
+            : -Math.abs(transaction.debitAmountMinor ?? 0)
+        const reviewState: TransactionReviewState = detail.summary.unresolvedReviewCount > 0 ? 'pending-review' : 'clean'
+
+        return {
+          id: transaction.id,
+          importBatchId: transaction.importBatchId,
+          sourceFileId: transaction.sourceFileId,
+          batchLabel: detail.summary.batchLabel,
+          sourceFileName: group.sourceFileName,
+          importedAt: detail.summary.importedAt,
+          transactionDateRaw: transaction.transactionDateRaw,
+          transactionDateSortable: toSortableDateKey(transaction.transactionDateRaw),
+          valueDateRaw: transaction.valueDateRaw,
+          rawNarration: transaction.rawNarration,
+          description: transaction.cleanedDescription,
+          signedAmountMinor,
+          debitAmountMinor: transaction.debitAmountMinor ?? null,
+          creditAmountMinor: transaction.creditAmountMinor ?? null,
+          runningBalanceMinor: transaction.runningBalanceMinor,
+          normalizedType: deriveNormalizedType(
+            transaction.cleanedDescription,
+            transaction.rawNarration,
+            transaction.reference,
+            transaction.direction
+          ),
+          category: (transaction as typeof transaction & { category?: string }).category,
+          tags: transaction.tags ?? [],
+          reference: transaction.reference,
+          reviewState,
+          reviewStateOverride: null,
+          direction: transaction.direction
+        }
+      })
+    )
+  )
 }
 
 const logEvent = (eventType: string, metadataJson?: string) => {
@@ -957,6 +1048,164 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
     )
 
     return nextDetail
+  },
+  async listTransactions(input?: TransactionLedgerQuery): Promise<TransactionLedgerRow[]> {
+    const query = input ?? {}
+    return flattenTransactions()
+      .filter((row) => {
+        if (query.search?.trim()) {
+          const search = query.search.trim().toLowerCase()
+          const haystack = `${row.description} ${row.reference ?? ''} ${row.tags.join(' ')}`.toLowerCase()
+          if (!haystack.includes(search)) {
+            return false
+          }
+        }
+
+        if (query.dateFrom && row.transactionDateSortable < toSortableDateKey(query.dateFrom)) {
+          return false
+        }
+        if (query.dateTo && row.transactionDateSortable > toSortableDateKey(query.dateTo)) {
+          return false
+        }
+        if (query.types?.length && !query.types.includes(row.normalizedType)) {
+          return false
+        }
+        if (query.reviewStates?.length && !query.reviewStates.includes(row.reviewState)) {
+          return false
+        }
+        if (query.categories?.length) {
+          const categories = query.categories.map((category) => category.toLowerCase())
+          if (!row.category || !categories.includes(row.category.toLowerCase())) {
+            return false
+          }
+        }
+        if (query.tags?.length) {
+          const rowTags = row.tags.map((tag) => tag.toLowerCase())
+          const tags = query.tags.map((tag) => tag.toLowerCase())
+          if (!tags.every((tag) => rowTags.includes(tag))) {
+            return false
+          }
+        }
+
+        const absoluteAmount = Math.abs(row.signedAmountMinor)
+        if (query.amountMinMinor !== undefined && absoluteAmount < query.amountMinMinor) {
+          return false
+        }
+        if (query.amountMaxMinor !== undefined && absoluteAmount > query.amountMaxMinor) {
+          return false
+        }
+
+        return true
+      })
+      .sort((left, right) => right.transactionDateSortable.localeCompare(left.transactionDateSortable) || right.importedAt.localeCompare(left.importedAt))
+      .map(({ transactionDateSortable: _sortable, importedAt: _importedAt, ...row }) => ({
+        ...row,
+        transactionDateSortable: _sortable
+      }))
+  },
+  async getTransactionDetail(input: GetTransactionDetailInput): Promise<TransactionDetail> {
+    const detail = flattenTransactions().find((transaction) => transaction.id === input.transactionId)
+    if (!detail) {
+      throw new Error(`Transaction ${input.transactionId} was not found.`)
+    }
+
+    return detail
+  },
+  async updateTransaction(input: UpdateTransactionInput): Promise<UpdateTransactionResult> {
+    const details = readImportBatchDetails()
+    let updatedDetail: TransactionDetail | undefined
+    let previousType: TransactionNormalizedType | undefined
+
+    const nextDetails = Object.fromEntries(
+      Object.entries(details).map(([batchId, detail]) => [
+        batchId,
+        {
+          ...detail,
+          transactionGroups: detail.transactionGroups.map((group) => ({
+            ...group,
+            transactions: group.transactions.map((transaction) => {
+              if (transaction.id !== input.transactionId) {
+                return transaction
+              }
+
+              const existingSignedAmount =
+                transaction.creditAmountMinor !== undefined
+                  ? transaction.creditAmountMinor
+                  : -Math.abs(transaction.debitAmountMinor ?? 0)
+              const nextSignedAmount = input.signedAmountMinor ?? existingSignedAmount
+              const nextDirection = nextSignedAmount >= 0 ? 'credit' : 'debit'
+              previousType = deriveNormalizedType(transaction.cleanedDescription, transaction.rawNarration, transaction.reference, transaction.direction)
+
+              const nextTransaction = {
+                ...transaction,
+                transactionDateRaw: input.transactionDateRaw ?? transaction.transactionDateRaw,
+                cleanedDescription: input.description ?? transaction.cleanedDescription,
+                debitAmountMinor: nextDirection === 'debit' ? Math.abs(nextSignedAmount) : undefined,
+                creditAmountMinor: nextDirection === 'credit' ? Math.abs(nextSignedAmount) : undefined,
+                direction: nextDirection,
+                reference: input.reference === undefined ? transaction.reference : input.reference ?? undefined,
+                tags: input.tags ?? transaction.tags,
+                category: input.category === undefined ? (transaction as typeof transaction & { category?: string }).category : input.category ?? undefined,
+                reviewStateOverride:
+                  input.reviewStateOverride === undefined
+                    ? (transaction as typeof transaction & { reviewStateOverride?: TransactionReviewState | null }).reviewStateOverride ?? undefined
+                    : input.reviewStateOverride ?? undefined
+              }
+
+              updatedDetail = {
+                id: nextTransaction.id,
+                importBatchId: nextTransaction.importBatchId,
+                sourceFileId: nextTransaction.sourceFileId,
+                batchLabel: detail.summary.batchLabel,
+                sourceFileName: group.sourceFileName,
+                importedAt: detail.summary.importedAt,
+                transactionDateRaw: nextTransaction.transactionDateRaw,
+                transactionDateSortable: toSortableDateKey(nextTransaction.transactionDateRaw),
+                valueDateRaw: nextTransaction.valueDateRaw,
+                rawNarration: nextTransaction.rawNarration,
+                description: nextTransaction.cleanedDescription,
+                signedAmountMinor: nextSignedAmount,
+                normalizedType:
+                  input.normalizedType ??
+                  deriveNormalizedType(nextTransaction.cleanedDescription, nextTransaction.rawNarration, nextTransaction.reference, nextDirection),
+                category: nextTransaction.category,
+                tags: nextTransaction.tags ?? [],
+                reference: nextTransaction.reference,
+                reviewState:
+                  (nextTransaction.reviewStateOverride as TransactionReviewState | undefined) ??
+                  (detail.summary.unresolvedReviewCount > 0 ? 'pending-review' : 'clean'),
+                reviewStateOverride:
+                  (nextTransaction.reviewStateOverride as TransactionReviewState | undefined) ?? null,
+                runningBalanceMinor: nextTransaction.runningBalanceMinor,
+                direction: nextDirection
+              }
+
+              return nextTransaction
+            })
+          }))
+        }
+      ])
+    ) as Record<string, ImportBatchDetail>
+
+    writeImportBatchDetails(nextDetails)
+
+    if (!updatedDetail) {
+      throw new Error(`Transaction ${input.transactionId} was not found.`)
+    }
+
+    return {
+      detail: updatedDetail,
+      ruleSuggestion:
+        input.normalizedType && previousType && input.normalizedType !== previousType
+          ? {
+              field: 'type',
+              fromType: previousType,
+              toType: input.normalizedType,
+              title: 'Create a rule from this type change later',
+              description: 'Walnut can use this correction as a suggestion when reusable rules are introduced.'
+            }
+          : undefined
+    }
   },
   async ping() {
     return 'pong'

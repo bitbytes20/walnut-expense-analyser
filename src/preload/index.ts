@@ -24,6 +24,9 @@ const walnutApi: WalnutApi = {
   getReviewQueue: (input) => ipcRenderer.invoke('import:get-review-queue', input),
   resolveReviewItems: (input) => ipcRenderer.invoke('import:resolve-review-items', input),
   restoreReviewItems: (input) => ipcRenderer.invoke('import:restore-review-items', input),
+  listTransactions: (input) => ipcRenderer.invoke('transactions:list', input),
+  getTransactionDetail: (input) => ipcRenderer.invoke('transactions:get-detail', input),
+  updateTransaction: (input) => ipcRenderer.invoke('transactions:update', input),
   ping: () => ipcRenderer.invoke('app-state:ping')
 }
 

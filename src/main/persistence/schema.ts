@@ -106,6 +106,7 @@ export const importedTransactions = sqliteTable('imported_transactions', {
   importBatchId: text('import_batch_id').notNull(),
   sourceFileId: text('source_file_id').notNull(),
   transactionDateRaw: text('transaction_date_raw').notNull(),
+  transactionDateSortable: text('transaction_date_sortable'),
   valueDateRaw: text('value_date_raw'),
   rawNarration: text('raw_narration').notNull(),
   cleanedDescription: text('cleaned_description').notNull(),
@@ -113,8 +114,12 @@ export const importedTransactions = sqliteTable('imported_transactions', {
   creditAmountMinor: integer('credit_amount_minor'),
   runningBalanceMinor: integer('running_balance_minor'),
   direction: text('direction').notNull(),
+  normalizedType: text('normalized_type'),
+  categoryLabel: text('category_label'),
+  reviewStateOverride: text('review_state_override'),
   reference: text('reference'),
-  transactionSignature: text('transaction_signature').notNull()
+  transactionSignature: text('transaction_signature').notNull(),
+  tagsJson: text('tags_json')
 })
 
 export const reviewItems = sqliteTable('review_items', {

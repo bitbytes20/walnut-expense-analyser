@@ -23,6 +23,14 @@ import type {
   SecurityState,
   UnlockResult
 } from './security'
+import type {
+  GetTransactionDetailInput,
+  TransactionDetail,
+  TransactionLedgerQuery,
+  TransactionLedgerRow,
+  UpdateTransactionInput,
+  UpdateTransactionResult
+} from './transactions'
 
 export type AppView = 'onboarding' | 'locked' | 'dashboard'
 
@@ -110,5 +118,8 @@ export interface WalnutApi {
   getReviewQueue: (input?: GetReviewQueueInput) => Promise<ImportBatchDetail[]>
   resolveReviewItems: (input: ReviewItemResolutionInput) => Promise<ImportBatchDetail>
   restoreReviewItems: (input: ReviewItemRestoreInput) => Promise<ImportBatchDetail>
+  listTransactions: (input?: TransactionLedgerQuery) => Promise<TransactionLedgerRow[]>
+  getTransactionDetail: (input: GetTransactionDetailInput) => Promise<TransactionDetail>
+  updateTransaction: (input: UpdateTransactionInput) => Promise<UpdateTransactionResult>
   ping: () => Promise<string>
 }

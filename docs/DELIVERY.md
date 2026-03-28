@@ -47,7 +47,7 @@ Each epic should include:
 
 Create stories only for phases that already have `*-PLAN.md` files.
 
-At the moment, Phase 1, Phase 2, and Phase 3 have plan files, so the active story set is:
+At the moment, Phase 1, Phase 2, Phase 3, and Phase 4 have plan files, so the active story set is:
 
 - Phase 1 / Wave 1
 - Phase 1 / Wave 2
@@ -59,6 +59,10 @@ At the moment, Phase 1, Phase 2, and Phase 3 have plan files, so the active stor
 - Phase 3 / Wave 2
 - Phase 3 / Wave 3
 - Phase 3 / Wave 4
+- Phase 4 / Wave 1
+- Phase 4 / Wave 2
+- Phase 4 / Wave 3
+- Phase 4 / Wave 4
 
 ## Phase 1 Story Breakdown
 
@@ -192,6 +196,60 @@ Plan reference:
 
 - `.planning/phases/03-review-queue-and-import-history/03-04-PLAN.md`
 
+## Phase 4 Story Breakdown
+
+### Wave 1 Story
+
+Scope:
+
+- transaction contracts
+- normalization logic
+- repository query surface
+- transaction IPC boundary
+
+Plan reference:
+
+- `.planning/phases/04-transaction-ledger-and-search/04-01-PLAN.md`
+
+### Wave 2 Story
+
+Scope:
+
+- transactions left-rail destination
+- dense ledger workspace
+- search-first header
+- advanced filter drawer
+
+Plan reference:
+
+- `.planning/phases/04-transaction-ledger-and-search/04-02-PLAN.md`
+
+### Wave 3 Story
+
+Scope:
+
+- right-side detail drawer
+- immediate-save edits
+- type/category/tag/reference updates
+- rule-suggestion hook
+
+Plan reference:
+
+- `.planning/phases/04-transaction-ledger-and-search/04-03-PLAN.md`
+
+### Wave 4 Story
+
+Scope:
+
+- repository tests
+- renderer ledger tests
+- browser ledger tests
+- verification handoff
+
+Plan reference:
+
+- `.planning/phases/04-transaction-ledger-and-search/04-04-PLAN.md`
+
 ## Completion Workflow
 
 When a phase completes:
@@ -210,9 +268,11 @@ When a phase completes:
 - Phase 2 tracking items are epic `#2` and stories `#18`, `#19`, and `#20`
 - Phase 3 implementation is complete on `phase/3-review-queue-and-import-history`
 - Phase 3 tracking items are epic `#3` and stories `#22`, `#23`, `#24`, and `#25`
-- An active polish branch, `enhancement/ui-polish`, is refining the shared shell and lock-screen experience ahead of Phase 4
-- The current polish scope adds multi-profile local selection on the lock screen, a dedicated new-profile flow, cleaner dashboard/import shell navigation, and updated browser/unit coverage for those paths
-- Next discussion track is Phase 4: Transaction Ledger and Search
+- Phase 4 implementation is complete on `phase/4-transaction-ledger-and-search`
+- Phase 4 tracking items are epic `#4` and stories `#29`, `#30`, `#31`, and `#32`
+- The current Phase 4 branch also carries the active shell and ledger polish follow-through
+- That polish scope now includes multi-profile local selection on the lock screen, a dedicated new-profile flow, responsive lock-screen behavior, cleaner import workspace hierarchy, and updated ledger summaries/search/pagination coverage
+- Next discussion track is Phase 5: Categories and Rules
 
 ## Documentation Expectations
 

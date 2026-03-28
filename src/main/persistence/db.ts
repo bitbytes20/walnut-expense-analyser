@@ -32,6 +32,17 @@ import type {
   StagedImportFile
 } from '../../shared/contracts/import'
 import type { LockReason, SecurityEvent, SecurityState } from '../../shared/contracts/security'
+import type {
+  GetTransactionDetailInput,
+  TransactionDetail,
+  TransactionLedgerQuery,
+  TransactionLedgerRow,
+  TransactionNormalizedType,
+  TransactionReviewState,
+  TransactionRuleSuggestion,
+  UpdateTransactionInput,
+  UpdateTransactionResult
+} from '../../shared/contracts/transactions'
 
 const DASHBOARD_STATE = {
   heading: 'Ready for your first import',
@@ -53,6 +64,74 @@ const defaultSecurityState: SecurityState = {
 
 const nowIso = () => new Date().toISOString()
 const singleRowId = 1
+
+const toSortableDateKey = (raw: string) => {
+  const trimmed = raw.trim()
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed)
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`
+  }
+
+  const slashMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed)
+  if (slashMatch) {
+    const [, day, month, year] = slashMatch
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+  }
+
+  return trimmed
+}
+
+const getSignedAmountMinor = (row: {
+  debit_amount_minor?: unknown
+  credit_amount_minor?: unknown
+  debitAmountMinor?: unknown
+  creditAmountMinor?: unknown
+}) => {
+  const debit = row.debit_amount_minor ?? row.debitAmountMinor
+  const credit = row.credit_amount_minor ?? row.creditAmountMinor
+  if (credit !== null && credit !== undefined) {
+    return Number(credit)
+  }
+
+  return -Math.abs(Number(debit ?? 0))
+}
+
+const deriveNormalizedType = (row: {
+  cleanedDescription: string
+  rawNarration: string
+  reference?: string
+  direction: 'debit' | 'credit'
+}): TransactionNormalizedType => {
+  const text = `${row.cleanedDescription} ${row.rawNarration} ${row.reference ?? ''}`.toLowerCase()
+
+  if (text.includes('atm')) {
+    return 'atm-withdrawal'
+  }
+
+  if (text.includes('refund') && row.direction === 'credit') {
+    return 'refund'
+  }
+
+  if (
+    text.includes('credit card payment') ||
+    text.includes('card payment') ||
+    text.includes('cc payment')
+  ) {
+    return 'credit-card-payment'
+  }
+
+  if (
+    text.includes('transfer') ||
+    text.includes('imps') ||
+    text.includes('neft') ||
+    text.includes('rtgs') ||
+    text.includes('upi')
+  ) {
+    return 'transfer'
+  }
+
+  return row.direction === 'credit' ? 'income' : 'expense'
+}
 
 interface PersistImportFileInput {
   stagedFile: StagedImportFile
@@ -252,6 +331,7 @@ export class WalnutRepository {
         import_batch_id TEXT NOT NULL,
         source_file_id TEXT NOT NULL,
         transaction_date_raw TEXT NOT NULL,
+        transaction_date_sortable TEXT,
         value_date_raw TEXT,
         raw_narration TEXT NOT NULL,
         cleaned_description TEXT NOT NULL,
@@ -259,6 +339,9 @@ export class WalnutRepository {
         credit_amount_minor INTEGER,
         running_balance_minor INTEGER,
         direction TEXT NOT NULL,
+        normalized_type TEXT,
+        category_label TEXT,
+        review_state_override TEXT,
         reference TEXT,
         transaction_signature TEXT NOT NULL,
         tags_json TEXT
@@ -292,6 +375,10 @@ export class WalnutRepository {
     `)
 
     this.ensureColumn('imported_transactions', 'tags_json', 'TEXT')
+    this.ensureColumn('imported_transactions', 'transaction_date_sortable', 'TEXT')
+    this.ensureColumn('imported_transactions', 'normalized_type', 'TEXT')
+    this.ensureColumn('imported_transactions', 'category_label', 'TEXT')
+    this.ensureColumn('imported_transactions', 'review_state_override', 'TEXT')
     this.ensureColumn('review_items', 'resolution_action', 'TEXT')
     this.ensureColumn('review_items', 'resolution_payload_json', 'TEXT')
     this.ensureColumn('review_items', 'resolved_at', 'TEXT')
@@ -635,9 +722,9 @@ export class WalnutRepository {
 
     const insertImportedTransaction = this.sqlite.prepare(
       `INSERT INTO imported_transactions
-       (id, import_batch_id, source_file_id, transaction_date_raw, value_date_raw, raw_narration, cleaned_description,
-        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, reference, transaction_signature, tags_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, import_batch_id, source_file_id, transaction_date_raw, transaction_date_sortable, value_date_raw, raw_narration, cleaned_description,
+        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, normalized_type, category_label, review_state_override, reference, transaction_signature, tags_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const row of snapshot.importedTransactions) {
       insertImportedTransaction.run(
@@ -645,6 +732,7 @@ export class WalnutRepository {
         row.import_batch_id,
         row.source_file_id,
         row.transaction_date_raw,
+        row.transaction_date_sortable ?? toSortableDateKey(String(row.transaction_date_raw)),
         row.value_date_raw ?? null,
         row.raw_narration,
         row.cleaned_description,
@@ -652,6 +740,14 @@ export class WalnutRepository {
         row.credit_amount_minor ?? null,
         row.running_balance_minor ?? null,
         row.direction,
+        row.normalized_type ?? deriveNormalizedType({
+          cleanedDescription: String(row.cleaned_description),
+          rawNarration: String(row.raw_narration),
+          reference: row.reference ? String(row.reference) : undefined,
+          direction: String(row.direction) as 'debit' | 'credit'
+        }),
+        row.category_label ?? null,
+        row.review_state_override ?? null,
         row.reference ?? null,
         row.transaction_signature,
         row.tags_json ?? null
@@ -1055,6 +1151,174 @@ export class WalnutRepository {
     }
   }
 
+  listTransactions(input?: TransactionLedgerQuery): TransactionLedgerRow[] {
+    const rows = this.sqlite
+      .prepare(
+        `SELECT t.*, s.file_name, a.batch_label, a.imported_at,
+            CASE
+              WHEN EXISTS (
+                SELECT 1
+                FROM review_items r
+                WHERE r.batch_id = t.import_batch_id
+                  AND r.state = 'pending'
+              ) THEN 1
+              ELSE 0
+            END AS has_pending_review
+         FROM imported_transactions t
+         INNER JOIN import_source_files s ON s.id = t.source_file_id
+         INNER JOIN import_attempts a ON a.batch_id = t.import_batch_id
+         ORDER BY COALESCE(t.transaction_date_sortable, t.transaction_date_raw) DESC, a.imported_at DESC, t.id DESC`
+      )
+      .all() as Record<string, unknown>[]
+
+    const query = input ?? {}
+    return rows
+      .map((row) => this.mapTransactionLedgerRow(row))
+      .filter((row) => {
+        if (query.search?.trim()) {
+          const search = query.search.trim().toLowerCase()
+          const haystack = `${row.description} ${row.reference ?? ''} ${row.tags.join(' ')}`.toLowerCase()
+          if (!haystack.includes(search)) {
+            return false
+          }
+        }
+
+        if (query.dateFrom && row.transactionDateSortable < toSortableDateKey(query.dateFrom)) {
+          return false
+        }
+
+        if (query.dateTo && row.transactionDateSortable > toSortableDateKey(query.dateTo)) {
+          return false
+        }
+
+        if (query.types?.length && !query.types.includes(row.normalizedType)) {
+          return false
+        }
+
+        if (query.reviewStates?.length && !query.reviewStates.includes(row.reviewState)) {
+          return false
+        }
+
+        if (query.categories?.length) {
+          const normalizedCategories = query.categories.map((category) => category.toLowerCase())
+          if (!row.category || !normalizedCategories.includes(row.category.toLowerCase())) {
+            return false
+          }
+        }
+
+        if (query.tags?.length) {
+          const rowTags = row.tags.map((tag) => tag.toLowerCase())
+          const requestedTags = query.tags.map((tag) => tag.toLowerCase())
+          if (!requestedTags.every((tag) => rowTags.includes(tag))) {
+            return false
+          }
+        }
+
+        const absoluteAmount = Math.abs(row.signedAmountMinor)
+        if (query.amountMinMinor !== undefined && absoluteAmount < query.amountMinMinor) {
+          return false
+        }
+
+        if (query.amountMaxMinor !== undefined && absoluteAmount > query.amountMaxMinor) {
+          return false
+        }
+
+        return true
+      })
+  }
+
+  getTransactionDetail(input: GetTransactionDetailInput): TransactionDetail {
+    const row = this.sqlite
+      .prepare(
+        `SELECT t.*, s.file_name, a.batch_label, a.imported_at,
+            CASE
+              WHEN EXISTS (
+                SELECT 1
+                FROM review_items r
+                WHERE r.batch_id = t.import_batch_id
+                  AND r.state = 'pending'
+              ) THEN 1
+              ELSE 0
+            END AS has_pending_review
+         FROM imported_transactions t
+         INNER JOIN import_source_files s ON s.id = t.source_file_id
+         INNER JOIN import_attempts a ON a.batch_id = t.import_batch_id
+         WHERE t.id = ?
+         LIMIT 1`
+      )
+      .get(input.transactionId) as Record<string, unknown> | undefined
+
+    if (!row) {
+      throw new Error(`Transaction ${input.transactionId} was not found.`)
+    }
+
+    return this.mapTransactionDetail(row)
+  }
+
+  updateTransaction(input: UpdateTransactionInput): UpdateTransactionResult {
+    const current = this.getTransactionDetail({ transactionId: input.transactionId })
+    const nextDateRaw = input.transactionDateRaw ?? current.transactionDateRaw
+    const nextDescription = input.description?.trim() ?? current.description
+    const nextSignedAmountMinor = input.signedAmountMinor ?? current.signedAmountMinor
+    const nextDirection = nextSignedAmountMinor >= 0 ? 'credit' : 'debit'
+    const nextDebitAmountMinor = nextDirection === 'debit' ? Math.abs(nextSignedAmountMinor) : null
+    const nextCreditAmountMinor = nextDirection === 'credit' ? Math.abs(nextSignedAmountMinor) : null
+    const nextNormalizedType = input.normalizedType ?? current.normalizedType
+    const nextCategory = input.category === undefined ? current.category ?? null : input.category
+    const nextReference = input.reference === undefined ? current.reference ?? null : input.reference
+    const nextTags = input.tags ?? current.tags
+    const nextReviewStateOverride =
+      input.reviewStateOverride === undefined ? current.reviewStateOverride ?? null : input.reviewStateOverride
+
+    this.sqlite
+      .prepare(
+        `UPDATE imported_transactions
+         SET transaction_date_raw = ?,
+             transaction_date_sortable = ?,
+             cleaned_description = ?,
+             debit_amount_minor = ?,
+             credit_amount_minor = ?,
+             direction = ?,
+             normalized_type = ?,
+             category_label = ?,
+             reference = ?,
+             tags_json = ?,
+             review_state_override = ?
+         WHERE id = ?`
+      )
+      .run(
+        nextDateRaw,
+        toSortableDateKey(nextDateRaw),
+        nextDescription,
+        nextDebitAmountMinor,
+        nextCreditAmountMinor,
+        nextDirection,
+        nextNormalizedType,
+        nextCategory,
+        nextReference,
+        JSON.stringify(nextTags),
+        nextReviewStateOverride,
+        input.transactionId
+      )
+
+    const detail = this.getTransactionDetail({ transactionId: input.transactionId })
+    const ruleSuggestion: TransactionRuleSuggestion | undefined =
+      input.normalizedType && input.normalizedType !== current.normalizedType
+        ? {
+            field: 'type',
+            fromType: current.normalizedType,
+            toType: input.normalizedType,
+            title: 'Create a rule from this type change later',
+            description: 'Walnut can use this correction as a suggestion when reusable rules are introduced.'
+          }
+        : undefined
+
+    return {
+      detail,
+      ruleSuggestion
+    }
+  }
+
   listImportHistory(input?: ListImportHistoryInput): ImportAttemptSummary[] {
     const rows = this.sqlite
       .prepare(
@@ -1205,9 +1469,9 @@ export class WalnutRepository {
     )
     const insertTransaction = this.sqlite.prepare(
       `INSERT INTO imported_transactions
-       (id, import_batch_id, source_file_id, transaction_date_raw, value_date_raw, raw_narration, cleaned_description,
-        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, reference, transaction_signature, tags_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, import_batch_id, source_file_id, transaction_date_raw, transaction_date_sortable, value_date_raw, raw_narration, cleaned_description,
+        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, normalized_type, category_label, review_state_override, reference, transaction_signature, tags_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const insertAttempt = this.sqlite.prepare(
       `INSERT INTO import_attempts
@@ -1265,6 +1529,7 @@ export class WalnutRepository {
             input.batchId,
             sourceFileId,
             row.transactionDateRaw,
+            toSortableDateKey(row.transactionDateRaw),
             row.valueDateRaw ?? null,
             row.rawNarration,
             row.cleanedDescription,
@@ -1272,6 +1537,14 @@ export class WalnutRepository {
             row.creditAmountMinor ?? null,
             row.runningBalanceMinor ?? null,
             row.direction,
+            deriveNormalizedType({
+              cleanedDescription: row.cleanedDescription,
+              rawNarration: row.rawNarration,
+              reference: row.reference,
+              direction: row.direction
+            }),
+            null,
+            null,
             row.reference ?? null,
             file.transactionSignatures[index],
             null
@@ -1671,6 +1944,7 @@ export class WalnutRepository {
     return {
       id: String(row.id),
       transactionDateRaw: String(row.transaction_date_raw),
+      transactionDateSortable: row.transaction_date_sortable ? String(row.transaction_date_sortable) : toSortableDateKey(String(row.transaction_date_raw)),
       valueDateRaw: row.value_date_raw ? String(row.value_date_raw) : undefined,
       rawNarration: String(row.raw_narration),
       cleanedDescription: String(row.cleaned_description),
@@ -1678,10 +1952,62 @@ export class WalnutRepository {
       creditAmountMinor: row.credit_amount_minor === null ? undefined : Number(row.credit_amount_minor),
       runningBalanceMinor: row.running_balance_minor === null ? undefined : Number(row.running_balance_minor),
       direction: String(row.direction) as NormalizedImportRow['direction'],
+      normalizedType: (row.normalized_type
+        ? String(row.normalized_type)
+        : deriveNormalizedType({
+            cleanedDescription: String(row.cleaned_description),
+            rawNarration: String(row.raw_narration),
+            reference: row.reference ? String(row.reference) : undefined,
+            direction: String(row.direction) as 'debit' | 'credit'
+          })) as TransactionNormalizedType,
+      category: row.category_label ? String(row.category_label) : undefined,
+      reviewStateOverride: row.review_state_override ? (String(row.review_state_override) as TransactionReviewState) : undefined,
       reference: row.reference ? String(row.reference) : undefined,
       tags: this.parseTagsJson(row.tags_json),
       sourceFileId: String(row.source_file_id),
       importBatchId: String(row.import_batch_id)
+    }
+  }
+
+  private mapTransactionLedgerRow(row: Record<string, unknown>): TransactionLedgerRow {
+    const importedTransaction = this.mapImportedTransaction(row)
+    const reviewState =
+      importedTransaction.reviewStateOverride ??
+      (Boolean(row.has_pending_review) ? 'pending-review' : 'clean')
+
+    return {
+      id: importedTransaction.id,
+      importBatchId: importedTransaction.importBatchId,
+      sourceFileId: importedTransaction.sourceFileId,
+      transactionDateRaw: importedTransaction.transactionDateRaw,
+      transactionDateSortable: importedTransaction.transactionDateSortable,
+      description: importedTransaction.cleanedDescription,
+      signedAmountMinor: getSignedAmountMinor(row),
+      debitAmountMinor: importedTransaction.debitAmountMinor ?? null,
+      creditAmountMinor: importedTransaction.creditAmountMinor ?? null,
+      runningBalanceMinor: importedTransaction.runningBalanceMinor,
+      normalizedType: importedTransaction.normalizedType,
+      tags: importedTransaction.tags ?? [],
+      category: importedTransaction.category,
+      reference: importedTransaction.reference,
+      reviewState
+    }
+  }
+
+  private mapTransactionDetail(row: Record<string, unknown>): TransactionDetail {
+    const ledgerRow = this.mapTransactionLedgerRow(row)
+    const importedTransaction = this.mapImportedTransaction(row)
+
+    return {
+      ...ledgerRow,
+      batchLabel: String(row.batch_label),
+      sourceFileName: String(row.file_name),
+      importedAt: String(row.imported_at),
+      valueDateRaw: importedTransaction.valueDateRaw,
+      rawNarration: importedTransaction.rawNarration,
+      runningBalanceMinor: importedTransaction.runningBalanceMinor,
+      direction: importedTransaction.direction,
+      reviewStateOverride: importedTransaction.reviewStateOverride ?? null
     }
   }
 

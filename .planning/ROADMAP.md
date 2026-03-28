@@ -113,6 +113,15 @@ Plans:
 
 **Requirements:** TRAN-01, TRAN-02, TRAN-04, TRAN-05
 
+**Plans:** 4 plans
+**Status:** Complete (2026-03-28)
+
+Plans:
+- [x] `04-01-PLAN.md` - Extend transaction contracts, normalization, and repository query foundations
+- [x] `04-02-PLAN.md` - Build the ledger workspace, search bar, and advanced filter drawer
+- [x] `04-03-PLAN.md` - Deliver the transaction detail drawer, immediate-save edits, and rule-suggestion hook
+- [x] `04-04-PLAN.md` - Add repository, renderer, and end-to-end ledger verification coverage
+
 **Success criteria**
 1. Transactions are normalized into the product's supported financial types.
 2. Users can edit key fields required to correct parser output.
@@ -186,7 +195,7 @@ Plans:
 
 ## Next Step
 
-Next recommended command: `$gsd-execute-phase 3`
+Next recommended command: `$gsd-discuss-phase 5`
 
 ---
-*Last updated: 2026-03-27 after Phase 3 Plan 03 execution*
+*Last updated: 2026-03-28 after Phase 4 verification and UI polish follow-through*
