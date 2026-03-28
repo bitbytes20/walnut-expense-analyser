@@ -12,6 +12,26 @@ import type {
 } from '../../shared/contracts/app-state'
 import type { AccountProfile, AccountProfileDraft } from '../../shared/contracts/account'
 import type {
+  ApplyRuleToExistingInput,
+  CategoryDirection,
+  CategoryTreeNode,
+  CategorizationRuleAction,
+  CategorizationRuleCondition,
+  CategorizationRuleSummary,
+  CreateCategoryInput,
+  CreateCategorizationRuleInput,
+  DeleteCategoryInput,
+  DeleteCategorizationRuleInput,
+  MergeCategoryInput,
+  RuleApplyPreview,
+  RulePreviewInput,
+  RulePreviewSample,
+  RuleTestPreview,
+  ToggleCategorizationRuleInput,
+  UpdateCategoryInput,
+  UpdateCategorizationRuleInput
+} from '../../shared/contracts/categories'
+import type {
   CommitImportBatchResult,
   GetImportBatchDetailInput,
   GetReviewQueueInput,
@@ -65,6 +85,114 @@ const defaultSecurityState: SecurityState = {
 const nowIso = () => new Date().toISOString()
 const singleRowId = 1
 
+interface SeedCategoryDefinition {
+  id: string
+  name: string
+  parentId?: string
+  isIncomeCategory?: boolean
+  sortOrder: number
+}
+
+const categoryId = (slug: string) => `cat:${slug}`
+const ruleId = (slug: string) => `rule:${slug}`
+
+const systemCategorySeeds: SeedCategoryDefinition[] = [
+  { id: categoryId('food-dining'), name: 'Food & Dining', sortOrder: 10 },
+  { id: categoryId('groceries'), name: 'Groceries', sortOrder: 20 },
+  { id: categoryId('shopping'), name: 'Shopping', sortOrder: 30 },
+  { id: categoryId('bills-utilities'), name: 'Bills & Utilities', sortOrder: 40 },
+  { id: categoryId('rent-housing'), name: 'Rent / Housing', sortOrder: 50 },
+  { id: categoryId('transport'), name: 'Transport', sortOrder: 60 },
+  { id: categoryId('travel'), name: 'Travel', sortOrder: 70 },
+  { id: categoryId('healthcare'), name: 'Healthcare', sortOrder: 80 },
+  { id: categoryId('entertainment'), name: 'Entertainment', sortOrder: 90 },
+  { id: categoryId('education'), name: 'Education', sortOrder: 100 },
+  { id: categoryId('insurance'), name: 'Insurance', sortOrder: 110 },
+  { id: categoryId('taxes-fees'), name: 'Taxes & Fees', sortOrder: 120 },
+  { id: categoryId('cash-atm'), name: 'Cash / ATM', sortOrder: 130 },
+  { id: categoryId('transfers'), name: 'Transfers', sortOrder: 140 },
+  { id: categoryId('credit-card-payment'), name: 'Credit Card Payment', sortOrder: 150 },
+  { id: categoryId('income'), name: 'Income', sortOrder: 160, isIncomeCategory: true },
+  { id: categoryId('refunds-reimbursements'), name: 'Refunds / Reimbursements', sortOrder: 170, isIncomeCategory: true },
+  { id: categoryId('investments-savings'), name: 'Investments / Savings', sortOrder: 180 },
+  { id: categoryId('uncategorized'), name: 'Uncategorized', sortOrder: 190 },
+  { id: categoryId('income-salary'), name: 'Salary', parentId: categoryId('income'), sortOrder: 161, isIncomeCategory: true },
+  { id: categoryId('income-business'), name: 'Business Income', parentId: categoryId('income'), sortOrder: 162, isIncomeCategory: true },
+  { id: categoryId('income-interest'), name: 'Interest', parentId: categoryId('income'), sortOrder: 163, isIncomeCategory: true },
+  {
+    id: categoryId('income-refund-reimbursement'),
+    name: 'Refund / Reimbursement Income',
+    parentId: categoryId('income'),
+    sortOrder: 164,
+    isIncomeCategory: true
+  },
+  {
+    id: categoryId('income-investment'),
+    name: 'Investment Income',
+    parentId: categoryId('income'),
+    sortOrder: 165,
+    isIncomeCategory: true
+  },
+  { id: categoryId('income-other'), name: 'Other Income', parentId: categoryId('income'), sortOrder: 166, isIncomeCategory: true }
+]
+
+const starterRuleSeeds: Array<{
+  id: string
+  name: string
+  condition: CategorizationRuleCondition
+  action: CategorizationRuleAction
+  sortOrder: number
+}> = [
+  {
+    id: ruleId('salary-credit'),
+    name: 'Salary credit',
+    condition: {
+      descriptionContains: ['salary'],
+      transactionTypes: ['income'],
+      tags: [],
+      directions: ['credit']
+    },
+    action: {
+      categoryId: categoryId('income-salary'),
+      type: 'income',
+      appendTags: ['salary']
+    },
+    sortOrder: 10
+  },
+  {
+    id: ruleId('atm-withdrawal'),
+    name: 'ATM withdrawal',
+    condition: {
+      descriptionContains: ['atm'],
+      transactionTypes: ['atm-withdrawal'],
+      tags: [],
+      directions: ['debit']
+    },
+    action: {
+      categoryId: categoryId('cash-atm'),
+      type: 'atm-withdrawal',
+      appendTags: ['cash']
+    },
+    sortOrder: 20
+  },
+  {
+    id: ruleId('credit-card-payment'),
+    name: 'Credit card payment',
+    condition: {
+      descriptionContains: ['card payment'],
+      transactionTypes: ['credit-card-payment'],
+      tags: [],
+      directions: ['debit']
+    },
+    action: {
+      categoryId: categoryId('credit-card-payment'),
+      type: 'credit-card-payment',
+      appendTags: []
+    },
+    sortOrder: 30
+  }
+]
+
 const toSortableDateKey = (raw: string) => {
   const trimmed = raw.trim()
   const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed)
@@ -95,6 +223,19 @@ const getSignedAmountMinor = (row: {
 
   return -Math.abs(Number(debit ?? 0))
 }
+
+const extractRuleKeywords = (description: string) =>
+  description
+    .split(/[\s/:-]+/)
+    .map((token) => token.trim().toLowerCase())
+    .filter((token) => token.length >= 3)
+    .slice(0, 3)
+
+const detailDescriptionToRuleName = (description: string) =>
+  description
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, 40)
 
 const deriveNormalizedType = (row: {
   cleanedDescription: string
@@ -340,11 +481,37 @@ export class WalnutRepository {
         running_balance_minor INTEGER,
         direction TEXT NOT NULL,
         normalized_type TEXT,
+        category_id TEXT,
         category_label TEXT,
         review_state_override TEXT,
         reference TEXT,
         transaction_signature TEXT NOT NULL,
         tags_json TEXT
+      );
+      CREATE TABLE IF NOT EXISTS categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        parent_id TEXT,
+        kind TEXT NOT NULL,
+        is_system INTEGER NOT NULL DEFAULT 0,
+        is_income_category INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS categorization_rules (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        is_system INTEGER NOT NULL DEFAULT 0,
+        is_enabled INTEGER NOT NULL DEFAULT 1,
+        condition_json TEXT NOT NULL,
+        action_json TEXT NOT NULL,
+        specificity_score INTEGER NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS review_items (
         id TEXT PRIMARY KEY,
@@ -368,6 +535,10 @@ export class WalnutRepository {
         ON import_attempts(status, imported_at DESC);
       CREATE INDEX IF NOT EXISTS idx_import_attempts_batch_id
         ON import_attempts(batch_id);
+      CREATE INDEX IF NOT EXISTS idx_categories_parent_sort
+        ON categories(parent_id, sort_order);
+      CREATE INDEX IF NOT EXISTS idx_categorization_rules_enabled
+        ON categorization_rules(is_enabled, kind, specificity_score DESC, sort_order ASC);
       CREATE INDEX IF NOT EXISTS idx_review_items_batch_state
         ON review_items(batch_id, state);
       CREATE INDEX IF NOT EXISTS idx_review_items_attempt_id
@@ -377,8 +548,10 @@ export class WalnutRepository {
     this.ensureColumn('imported_transactions', 'tags_json', 'TEXT')
     this.ensureColumn('imported_transactions', 'transaction_date_sortable', 'TEXT')
     this.ensureColumn('imported_transactions', 'normalized_type', 'TEXT')
+    this.ensureColumn('imported_transactions', 'category_id', 'TEXT')
     this.ensureColumn('imported_transactions', 'category_label', 'TEXT')
     this.ensureColumn('imported_transactions', 'review_state_override', 'TEXT')
+    this.ensureColumn('categorization_rules', 'sort_order', 'INTEGER NOT NULL DEFAULT 0')
     this.ensureColumn('review_items', 'resolution_action', 'TEXT')
     this.ensureColumn('review_items', 'resolution_payload_json', 'TEXT')
     this.ensureColumn('review_items', 'resolved_at', 'TEXT')
@@ -399,6 +572,9 @@ export class WalnutRepository {
         VALUES (?, ?, ?, ?)`
       )
       .run(singleRowId, 0, 0, stamp)
+
+    this.seedSystemCategories(stamp)
+    this.seedStarterRules(stamp)
   }
 
   private ensureColumn(tableName: string, columnName: string, definition: string) {
@@ -411,6 +587,53 @@ export class WalnutRepository {
     }
 
     this.sqlite.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition};`)
+  }
+
+  private seedSystemCategories(stamp: string) {
+    const insertCategory = this.sqlite.prepare(
+      `INSERT OR IGNORE INTO categories
+       (id, name, parent_id, kind, is_system, is_income_category, is_active, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+
+    for (const seed of systemCategorySeeds) {
+      insertCategory.run(
+        seed.id,
+        seed.name,
+        seed.parentId ?? null,
+        'system',
+        1,
+        seed.isIncomeCategory ? 1 : 0,
+        1,
+        seed.sortOrder,
+        stamp,
+        stamp
+      )
+    }
+  }
+
+  private seedStarterRules(stamp: string) {
+    const insertRule = this.sqlite.prepare(
+      `INSERT OR IGNORE INTO categorization_rules
+       (id, name, kind, is_system, is_enabled, condition_json, action_json, specificity_score, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+
+    for (const seed of starterRuleSeeds) {
+      insertRule.run(
+        seed.id,
+        seed.name,
+        'system',
+        1,
+        1,
+        JSON.stringify(seed.condition),
+        JSON.stringify(seed.action),
+        this.computeRuleSpecificity(seed.condition),
+        seed.sortOrder,
+        stamp,
+        stamp
+      )
+    }
   }
 
   private getAppSetting(key: string) {
@@ -723,8 +946,8 @@ export class WalnutRepository {
     const insertImportedTransaction = this.sqlite.prepare(
       `INSERT INTO imported_transactions
        (id, import_batch_id, source_file_id, transaction_date_raw, transaction_date_sortable, value_date_raw, raw_narration, cleaned_description,
-        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, normalized_type, category_label, review_state_override, reference, transaction_signature, tags_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, normalized_type, category_id, category_label, review_state_override, reference, transaction_signature, tags_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const row of snapshot.importedTransactions) {
       insertImportedTransaction.run(
@@ -746,6 +969,7 @@ export class WalnutRepository {
           reference: row.reference ? String(row.reference) : undefined,
           direction: String(row.direction) as 'debit' | 'credit'
         }),
+        row.category_id ?? null,
         row.category_label ?? null,
         row.review_state_override ?? null,
         row.reference ?? null,
@@ -1201,7 +1425,13 @@ export class WalnutRepository {
 
         if (query.categories?.length) {
           const normalizedCategories = query.categories.map((category) => category.toLowerCase())
-          if (!row.category || !normalizedCategories.includes(row.category.toLowerCase())) {
+          const categoryValues = [
+            row.categoryId?.toLowerCase(),
+            row.category?.toLowerCase(),
+            ...(row.categoryPath ?? []).map((segment) => segment.toLowerCase())
+          ].filter(Boolean)
+
+          if (!normalizedCategories.some((category) => categoryValues.includes(category))) {
             return false
           }
         }
@@ -1264,7 +1494,12 @@ export class WalnutRepository {
     const nextDebitAmountMinor = nextDirection === 'debit' ? Math.abs(nextSignedAmountMinor) : null
     const nextCreditAmountMinor = nextDirection === 'credit' ? Math.abs(nextSignedAmountMinor) : null
     const nextNormalizedType = input.normalizedType ?? current.normalizedType
-    const nextCategory = input.category === undefined ? current.category ?? null : input.category
+    const nextCategoryId =
+      input.categoryId === undefined
+        ? current.categoryId ?? null
+        : input.categoryId
+    const nextCategoryPath = this.getCategoryPathById(nextCategoryId)
+    const nextCategory = input.category === undefined ? (nextCategoryPath.length ? nextCategoryPath.join(' > ') : current.category ?? null) : input.category
     const nextReference = input.reference === undefined ? current.reference ?? null : input.reference
     const nextTags = input.tags ?? current.tags
     const nextReviewStateOverride =
@@ -1280,6 +1515,7 @@ export class WalnutRepository {
              credit_amount_minor = ?,
              direction = ?,
              normalized_type = ?,
+             category_id = ?,
              category_label = ?,
              reference = ?,
              tags_json = ?,
@@ -1294,6 +1530,7 @@ export class WalnutRepository {
         nextCreditAmountMinor,
         nextDirection,
         nextNormalizedType,
+        nextCategoryId,
         nextCategory,
         nextReference,
         JSON.stringify(nextTags),
@@ -1309,7 +1546,23 @@ export class WalnutRepository {
             fromType: current.normalizedType,
             toType: input.normalizedType,
             title: 'Create a rule from this type change later',
-            description: 'Walnut can use this correction as a suggestion when reusable rules are introduced.'
+            description: 'Walnut can use this correction as a reusable rule suggestion.',
+            draft: {
+              name: `${detailDescriptionToRuleName(nextDescription)} rule`,
+              condition: {
+                descriptionContains: extractRuleKeywords(nextDescription),
+                amountMinMinor: undefined,
+                amountMaxMinor: undefined,
+                transactionTypes: [current.normalizedType],
+                tags: current.tags,
+                directions: [current.direction]
+              },
+              action: {
+                categoryId: nextCategoryId ?? undefined,
+                type: input.normalizedType,
+                appendTags: nextTags
+              }
+            }
           }
         : undefined
 
@@ -1371,6 +1624,235 @@ export class WalnutRepository {
       .all(input?.state ?? 'pending', input?.batchId ?? null, input?.batchId ?? null) as Record<string, unknown>[]
 
     return batchIds.map((row) => this.getImportBatchDetail({ batchId: String(row.batch_id) }))
+  }
+
+  listCategories(): CategoryTreeNode[] {
+    return this.buildCategoryTree()
+  }
+
+  createCategory(input: CreateCategoryInput): CategoryTreeNode[] {
+    const stamp = nowIso()
+    const parent = input.parentId ? this.getCategoryRow(input.parentId) : undefined
+    if (parent && !parent.is_active) {
+      throw new Error('Cannot create a category under an inactive parent.')
+    }
+
+    this.sqlite
+      .prepare(
+        `INSERT INTO categories
+         (id, name, parent_id, kind, is_system, is_income_category, is_active, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        crypto.randomUUID(),
+        input.name.trim(),
+        input.parentId ?? null,
+        'user',
+        0,
+        input.isIncomeCategory ? 1 : 0,
+        1,
+        this.nextCategorySortOrder(input.parentId),
+        stamp,
+        stamp
+      )
+
+    return this.listCategories()
+  }
+
+  updateCategory(input: UpdateCategoryInput): CategoryTreeNode[] {
+    const current = this.getCategoryRow(input.categoryId)
+    const nextParentId = input.parentId === undefined ? current.parent_id ?? null : input.parentId
+    if (current.is_system && (input.parentId !== undefined || input.name !== undefined || input.isActive !== undefined)) {
+      throw new Error('System category properties are protected.')
+    }
+
+    if (nextParentId) {
+      this.assertValidCategoryParent(current.id, nextParentId)
+    }
+
+    this.sqlite
+      .prepare(
+        `UPDATE categories
+         SET name = ?, parent_id = ?, is_active = ?, updated_at = ?
+         WHERE id = ?`
+      )
+      .run(
+        input.name?.trim() ?? current.name,
+        nextParentId,
+        input.isActive === undefined ? current.is_active : input.isActive ? 1 : 0,
+        nowIso(),
+        input.categoryId
+      )
+
+    return this.listCategories()
+  }
+
+  mergeCategory(input: MergeCategoryInput): CategoryTreeNode[] {
+    const source = this.getCategoryRow(input.sourceCategoryId)
+    const target = this.getCategoryRow(input.targetCategoryId)
+    if (source.is_system) {
+      throw new Error('A system category cannot be used as the merge source.')
+    }
+
+    this.assertValidCategoryParent(target.id, source.id)
+
+    const transaction = this.sqlite.transaction(() => {
+      this.sqlite
+        .prepare('UPDATE imported_transactions SET category_id = ?, category_label = ? WHERE category_id = ?')
+        .run(
+          target.id,
+          this.getCategoryPathById(target.id).join(' > '),
+          source.id
+        )
+      this.sqlite.prepare('DELETE FROM categories WHERE id = ?').run(source.id)
+    })
+
+    transaction()
+    return this.listCategories()
+  }
+
+  deleteCategory(input: DeleteCategoryInput): CategoryTreeNode[] {
+    const category = this.getCategoryRow(input.categoryId)
+    if (category.is_system) {
+      throw new Error('Cannot delete a system category.')
+    }
+
+    const childCount = Number(
+      (
+        this.sqlite.prepare('SELECT COUNT(*) as count FROM categories WHERE parent_id = ?').get(input.categoryId) as {
+          count?: number
+        }
+      )?.count ?? 0
+    )
+
+    if (childCount > 0) {
+      throw new Error('Cannot delete a category that still has subcategories.')
+    }
+
+    const mappedCount = Number(
+      (
+        this.sqlite.prepare('SELECT COUNT(*) as count FROM imported_transactions WHERE category_id = ?').get(input.categoryId) as {
+          count?: number
+        }
+      )?.count ?? 0
+    )
+
+    if (mappedCount > 0) {
+      throw new Error('Cannot delete a category that is still assigned to transactions.')
+    }
+
+    this.sqlite.prepare('DELETE FROM categories WHERE id = ?').run(input.categoryId)
+    return this.listCategories()
+  }
+
+  listRules(): CategorizationRuleSummary[] {
+    const rows = this.sqlite
+      .prepare('SELECT * FROM categorization_rules ORDER BY is_system DESC, specificity_score DESC, sort_order ASC, name ASC')
+      .all() as Array<Record<string, unknown>>
+
+    return rows.map((row) => this.mapRuleSummary(row))
+  }
+
+  createRule(input: CreateCategorizationRuleInput): CategorizationRuleSummary[] {
+    const stamp = nowIso()
+    this.sqlite
+      .prepare(
+        `INSERT INTO categorization_rules
+         (id, name, kind, is_system, is_enabled, condition_json, action_json, specificity_score, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        crypto.randomUUID(),
+        input.name.trim(),
+        'user',
+        0,
+        1,
+        JSON.stringify(this.normalizeRuleCondition(input.condition)),
+        JSON.stringify(this.normalizeRuleAction(input.action)),
+        this.computeRuleSpecificity(input.condition),
+        this.nextRuleSortOrder(),
+        stamp,
+        stamp
+      )
+
+    return this.listRules()
+  }
+
+  updateRule(input: UpdateCategorizationRuleInput): CategorizationRuleSummary[] {
+    const current = this.getRuleRow(input.ruleId)
+    const nextCondition = input.condition ? this.normalizeRuleCondition(input.condition) : this.parseRuleCondition(current.condition_json)
+    const nextAction = input.action ? this.normalizeRuleAction(input.action) : this.parseRuleAction(current.action_json)
+
+    this.sqlite
+      .prepare(
+        `UPDATE categorization_rules
+         SET name = ?, condition_json = ?, action_json = ?, is_enabled = ?, specificity_score = ?, updated_at = ?
+         WHERE id = ?`
+      )
+      .run(
+        input.name?.trim() ?? String(current.name),
+        JSON.stringify(nextCondition),
+        JSON.stringify(nextAction),
+        input.isEnabled === undefined ? current.is_enabled : input.isEnabled ? 1 : 0,
+        this.computeRuleSpecificity(nextCondition),
+        nowIso(),
+        input.ruleId
+      )
+
+    return this.listRules()
+  }
+
+  toggleRule(input: ToggleCategorizationRuleInput): CategorizationRuleSummary[] {
+    this.sqlite
+      .prepare('UPDATE categorization_rules SET is_enabled = ?, updated_at = ? WHERE id = ?')
+      .run(input.isEnabled ? 1 : 0, nowIso(), input.ruleId)
+
+    return this.listRules()
+  }
+
+  deleteRule(input: DeleteCategorizationRuleInput): CategorizationRuleSummary[] {
+    const row = this.getRuleRow(input.ruleId)
+    if (row.is_system) {
+      throw new Error('Cannot delete a system rule.')
+    }
+
+    this.sqlite.prepare('DELETE FROM categorization_rules WHERE id = ?').run(input.ruleId)
+    return this.listRules()
+  }
+
+  testRule(input: RulePreviewInput): RuleTestPreview {
+    return this.buildRulePreview(this.normalizeRuleCondition(input.condition), this.normalizeRuleAction(input.action), input.excludeRuleId)
+  }
+
+  previewRuleApplyToExisting(input: RulePreviewInput | ApplyRuleToExistingInput): RuleApplyPreview {
+    if ('ruleId' in input) {
+      const row = this.getRuleRow(input.ruleId)
+      return this.buildRulePreview(this.parseRuleCondition(row.condition_json), this.parseRuleAction(row.action_json), input.ruleId)
+    }
+
+    return this.buildRulePreview(this.normalizeRuleCondition(input.condition), this.normalizeRuleAction(input.action), input.excludeRuleId)
+  }
+
+  applyRuleToExisting(input: ApplyRuleToExistingInput): CategorizationRuleSummary[] {
+    const row = this.getRuleRow(input.ruleId)
+    const condition = this.parseRuleCondition(row.condition_json)
+    const action = this.parseRuleAction(row.action_json)
+    const preview = this.buildRulePreview(condition, action, input.ruleId)
+
+    const transaction = this.sqlite.transaction(() => {
+      for (const sample of preview.samples) {
+        this.applyRuleActionToTransaction(sample.transactionId, action)
+      }
+      if (preview.matchCount > preview.samples.length) {
+        const matches = this.findMatchingTransactions(condition, input.ruleId)
+        for (const match of matches) {
+          this.applyRuleActionToTransaction(String(match.id), action)
+        }
+      }
+    })
+
+    transaction()
+    return this.listRules()
   }
 
   resolveReviewItems(input: ReviewItemResolutionInput): ImportBatchDetail {
@@ -1470,8 +1952,8 @@ export class WalnutRepository {
     const insertTransaction = this.sqlite.prepare(
       `INSERT INTO imported_transactions
        (id, import_batch_id, source_file_id, transaction_date_raw, transaction_date_sortable, value_date_raw, raw_narration, cleaned_description,
-        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, normalized_type, category_label, review_state_override, reference, transaction_signature, tags_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        debit_amount_minor, credit_amount_minor, running_balance_minor, direction, normalized_type, category_id, category_label, review_state_override, reference, transaction_signature, tags_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const insertAttempt = this.sqlite.prepare(
       `INSERT INTO import_attempts
@@ -1524,6 +2006,24 @@ export class WalnutRepository {
         )
 
         for (const [index, row] of file.rows.entries()) {
+          const normalizedType = deriveNormalizedType({
+            cleanedDescription: row.cleanedDescription,
+            rawNarration: row.rawNarration,
+            reference: row.reference,
+            direction: row.direction
+          })
+          const starterCategorization = this.deriveStarterCategorization({
+            description: row.cleanedDescription,
+            rawNarration: row.rawNarration,
+            direction: row.direction,
+            normalizedType,
+            signedAmountMinor:
+              row.direction === 'credit'
+                ? Math.abs(row.creditAmountMinor ?? 0)
+                : -Math.abs(row.debitAmountMinor ?? 0),
+            tags: []
+          })
+
           insertTransaction.run(
             crypto.randomUUID(),
             input.batchId,
@@ -1537,17 +2037,13 @@ export class WalnutRepository {
             row.creditAmountMinor ?? null,
             row.runningBalanceMinor ?? null,
             row.direction,
-            deriveNormalizedType({
-              cleanedDescription: row.cleanedDescription,
-              rawNarration: row.rawNarration,
-              reference: row.reference,
-              direction: row.direction
-            }),
-            null,
+            normalizedType,
+            starterCategorization.categoryId ?? null,
+            starterCategorization.categoryPath?.join(' > ') ?? null,
             null,
             row.reference ?? null,
             file.transactionSignatures[index],
-            null
+            JSON.stringify(starterCategorization.tags)
           )
         }
       }
@@ -1849,6 +2345,337 @@ export class WalnutRepository {
     return JSON.parse(String(value)) as string[]
   }
 
+  private normalizeRuleCondition(condition: CategorizationRuleCondition): CategorizationRuleCondition {
+    return {
+      descriptionContains: (condition.descriptionContains ?? []).map((value) => value.trim()).filter(Boolean),
+      amountMinMinor: condition.amountMinMinor,
+      amountMaxMinor: condition.amountMaxMinor,
+      transactionTypes: condition.transactionTypes ?? [],
+      tags: (condition.tags ?? []).map((value) => value.trim()).filter(Boolean),
+      directions: condition.directions ?? []
+    }
+  }
+
+  private normalizeRuleAction(action: CategorizationRuleAction): CategorizationRuleAction {
+    return {
+      categoryId: action.categoryId,
+      type: action.type,
+      appendTags: (action.appendTags ?? []).map((value) => value.trim()).filter(Boolean)
+    }
+  }
+
+  private parseRuleCondition(value: unknown): CategorizationRuleCondition {
+    if (!value) {
+      return this.normalizeRuleCondition({
+        descriptionContains: [],
+        transactionTypes: [],
+        tags: [],
+        directions: []
+      })
+    }
+
+    return this.normalizeRuleCondition(JSON.parse(String(value)) as CategorizationRuleCondition)
+  }
+
+  private parseRuleAction(value: unknown): CategorizationRuleAction {
+    if (!value) {
+      return this.normalizeRuleAction({ appendTags: [] })
+    }
+
+    return this.normalizeRuleAction(JSON.parse(String(value)) as CategorizationRuleAction)
+  }
+
+  private computeRuleSpecificity(condition: CategorizationRuleCondition) {
+    const normalized = this.normalizeRuleCondition(condition)
+    return (
+      normalized.descriptionContains.length * 5 +
+      normalized.tags.length * 4 +
+      normalized.transactionTypes.length * 3 +
+      normalized.directions.length * 2 +
+      (normalized.amountMinMinor !== undefined ? 1 : 0) +
+      (normalized.amountMaxMinor !== undefined ? 1 : 0)
+    )
+  }
+
+  private getCategoryRow(categoryId: string) {
+    const row = this.sqlite.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId) as Record<string, unknown> | undefined
+    if (!row) {
+      throw new Error(`Category ${categoryId} was not found.`)
+    }
+
+    return row
+  }
+
+  private getRuleRow(ruleId: string) {
+    const row = this.sqlite.prepare('SELECT * FROM categorization_rules WHERE id = ?').get(ruleId) as Record<string, unknown> | undefined
+    if (!row) {
+      throw new Error(`Rule ${ruleId} was not found.`)
+    }
+
+    return row
+  }
+
+  private assertValidCategoryParent(categoryId: string, nextParentId: string) {
+    if (categoryId === nextParentId) {
+      throw new Error('A category cannot be its own parent.')
+    }
+
+    let currentParentId: string | undefined = nextParentId
+    while (currentParentId) {
+      if (currentParentId === categoryId) {
+        throw new Error('A category cannot be moved under its own descendant.')
+      }
+
+      const row = this.sqlite.prepare('SELECT parent_id FROM categories WHERE id = ?').get(currentParentId) as { parent_id?: string | null } | undefined
+      currentParentId = row?.parent_id ?? undefined
+    }
+  }
+
+  private nextCategorySortOrder(parentId?: string | null) {
+    const row = this.sqlite
+      .prepare('SELECT COALESCE(MAX(sort_order), 0) as max_sort FROM categories WHERE (? IS NULL AND parent_id IS NULL) OR parent_id = ?')
+      .get(parentId ?? null, parentId ?? null) as { max_sort?: number } | undefined
+    return Number(row?.max_sort ?? 0) + 1
+  }
+
+  private nextRuleSortOrder() {
+    const row = this.sqlite.prepare('SELECT COALESCE(MAX(sort_order), 0) as max_sort FROM categorization_rules').get() as { max_sort?: number } | undefined
+    return Number(row?.max_sort ?? 0) + 1
+  }
+
+  private buildCategoryTree(): CategoryTreeNode[] {
+    const rows = this.sqlite.prepare('SELECT * FROM categories ORDER BY sort_order ASC, name ASC').all() as Array<Record<string, unknown>>
+    const directCounts = new Map<string, number>()
+    const transactionRows = this.sqlite
+      .prepare('SELECT category_id, COUNT(*) as count FROM imported_transactions WHERE category_id IS NOT NULL GROUP BY category_id')
+      .all() as Array<Record<string, unknown>>
+
+    for (const row of transactionRows) {
+      directCounts.set(String(row.category_id), Number(row.count ?? 0))
+    }
+
+    const nodes = new Map<string, CategoryTreeNode>()
+    for (const row of rows) {
+      nodes.set(String(row.id), {
+        id: String(row.id),
+        name: String(row.name),
+        kind: String(row.kind) === 'system' ? 'system' : 'user',
+        parentId: row.parent_id ? String(row.parent_id) : undefined,
+        path: [],
+        isActive: Boolean(row.is_active),
+        isIncomeCategory: Boolean(row.is_income_category),
+        sortOrder: Number(row.sort_order ?? 0),
+        counts: {
+          directTransactionCount: directCounts.get(String(row.id)) ?? 0,
+          totalTransactionCount: 0
+        },
+        children: []
+      })
+    }
+
+    const roots: CategoryTreeNode[] = []
+    for (const node of nodes.values()) {
+      node.path = this.getCategoryPathFromMap(node.id, nodes)
+      if (node.parentId && nodes.has(node.parentId)) {
+        nodes.get(node.parentId)!.children.push(node)
+      } else {
+        roots.push(node)
+      }
+    }
+
+    const computeTotals = (node: CategoryTreeNode): number => {
+      const childTotal = node.children.reduce((total, child) => total + computeTotals(child), 0)
+      node.counts.totalTransactionCount = node.counts.directTransactionCount + childTotal
+      return node.counts.totalTransactionCount
+    }
+
+    roots.forEach(computeTotals)
+    return roots.sort((left, right) => left.sortOrder - right.sortOrder)
+  }
+
+  private getCategoryPathFromMap(categoryId: string, nodes: Map<string, CategoryTreeNode>) {
+    const path: string[] = []
+    let current = nodes.get(categoryId)
+    while (current) {
+      path.unshift(current.name)
+      current = current.parentId ? nodes.get(current.parentId) : undefined
+    }
+    return path
+  }
+
+  private getCategoryPathById(categoryId?: string | null) {
+    if (!categoryId) {
+      return [] as string[]
+    }
+
+    const rows = this.sqlite.prepare('SELECT id, name, parent_id, kind, is_active, is_income_category, sort_order FROM categories ORDER BY sort_order ASC, name ASC').all() as Array<Record<string, unknown>>
+    const nodes = new Map<string, CategoryTreeNode>()
+    for (const row of rows) {
+      nodes.set(String(row.id), {
+        id: String(row.id),
+        name: String(row.name),
+        kind: String(row.kind) === 'system' ? 'system' : 'user',
+        parentId: row.parent_id ? String(row.parent_id) : undefined,
+        path: [],
+        isActive: Boolean(row.is_active),
+        isIncomeCategory: Boolean(row.is_income_category),
+        sortOrder: Number(row.sort_order ?? 0),
+        counts: { directTransactionCount: 0, totalTransactionCount: 0 },
+        children: []
+      })
+    }
+
+    return this.getCategoryPathFromMap(categoryId, nodes)
+  }
+
+  private findMatchingTransactions(condition: CategorizationRuleCondition, excludeRuleId?: string) {
+    const rows = this.sqlite
+      .prepare(
+        `SELECT t.*, s.file_name, a.batch_label, a.imported_at,
+            CASE
+              WHEN EXISTS (
+                SELECT 1
+                FROM review_items r
+                WHERE r.batch_id = t.import_batch_id
+                  AND r.state = 'pending'
+              ) THEN 1
+              ELSE 0
+            END AS has_pending_review
+         FROM imported_transactions t
+         INNER JOIN import_source_files s ON s.id = t.source_file_id
+         INNER JOIN import_attempts a ON a.batch_id = t.import_batch_id`
+      )
+      .all() as Array<Record<string, unknown>>
+
+    const normalized = this.normalizeRuleCondition(condition)
+    return rows.filter((row) => this.matchesRuleCondition(this.mapTransactionLedgerRow(row), normalized, excludeRuleId))
+  }
+
+  private matchesRuleCondition(row: TransactionLedgerRow, condition: CategorizationRuleCondition, excludeRuleId?: string) {
+    void excludeRuleId
+    const text = row.description.toLowerCase()
+    if (condition.descriptionContains.length && !condition.descriptionContains.every((keyword) => text.includes(keyword.toLowerCase()))) {
+      return false
+    }
+    if (condition.amountMinMinor !== undefined && Math.abs(row.signedAmountMinor) < condition.amountMinMinor) {
+      return false
+    }
+    if (condition.amountMaxMinor !== undefined && Math.abs(row.signedAmountMinor) > condition.amountMaxMinor) {
+      return false
+    }
+    if (condition.transactionTypes.length && !condition.transactionTypes.includes(row.normalizedType)) {
+      return false
+    }
+    if (condition.tags.length && !condition.tags.every((tag) => row.tags.includes(tag))) {
+      return false
+    }
+    const direction: CategoryDirection = row.signedAmountMinor >= 0 ? 'credit' : 'debit'
+    if (condition.directions.length && !condition.directions.includes(direction)) {
+      return false
+    }
+    return true
+  }
+
+  private buildRulePreview(condition: CategorizationRuleCondition, action: CategorizationRuleAction, excludeRuleId?: string): RuleApplyPreview {
+    const matches = this.findMatchingTransactions(condition, excludeRuleId)
+    const samples = matches.slice(0, 10).map((row) => this.mapRulePreviewSample(row, action))
+    return {
+      matchCount: matches.length,
+      samples
+    }
+  }
+
+  private mapRulePreviewSample(row: Record<string, unknown> | TransactionLedgerRow, action: CategorizationRuleAction): RulePreviewSample {
+    const ledgerRow = 'description' in row && 'normalizedType' in row ? (row as TransactionLedgerRow) : this.mapTransactionLedgerRow(row as Record<string, unknown>)
+    const nextCategoryPath = action.categoryId ? this.getCategoryPathById(action.categoryId) : ledgerRow.categoryPath
+    return {
+      transactionId: ledgerRow.id,
+      transactionDateRaw: ledgerRow.transactionDateRaw,
+      description: ledgerRow.description,
+      signedAmountMinor: ledgerRow.signedAmountMinor,
+      currentCategoryPath: ledgerRow.categoryPath,
+      nextCategoryPath,
+      currentType: ledgerRow.normalizedType,
+      nextType: action.type ?? ledgerRow.normalizedType,
+      tags: Array.from(new Set([...ledgerRow.tags, ...(action.appendTags ?? [])]))
+    }
+  }
+
+  private applyRuleActionToTransaction(transactionId: string, action: CategorizationRuleAction) {
+    const row = this.getTransactionDetail({ transactionId })
+    const nextTags = Array.from(new Set([...row.tags, ...(action.appendTags ?? [])]))
+    const nextCategoryPath = action.categoryId ? this.getCategoryPathById(action.categoryId) : row.categoryPath ?? []
+    this.sqlite
+      .prepare(
+        `UPDATE imported_transactions
+         SET normalized_type = ?, category_id = ?, category_label = ?, tags_json = ?
+         WHERE id = ?`
+      )
+      .run(
+        action.type ?? row.normalizedType,
+        action.categoryId ?? row.categoryId ?? null,
+        nextCategoryPath.length ? nextCategoryPath.join(' > ') : null,
+        JSON.stringify(nextTags),
+        transactionId
+      )
+  }
+
+  private mapRuleSummary(row: Record<string, unknown>): CategorizationRuleSummary {
+    const condition = this.parseRuleCondition(row.condition_json)
+    const action = this.parseRuleAction(row.action_json)
+    return {
+      id: String(row.id),
+      name: String(row.name),
+      kind: String(row.kind) === 'system' ? 'system' : 'user',
+      isEnabled: Boolean(row.is_enabled),
+      condition,
+      action,
+      specificityScore: Number(row.specificity_score ?? this.computeRuleSpecificity(condition)),
+      affectedTransactionCount: this.buildRulePreview(condition, action, String(row.id)).matchCount,
+      updatedAt: String(row.updated_at)
+    }
+  }
+
+  private deriveStarterCategorization(input: {
+    description: string
+    rawNarration: string
+    direction: 'debit' | 'credit'
+    normalizedType: TransactionNormalizedType
+    signedAmountMinor: number
+    tags: string[]
+  }) {
+    const text = `${input.description} ${input.rawNarration}`.toLowerCase()
+    if (input.normalizedType === 'income' && text.includes('salary')) {
+      return {
+        categoryId: categoryId('income-salary'),
+        categoryPath: this.getCategoryPathById(categoryId('income-salary')),
+        tags: ['salary']
+      }
+    }
+
+    if (input.normalizedType === 'atm-withdrawal') {
+      return {
+        categoryId: categoryId('cash-atm'),
+        categoryPath: this.getCategoryPathById(categoryId('cash-atm')),
+        tags: ['cash']
+      }
+    }
+
+    if (input.normalizedType === 'credit-card-payment') {
+      return {
+        categoryId: categoryId('credit-card-payment'),
+        categoryPath: this.getCategoryPathById(categoryId('credit-card-payment')),
+        tags: []
+      }
+    }
+
+    return {
+      categoryId: undefined,
+      categoryPath: undefined,
+      tags: input.tags
+    }
+  }
+
   private mapImportAttemptSummary(row: Record<string, unknown>): ImportAttemptSummary {
     const batchId = String(row.batch_id)
     const acceptedTransactionCount = this.sqlite
@@ -1941,6 +2768,8 @@ export class WalnutRepository {
   }
 
   private mapImportedTransaction(row: Record<string, unknown>) {
+    const categoryIdValue = row.category_id ? String(row.category_id) : undefined
+    const categoryPath = categoryIdValue ? this.getCategoryPathById(categoryIdValue) : undefined
     return {
       id: String(row.id),
       transactionDateRaw: String(row.transaction_date_raw),
@@ -1960,7 +2789,13 @@ export class WalnutRepository {
             reference: row.reference ? String(row.reference) : undefined,
             direction: String(row.direction) as 'debit' | 'credit'
           })) as TransactionNormalizedType,
-      category: row.category_label ? String(row.category_label) : undefined,
+      categoryId: categoryIdValue,
+      categoryPath,
+      category: row.category_label
+        ? String(row.category_label)
+        : categoryPath?.length
+          ? categoryPath.join(' > ')
+          : undefined,
       reviewStateOverride: row.review_state_override ? (String(row.review_state_override) as TransactionReviewState) : undefined,
       reference: row.reference ? String(row.reference) : undefined,
       tags: this.parseTagsJson(row.tags_json),
@@ -1988,6 +2823,8 @@ export class WalnutRepository {
       runningBalanceMinor: importedTransaction.runningBalanceMinor,
       normalizedType: importedTransaction.normalizedType,
       tags: importedTransaction.tags ?? [],
+      categoryId: importedTransaction.categoryId,
+      categoryPath: importedTransaction.categoryPath,
       category: importedTransaction.category,
       reference: importedTransaction.reference,
       reviewState

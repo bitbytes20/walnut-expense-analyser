@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { CategoryTreeNode } from '../../../shared/contracts/categories'
 import type { TransactionDetail, TransactionNormalizedType, TransactionReviewState, TransactionRuleSuggestion, UpdateTransactionInput } from '../../../shared/contracts/transactions'
 
 interface TransactionDetailDrawerProps {
@@ -7,6 +8,7 @@ interface TransactionDetailDrawerProps {
   ruleSuggestion?: TransactionRuleSuggestion
   onClose: () => void
   onSave: (input: UpdateTransactionInput) => void
+  onUseRuleSuggestion?: (suggestion: TransactionRuleSuggestion) => void
 }
 
 const typeOptions: Array<{ value: TransactionNormalizedType; label: string }> = [
@@ -28,15 +30,35 @@ const formatAmountInput = (minor: number) => String(minor / 100)
 const formatCurrency = (minor?: number) =>
   minor === undefined ? 'Unavailable' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(minor / 100)
 
-export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClose, onSave }: TransactionDetailDrawerProps) => {
+const flattenCategories = (nodes: CategoryTreeNode[]): Array<{ id: string; label: string }> =>
+  nodes.flatMap((node) => [
+    { id: node.id, label: node.path.join(' > ') },
+    ...flattenCategories(node.children)
+  ])
+
+export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClose, onSave, onUseRuleSuggestion }: TransactionDetailDrawerProps) => {
   const [transactionDateRaw, setTransactionDateRaw] = useState('')
   const [description, setDescription] = useState('')
   const [signedAmount, setSignedAmount] = useState('')
   const [normalizedType, setNormalizedType] = useState<TransactionNormalizedType>('expense')
-  const [category, setCategory] = useState('')
+  const [categoryId, setCategoryId] = useState('')
   const [reference, setReference] = useState('')
   const [tags, setTags] = useState('')
   const [reviewStateOverride, setReviewStateOverride] = useState<TransactionReviewState | ''>('')
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ id: string; label: string }>>([])
+
+  useEffect(() => {
+    let cancelled = false
+    void window.walnut.listCategories().then((categories) => {
+      if (!cancelled) {
+        setCategoryOptions(flattenCategories(categories))
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!detail) {
@@ -47,7 +69,7 @@ export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClos
     setDescription(detail.description)
     setSignedAmount(formatAmountInput(detail.signedAmountMinor))
     setNormalizedType(detail.normalizedType)
-    setCategory(detail.category ?? '')
+    setCategoryId(detail.categoryId ?? '')
     setReference(detail.reference ?? '')
     setTags(detail.tags.join(', '))
     setReviewStateOverride(detail.reviewStateOverride ?? '')
@@ -95,7 +117,11 @@ export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClos
             description,
             signedAmountMinor: Math.round(Number(signedAmount || '0') * 100),
             normalizedType,
-            category: category.trim() ? category.trim() : null,
+            categoryId: categoryId || null,
+            category:
+              categoryId
+                ? categoryOptions.find((option) => option.id === categoryId)?.label ?? null
+                : null,
             reference: reference.trim() ? reference.trim() : null,
             tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
             reviewStateOverride: reviewStateOverride || null
@@ -130,7 +156,14 @@ export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClos
 
         <label style={styles.field}>
           <span style={styles.label}>Category</span>
-          <input type="text" value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Optional category" style={styles.input} />
+          <select aria-label="Category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} style={styles.input}>
+            <option value="">No category</option>
+            {categoryOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label style={styles.field}>
@@ -159,6 +192,13 @@ export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClos
             <div style={styles.kicker}>Rule suggestion</div>
             <strong>{ruleSuggestion.title}</strong>
             <p style={styles.helper}>{ruleSuggestion.description}</p>
+            {onUseRuleSuggestion ? (
+              <div style={styles.actions}>
+                <button type="button" style={styles.secondaryButton} onClick={() => onUseRuleSuggestion(ruleSuggestion)}>
+                  Create reusable rule
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -260,6 +300,15 @@ const styles = {
   },
   closeButton: {
     minHeight: 40,
+    borderRadius: 999,
+    border: '1px solid rgba(30, 27, 22, 0.18)',
+    background: 'rgba(30, 27, 22, 0.04)',
+    color: 'var(--color-ink)',
+    padding: '0 16px',
+    fontWeight: 600
+  },
+  secondaryButton: {
+    minHeight: 42,
     borderRadius: 999,
     border: '1px solid rgba(30, 27, 22, 0.18)',
     background: 'rgba(30, 27, 22, 0.04)',

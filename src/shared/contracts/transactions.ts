@@ -12,11 +12,27 @@ export const TransactionNormalizedTypeSchema = z.enum([
 export const TransactionReviewStateSchema = z.enum(['clean', 'pending-review'])
 
 export const TransactionRuleSuggestionSchema = z.object({
-  field: z.literal('type'),
-  fromType: TransactionNormalizedTypeSchema,
-  toType: TransactionNormalizedTypeSchema,
+  field: z.enum(['type', 'category']),
+  fromType: TransactionNormalizedTypeSchema.optional(),
+  toType: TransactionNormalizedTypeSchema.optional(),
   title: z.string(),
-  description: z.string()
+  description: z.string(),
+  draft: z.object({
+    name: z.string(),
+    condition: z.object({
+      descriptionContains: z.array(z.string()),
+      amountMinMinor: z.number().optional(),
+      amountMaxMinor: z.number().optional(),
+      transactionTypes: z.array(TransactionNormalizedTypeSchema),
+      tags: z.array(z.string()),
+      directions: z.array(z.enum(['debit', 'credit']))
+    }),
+    action: z.object({
+      categoryId: z.string().optional(),
+      type: TransactionNormalizedTypeSchema.optional(),
+      appendTags: z.array(z.string())
+    })
+  })
 })
 
 export const TransactionLedgerRowSchema = z.object({
@@ -32,6 +48,8 @@ export const TransactionLedgerRowSchema = z.object({
   runningBalanceMinor: z.number().optional(),
   normalizedType: TransactionNormalizedTypeSchema,
   tags: z.array(z.string()),
+  categoryId: z.string().optional(),
+  categoryPath: z.array(z.string()).optional(),
   category: z.string().optional(),
   reference: z.string().optional(),
   reviewState: TransactionReviewStateSchema
@@ -60,6 +78,7 @@ export const UpdateTransactionInputSchema = z.object({
   signedAmountMinor: z.number().optional(),
   normalizedType: TransactionNormalizedTypeSchema.optional(),
   tags: z.array(z.string()).optional(),
+  categoryId: z.string().nullable().optional(),
   category: z.string().nullable().optional(),
   reference: z.string().nullable().optional(),
   reviewStateOverride: TransactionReviewStateSchema.nullable().optional()
@@ -79,6 +98,8 @@ export const TransactionDetailSchema = z.object({
   description: z.string(),
   signedAmountMinor: z.number(),
   normalizedType: TransactionNormalizedTypeSchema,
+  categoryId: z.string().optional(),
+  categoryPath: z.array(z.string()).optional(),
   category: z.string().optional(),
   tags: z.array(z.string()),
   reference: z.string().optional(),

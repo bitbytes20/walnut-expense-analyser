@@ -21,7 +21,11 @@ const formatAmount = (minor: number) =>
     minimumFractionDigits: 2
   }).format(minor / 100)
 
-export const TransactionsScreen = () => {
+interface TransactionsScreenProps {
+  onUseRuleSuggestion?: (suggestion: TransactionRuleSuggestion) => void
+}
+
+export const TransactionsScreen = ({ onUseRuleSuggestion }: TransactionsScreenProps) => {
   const [pendingSearch, setPendingSearch] = useState('')
   const [submittedSearch, setSubmittedSearch] = useState('')
   const [filters, setFilters] = useState<TransactionLedgerQuery>({})
@@ -298,6 +302,7 @@ export const TransactionsScreen = () => {
             detail={detailLoading ? undefined : detail}
             saving={saving}
             ruleSuggestion={ruleSuggestion}
+            onUseRuleSuggestion={onUseRuleSuggestion}
             onClose={() => {
               setActiveTransactionId(undefined)
               setDetail(undefined)

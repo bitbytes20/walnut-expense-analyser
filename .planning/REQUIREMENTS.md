@@ -34,12 +34,12 @@
 
 ### Categories and Rules
 
-- [ ] **CATR-01**: App ships with built-in starter categories and starter categorization rules.
-- [ ] **CATR-02**: Built-in categories include Food & Dining, Groceries, Shopping, Bills & Utilities, Rent / Housing, Transport, Travel, Healthcare, Entertainment, Education, Insurance, Taxes & Fees, Cash / ATM, Transfers, Credit Card Payment, Income, Refunds / Reimbursements, Investments / Savings, and Uncategorized.
-- [ ] **CATR-03**: User rules always override heuristic categorization.
-- [ ] **CATR-04**: User can create, rename, merge, activate, deactivate, and delete only user-created categories.
-- [ ] **CATR-05**: Built-in system categories are protected from CRUD operations.
-- [ ] **CATR-06**: Income transactions can be categorized rather than kept in one undifferentiated bucket.
+- [x] **CATR-01**: App ships with built-in starter categories and starter categorization rules.
+- [x] **CATR-02**: Built-in categories include Food & Dining, Groceries, Shopping, Bills & Utilities, Rent / Housing, Transport, Travel, Healthcare, Entertainment, Education, Insurance, Taxes & Fees, Cash / ATM, Transfers, Credit Card Payment, Income, Refunds / Reimbursements, Investments / Savings, and Uncategorized.
+- [x] **CATR-03**: User rules always override heuristic categorization.
+- [x] **CATR-04**: User can create, rename, merge, activate, deactivate, and delete only user-created categories.
+- [x] **CATR-05**: Built-in system categories are protected from CRUD operations.
+- [x] **CATR-06**: Income transactions can be categorized rather than kept in one undifferentiated bucket.
 
 ### Dashboard and Insights
 
@@ -119,12 +119,12 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 | TRAN-03 | Phase 7 | Pending |
 | TRAN-04 | Phase 4 | Pending |
 | TRAN-05 | Phase 4 | Pending |
-| CATR-01 | Phase 5 | Pending |
-| CATR-02 | Phase 5 | Pending |
-| CATR-03 | Phase 5 | Pending |
-| CATR-04 | Phase 5 | Pending |
-| CATR-05 | Phase 5 | Pending |
-| CATR-06 | Phase 5 | Pending |
+| CATR-01 | Phase 5 | Complete |
+| CATR-02 | Phase 5 | Complete |
+| CATR-03 | Phase 5 | Complete |
+| CATR-04 | Phase 5 | Complete |
+| CATR-05 | Phase 5 | Complete |
+| CATR-06 | Phase 5 | Complete |
 | DASH-01 | Phase 6 | Pending |
 | DASH-02 | Phase 6 | Pending |
 | DASH-03 | Phase 6 | Pending |
@@ -143,4 +143,4 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after Phase 3 completion*
+*Last updated: 2026-03-28 after Phase 5 completion*

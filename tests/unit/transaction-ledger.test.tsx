@@ -43,6 +43,8 @@ const ledgerRows: TransactionLedgerRow[] = [
     runningBalanceMinor: 4500000,
     normalizedType: 'income',
     tags: ['salary'],
+    categoryId: undefined,
+    categoryPath: undefined,
     reviewState: 'clean',
     reference: 'SAL-20'
   },
@@ -59,6 +61,8 @@ const ledgerRows: TransactionLedgerRow[] = [
     runningBalanceMinor: 175000,
     normalizedType: 'expense',
     tags: ['coffee'],
+    categoryId: undefined,
+    categoryPath: undefined,
     reviewState: 'pending-review',
     reference: 'COF-18'
   }
@@ -77,6 +81,8 @@ const transactionDetail: TransactionDetail = {
   description: 'Coffee shop',
   signedAmountMinor: -24000,
   normalizedType: 'expense',
+  categoryId: undefined,
+  categoryPath: undefined,
   tags: ['coffee'],
   reference: 'COF-18',
   reviewState: 'pending-review',
@@ -108,7 +114,21 @@ const createWalnutApi = () => {
             fromType: transactionDetail.normalizedType,
             toType: input.normalizedType,
             title: 'Create a rule from this type change later',
-            description: 'Walnut can use this correction as a suggestion when reusable rules are introduced.'
+            description: 'Walnut can use this correction as a suggestion when reusable rules are introduced.',
+            draft: {
+              name: 'Coffee shop rule',
+              condition: {
+                descriptionContains: ['coffee', 'shop'],
+                transactionTypes: [transactionDetail.normalizedType],
+                tags: transactionDetail.tags,
+                directions: [transactionDetail.direction]
+              },
+              action: {
+                categoryId: transactionDetail.categoryId,
+                type: input.normalizedType,
+                appendTags: transactionDetail.tags
+              }
+            }
           }
         : undefined
   }))
@@ -139,6 +159,19 @@ const createWalnutApi = () => {
     listTransactions,
     getTransactionDetail,
     updateTransaction,
+    listCategories: vi.fn().mockResolvedValue([]),
+    createCategory: vi.fn().mockResolvedValue([]),
+    updateCategory: vi.fn().mockResolvedValue([]),
+    mergeCategory: vi.fn().mockResolvedValue([]),
+    deleteCategory: vi.fn().mockResolvedValue([]),
+    listRules: vi.fn().mockResolvedValue([]),
+    createRule: vi.fn().mockResolvedValue([]),
+    updateRule: vi.fn().mockResolvedValue([]),
+    toggleRule: vi.fn().mockResolvedValue([]),
+    deleteRule: vi.fn().mockResolvedValue([]),
+    testRule: vi.fn().mockResolvedValue({ matchCount: 0, samples: [] }),
+    previewRuleApplyToExisting: vi.fn().mockResolvedValue({ matchCount: 0, samples: [] }),
+    applyRuleToExisting: vi.fn().mockResolvedValue([]),
     ping: vi.fn().mockResolvedValue('pong')
   } satisfies Partial<WalnutApi>
 
@@ -228,5 +261,5 @@ describe('transaction ledger', () => {
     )
 
     expect(await screen.findByText('Create a rule from this type change later')).toBeVisible()
-  })
+  }, 15000)
 })

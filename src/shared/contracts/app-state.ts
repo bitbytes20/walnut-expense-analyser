@@ -24,6 +24,22 @@ import type {
   UnlockResult
 } from './security'
 import type {
+  ApplyRuleToExistingInput,
+  CategorizationRuleSummary,
+  CreateCategoryInput,
+  CreateCategorizationRuleInput,
+  DeleteCategoryInput,
+  DeleteCategorizationRuleInput,
+  MergeCategoryInput,
+  RuleApplyPreview,
+  RulePreviewInput,
+  RuleTestPreview,
+  ToggleCategorizationRuleInput,
+  UpdateCategoryInput,
+  UpdateCategorizationRuleInput,
+  CategoryTreeNode
+} from './categories'
+import type {
   GetTransactionDetailInput,
   TransactionDetail,
   TransactionLedgerQuery,
@@ -121,5 +137,18 @@ export interface WalnutApi {
   listTransactions: (input?: TransactionLedgerQuery) => Promise<TransactionLedgerRow[]>
   getTransactionDetail: (input: GetTransactionDetailInput) => Promise<TransactionDetail>
   updateTransaction: (input: UpdateTransactionInput) => Promise<UpdateTransactionResult>
+  listCategories: () => Promise<CategoryTreeNode[]>
+  createCategory: (input: CreateCategoryInput) => Promise<CategoryTreeNode[]>
+  updateCategory: (input: UpdateCategoryInput) => Promise<CategoryTreeNode[]>
+  mergeCategory: (input: MergeCategoryInput) => Promise<CategoryTreeNode[]>
+  deleteCategory: (input: DeleteCategoryInput) => Promise<CategoryTreeNode[]>
+  listRules: () => Promise<CategorizationRuleSummary[]>
+  createRule: (input: CreateCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
+  updateRule: (input: UpdateCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
+  toggleRule: (input: ToggleCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
+  deleteRule: (input: DeleteCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
+  testRule: (input: RulePreviewInput) => Promise<RuleTestPreview>
+  previewRuleApplyToExisting: (input: RulePreviewInput | ApplyRuleToExistingInput) => Promise<RuleApplyPreview>
+  applyRuleToExisting: (input: ApplyRuleToExistingInput) => Promise<CategorizationRuleSummary[]>
   ping: () => Promise<string>
 }

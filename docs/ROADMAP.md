@@ -35,6 +35,7 @@ Status: completed on `phase/4-transaction-ledger-and-search`.
 ### Phase 5: Categories and Rules
 
 Goal: provide strong categorization defaults while keeping user control over rules and custom categories.
+Status: completed on `phase/5-categories-and-rules`.
 
 ### Phase 6: Dashboard Analytics
 
@@ -152,6 +153,25 @@ Follow-through polish shipped on the same branch:
 - dedicated create-new-profile screen
 - import-workspace layout cleanup
 - full-width ledger refinements, summary totals, pagination, explicit description search, and filtered difference totals
+
+## Phase 5 Completed Waves
+
+Phase 5 was decomposed into four execution waves and is now implemented:
+
+- Wave 1: protected taxonomy foundation, durable category ids, and safe category management
+- Wave 2: deterministic rule engine, preview-first bulk apply flows, and transaction rule-suggestion handoff
+- Wave 3: dual-pane Categories & Rules workspace with side-panel editors and previews
+- Wave 4: repository, renderer, and browser verification coverage
+
+Execution artifacts:
+
+- `.planning/phases/05-categories-and-rules/05-01-SUMMARY.md`
+- `.planning/phases/05-categories-and-rules/05-02-SUMMARY.md`
+- `.planning/phases/05-categories-and-rules/05-03-SUMMARY.md`
+- `.planning/phases/05-categories-and-rules/05-04-SUMMARY.md`
+- `.planning/phases/05-categories-and-rules/05-VERIFICATION.md`
+- GitHub epic `#5`
+- GitHub stories `#35`, `#36`, `#37`, and `#39`
 
 ## Active Enhancement Branches
 

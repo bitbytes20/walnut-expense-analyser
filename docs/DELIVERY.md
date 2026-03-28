@@ -47,7 +47,7 @@ Each epic should include:
 
 Create stories only for phases that already have `*-PLAN.md` files.
 
-At the moment, Phase 1, Phase 2, Phase 3, and Phase 4 have plan files, so the active story set is:
+At the moment, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 have plan files, so the active story set is:
 
 - Phase 1 / Wave 1
 - Phase 1 / Wave 2
@@ -63,6 +63,10 @@ At the moment, Phase 1, Phase 2, Phase 3, and Phase 4 have plan files, so the ac
 - Phase 4 / Wave 2
 - Phase 4 / Wave 3
 - Phase 4 / Wave 4
+- Phase 5 / Wave 1
+- Phase 5 / Wave 2
+- Phase 5 / Wave 3
+- Phase 5 / Wave 4
 
 ## Phase 1 Story Breakdown
 
@@ -250,6 +254,60 @@ Plan reference:
 
 - `.planning/phases/04-transaction-ledger-and-search/04-04-PLAN.md`
 
+## Phase 5 Story Breakdown
+
+### Wave 1 Story
+
+Scope:
+
+- protected taxonomy foundation
+- durable category ids
+- category-to-transaction linkage
+- safe user-category management
+
+Plan reference:
+
+- `.planning/phases/05-categories-and-rules/05-01-PLAN.md`
+
+### Wave 2 Story
+
+Scope:
+
+- deterministic rule engine
+- specificity resolution
+- preview-first apply flows
+- transaction rule-suggestion handoff
+
+Plan reference:
+
+- `.planning/phases/05-categories-and-rules/05-02-PLAN.md`
+
+### Wave 3 Story
+
+Scope:
+
+- Categories & Rules workspace
+- category/rule side panels
+- preview surface
+- dual-pane management UX
+
+Plan reference:
+
+- `.planning/phases/05-categories-and-rules/05-03-PLAN.md`
+
+### Wave 4 Story
+
+Scope:
+
+- repository tests
+- renderer tests
+- browser automation coverage
+- verification handoff
+
+Plan reference:
+
+- `.planning/phases/05-categories-and-rules/05-04-PLAN.md`
+
 ## Completion Workflow
 
 When a phase completes:
@@ -272,7 +330,9 @@ When a phase completes:
 - Phase 4 tracking items are epic `#4` and stories `#29`, `#30`, `#31`, and `#32`
 - The current Phase 4 branch also carries the active shell and ledger polish follow-through
 - That polish scope now includes multi-profile local selection on the lock screen, a dedicated new-profile flow, responsive lock-screen behavior, cleaner import workspace hierarchy, and updated ledger summaries/search/pagination coverage
-- Next discussion track is Phase 5: Categories and Rules
+- Phase 5 implementation is complete on `phase/5-categories-and-rules`
+- Phase 5 tracking items are epic `#5` and stories `#35`, `#36`, `#37`, and `#39`
+- Next discussion track is Phase 6: Dashboard Analytics
 
 ## Documentation Expectations
 

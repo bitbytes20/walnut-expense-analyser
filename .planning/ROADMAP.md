@@ -137,13 +137,13 @@ Plans:
 **Requirements:** CATR-01, CATR-02, CATR-03, CATR-04, CATR-05, CATR-06
 
 **Plans:** 4 plans
-**Status:** Planned (2026-03-28)
+**Status:** Complete (2026-03-28)
 
 Plans:
-- [ ] `05-01-PLAN.md` - Create the protected taxonomy foundation, durable category ids, and safe category-management repository flows
-- [ ] `05-02-PLAN.md` - Implement the deterministic rule engine, preview-first bulk apply flows, and transaction rule-suggestion handoff
-- [ ] `05-03-PLAN.md` - Build the dual-pane Categories & Rules workspace, side-panel editors, and in-context previews
-- [ ] `05-04-PLAN.md` - Add repository, renderer, and end-to-end verification plus the formal Phase 5 handoff
+- [x] `05-01-PLAN.md` - Create the protected taxonomy foundation, durable category ids, and safe category-management repository flows
+- [x] `05-02-PLAN.md` - Implement the deterministic rule engine, preview-first bulk apply flows, and transaction rule-suggestion handoff
+- [x] `05-03-PLAN.md` - Build the dual-pane Categories & Rules workspace, side-panel editors, and in-context previews
+- [x] `05-04-PLAN.md` - Add repository, renderer, and end-to-end verification plus the formal Phase 5 handoff
 
 **Success criteria**
 1. Built-in categories and starter rules work on realistic imported data.
@@ -204,7 +204,7 @@ Plans:
 
 ## Next Step
 
-Next recommended command: `$gsd-execute-phase 5`
+Next recommended command: `$gsd-discuss-phase 6`
 
 ---
-*Last updated: 2026-03-28 after Phase 4 verification and UI polish follow-through*
+*Last updated: 2026-03-28 after Phase 5 verification*

@@ -1,18 +1,18 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 4 complete with UI polish and responsive-shell refinements, Phase 5 planned and ready for execution
-**Roadmap status:** Release 1 Phases 1, 2, 3, and 4 complete
+**Project status:** Phase 5 complete, ready for Phase 6 discussion
+**Roadmap status:** Release 1 Phases 1, 2, 3, 4, and 5 complete
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 5 - Categories and Rules execution
+**Current focus:** Phase 6 - Dashboard Analytics discussion
 
 **Active implementation branch:** `phase/5-categories-and-rules`
-**Current branch focus:** Phase 5 implementation planning for starter categories, protected system taxonomy, and reusable rule behavior
+**Current branch focus:** Phase 5 implementation, verification, and handoff for starter categories, protected taxonomy, and reusable rules
 
 ## Current Position
 
@@ -30,6 +30,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - Strict ICICI import support in release 1
 - Dedicated review queue with mixed import gating
 - Starter categories and rules with user-rule precedence
+- Protected system taxonomy with optional user subcategories and preview-first bulk rule application
 - Premium dashboard with both themes
 - Full audit ledger, redacted diagnostics, and local crash reports
 - Duplicate candidates and worksheet/parser uncertainty persist as blocking review items
@@ -72,10 +73,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-28: Phase 5 research captured at `.planning/phases/05-categories-and-rules/05-RESEARCH.md`
 - 2026-03-28: Phase 5 UI design contract approved at `.planning/phases/05-categories-and-rules/05-UI-SPEC.md`
 - 2026-03-28: Phase 5 validation strategy and execution plans created at `.planning/phases/05-categories-and-rules/05-VALIDATION.md`, `.planning/phases/05-categories-and-rules/05-01-PLAN.md`, `.planning/phases/05-categories-and-rules/05-02-PLAN.md`, `.planning/phases/05-categories-and-rules/05-03-PLAN.md`, and `.planning/phases/05-categories-and-rules/05-04-PLAN.md`
+- 2026-03-28: Phase 5 executed with summaries at `.planning/phases/05-categories-and-rules/05-01-SUMMARY.md`, `.planning/phases/05-categories-and-rules/05-02-SUMMARY.md`, `.planning/phases/05-categories-and-rules/05-03-SUMMARY.md`, `.planning/phases/05-categories-and-rules/05-04-SUMMARY.md`, and `.planning/phases/05-categories-and-rules/05-VERIFICATION.md`
 
 ## Immediate Next Action
 
-Run `$gsd-execute-phase 5` to implement the planned taxonomy, rule engine, and Categories & Rules workspace.
+Run `$gsd-discuss-phase 6` to define the dashboard analytics surface and insight interactions.
 
 ---
-*Last updated: 2026-03-28 after Phase 5 planning*
+*Last updated: 2026-03-28 after Phase 5 execution*

@@ -27,6 +27,19 @@ const walnutApi: WalnutApi = {
   listTransactions: (input) => ipcRenderer.invoke('transactions:list', input),
   getTransactionDetail: (input) => ipcRenderer.invoke('transactions:get-detail', input),
   updateTransaction: (input) => ipcRenderer.invoke('transactions:update', input),
+  listCategories: () => ipcRenderer.invoke('categories:list'),
+  createCategory: (input) => ipcRenderer.invoke('categories:create', input),
+  updateCategory: (input) => ipcRenderer.invoke('categories:update', input),
+  mergeCategory: (input) => ipcRenderer.invoke('categories:merge', input),
+  deleteCategory: (input) => ipcRenderer.invoke('categories:delete', input),
+  listRules: () => ipcRenderer.invoke('rules:list'),
+  createRule: (input) => ipcRenderer.invoke('rules:create', input),
+  updateRule: (input) => ipcRenderer.invoke('rules:update', input),
+  toggleRule: (input) => ipcRenderer.invoke('rules:toggle', input),
+  deleteRule: (input) => ipcRenderer.invoke('rules:delete', input),
+  testRule: (input) => ipcRenderer.invoke('rules:test', input),
+  previewRuleApplyToExisting: (input) => ipcRenderer.invoke('rules:preview-apply', input),
+  applyRuleToExisting: (input) => ipcRenderer.invoke('rules:apply', input),
   ping: () => ipcRenderer.invoke('app-state:ping')
 }
 
