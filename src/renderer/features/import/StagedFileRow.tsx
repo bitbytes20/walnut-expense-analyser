@@ -66,18 +66,19 @@ export const StagedFileRow = ({ file, onReviewSheet, onViewReason, onViewEarlier
           <FileSpreadsheet size={18} strokeWidth={2} />
         </div>
         <div style={styles.meta}>
-          <div style={styles.fileName}>{file.fileName}</div>
+          <div style={styles.titleRow}>
+            <div style={styles.fileName}>{file.fileName}</div>
+            <span style={{ ...styles.statusBadge, background: tone.background, color: tone.color }}>{tone.label}</span>
+          </div>
           <div style={styles.fileMeta}>
             <span style={styles.fileBadge}>{file.fileExtension.toUpperCase()}</span>
             {file.accountLabel ? <span>{file.accountLabel}</span> : null}
             {file.statementPeriodLabel ? <span>{file.statementPeriodLabel}</span> : null}
+            {file.warnings?.length ? <span style={styles.warning}>Check after import</span> : null}
           </div>
         </div>
       </div>
-      <div style={styles.statusBlock}>
-        <span style={{ ...styles.statusBadge, background: tone.background, color: tone.color }}>{tone.label}</span>
-        {file.warnings?.length ? <span style={styles.warning}>Check after import</span> : null}
-      </div>
+
       <div style={styles.actions}>
         {action ? (
           <button
@@ -111,13 +112,11 @@ export const StagedFileRow = ({ file, onReviewSheet, onViewReason, onViewEarlier
 const styles = {
   card: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.8fr) auto auto',
-    gap: 'var(--space-lg)',
-    alignItems: 'center',
+    gap: 'var(--space-md)',
     width: '100%',
     padding: '20px var(--space-lg)',
     borderRadius: 'var(--radius-md)',
-    background: 'rgba(226, 215, 197, 0.72)',
+    background: 'rgba(226, 215, 197, 0.56)',
     border: '1px solid var(--color-border)'
   },
   identity: {
@@ -136,7 +135,15 @@ const styles = {
   },
   meta: {
     display: 'grid',
-    gap: 'var(--space-sm)'
+    gap: 'var(--space-sm)',
+    flex: 1
+  },
+  titleRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 'var(--space-md)',
+    alignItems: 'center',
+    flexWrap: 'wrap' as const
   },
   fileName: {
     fontSize: 16,
@@ -156,12 +163,6 @@ const styles = {
     color: 'var(--color-ink)',
     fontWeight: 700
   },
-  statusBlock: {
-    display: 'grid',
-    gap: 'var(--space-sm)',
-    justifyItems: 'end' as const,
-    alignContent: 'center'
-  },
   statusBadge: {
     padding: '6px 12px',
     borderRadius: 999,
@@ -177,7 +178,6 @@ const styles = {
     display: 'flex',
     gap: 'var(--space-sm)',
     flexWrap: 'wrap' as const,
-    justifyContent: 'flex-end',
     alignItems: 'center'
   },
   ghostButton: {
@@ -204,4 +204,4 @@ const styles = {
     padding: '0 18px',
     fontWeight: 700
   }
-}
+} as const

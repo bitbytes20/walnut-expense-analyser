@@ -30,6 +30,7 @@ Status: completed on `phase/3-review-queue-and-import-history`.
 ### Phase 4: Transaction Ledger and Search
 
 Goal: make imported data explorable, editable, and filterable enough for real analysis.
+Status: completed on `phase/4-transaction-ledger-and-search`.
 
 ### Phase 5: Categories and Rules
 
@@ -125,6 +126,33 @@ Execution artifacts:
 - GitHub epic `#3`
 - GitHub stories `#22`, `#23`, `#24`, and `#25`
 
+## Phase 4 Completed Waves
+
+Phase 4 was decomposed into four execution waves and is now implemented:
+
+- Wave 1: transaction contracts, normalization, and repository query foundation
+- Wave 2: transactions workspace, ledger, search, and advanced filters
+- Wave 3: transaction detail drawer, immediate-save edits, and rule-suggestion hook
+- Wave 4: repository, renderer, and browser verification coverage
+
+Execution artifacts:
+
+- `.planning/phases/04-transaction-ledger-and-search/04-01-SUMMARY.md`
+- `.planning/phases/04-transaction-ledger-and-search/04-02-SUMMARY.md`
+- `.planning/phases/04-transaction-ledger-and-search/04-03-SUMMARY.md`
+- `.planning/phases/04-transaction-ledger-and-search/04-04-SUMMARY.md`
+- `.planning/phases/04-transaction-ledger-and-search/04-VERIFICATION.md`
+- GitHub epic `#4`
+- GitHub stories `#29`, `#30`, `#31`, and `#32`
+
+Follow-through polish shipped on the same branch:
+
+- responsive lock-screen layout for smaller window sizes
+- multi-profile local selection before PIN entry
+- dedicated create-new-profile screen
+- import-workspace layout cleanup
+- full-width ledger refinements, summary totals, pagination, explicit description search, and filtered difference totals
+
 ## Active Enhancement Branches
 
 ### UI Polish and Multi-Profile Lock Screen
@@ -138,7 +166,7 @@ Current branch scope:
 - multi-profile local lock screen with profile selection before PIN entry
 - dedicated create-new-profile screen instead of inline expansion
 - PIN reveal toggle on the lock screen
-- refreshed browser and unit tests covering the new shell and lock flows
+- refreshed browser and unit tests covering the new shell, lock flows, and responsive refinements
 
 ## How We Track Delivery
 

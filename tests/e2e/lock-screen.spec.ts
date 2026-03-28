@@ -69,3 +69,26 @@ test('lock screen can start a fresh local profile setup', async ({ page }) => {
   await expect(page.getByLabel('Local profile list').getByText('Walnut Home')).toBeVisible()
   await expect(page.getByLabel('Local profile list').getByText('Kavita Home')).toBeVisible()
 })
+
+test('lock screen remains usable on smaller window sizes', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 760 })
+  await runSetup(page)
+  await page.getByRole('button', { name: 'Lock workspace from sidebar' }).click()
+
+  const unlockButton = page.getByRole('button', { name: 'Unlock' })
+  const newProfileButton = page.getByRole('button', { name: 'Create new profile' })
+
+  await expect(unlockButton).toBeVisible()
+  await expect(newProfileButton).toBeVisible()
+
+  const unlockBounds = await unlockButton.boundingBox()
+  const newProfileBounds = await newProfileButton.boundingBox()
+  const viewport = page.viewportSize()
+
+  expect(unlockBounds).not.toBeNull()
+  expect(newProfileBounds).not.toBeNull()
+  expect(viewport).not.toBeNull()
+
+  expect((unlockBounds?.y ?? 0) + (unlockBounds?.height ?? 0)).toBeLessThanOrEqual(viewport!.height)
+  expect((newProfileBounds?.y ?? 0) + (newProfileBounds?.height ?? 0)).toBeLessThanOrEqual(viewport!.height)
+})

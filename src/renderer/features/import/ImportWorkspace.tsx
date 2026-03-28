@@ -17,12 +17,12 @@ type ActivePanel =
   | { type: 'prior-batch'; fileId: string; details?: PriorImportBatchInspection }
   | undefined
 
-const sectionOrder: Array<{ status: StagedImportFile['status']; heading: string }> = [
-  { status: 'ready', heading: 'Ready' },
-  { status: 'needs-sheet-selection', heading: 'Needs sheet selection' },
-  { status: 'rejected', heading: 'Rejected' },
-  { status: 'duplicate-blocked', heading: 'Duplicate blocked' },
-  { status: 'imported', heading: 'Imported' }
+const sectionOrder: Array<{ status: StagedImportFile['status']; heading: string; description: string }> = [
+  { status: 'ready', heading: 'Ready to import', description: 'These files can be imported as soon as the batch feels complete.' },
+  { status: 'needs-sheet-selection', heading: 'Needs sheet selection', description: 'Pick the worksheet Walnut should parse before import can continue.' },
+  { status: 'rejected', heading: 'Rejected', description: 'These files could not be used and need a quick review before you retry.' },
+  { status: 'duplicate-blocked', heading: 'Duplicate blocked', description: 'Walnut found an earlier batch match and blocked these files for safety.' },
+  { status: 'imported', heading: 'Imported in this workspace', description: 'These files already made it into the current import result.' }
 ]
 
 const isMockWalnut = () => Boolean((window.walnut as typeof window.walnut & { __mock?: true }).__mock)
@@ -37,6 +37,12 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
 
   const processedCount = useMemo(
     () => stagedFiles.filter((file) => ['rejected', 'duplicate-blocked', 'imported'].includes(file.status)).length,
+    [stagedFiles]
+  )
+
+  const readyCount = useMemo(() => stagedFiles.filter((file) => file.status === 'ready').length, [stagedFiles])
+  const blockedCount = useMemo(
+    () => stagedFiles.filter((file) => ['rejected', 'duplicate-blocked', 'needs-sheet-selection'].includes(file.status)).length,
     [stagedFiles]
   )
 
@@ -137,22 +143,24 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
         style={{ display: 'none' }}
         onChange={handleFileInput}
       />
+
       <ImportWorkspaceHeader
         processedCount={summary ? summary.importedFiles.length + summary.rejectedFiles.length + summary.duplicateBlockedFiles.length : processedCount}
         totalCount={summary ? summary.importedFiles.length + summary.rejectedFiles.length + summary.duplicateBlockedFiles.length : stagedFiles.length}
         busyLabel={busyLabel}
         onImportClick={handleImportClick}
       />
+
       <div style={styles.layout}>
         <div style={styles.taskColumn}>
           {!summary ? (
             <>
-              <section style={styles.card}>
+              <section style={styles.controlCard}>
                 <div style={styles.cardHeader}>
                   <div style={styles.cardTitleBlock}>
-                    <div style={styles.kicker}>Staged batch flow</div>
+                    <div style={styles.kicker}>Current batch</div>
                     <h3 ref={stagingHeadingRef} tabIndex={-1} style={styles.cardHeading}>
-                      {stagedFiles.length === 0 ? 'Select files' : 'Review staged files'}
+                      {stagedFiles.length === 0 ? 'Start with one or more statement files' : 'Review this staged import batch'}
                     </h3>
                   </div>
                   <div style={styles.headerActions}>
@@ -164,23 +172,36 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
                     </button>
                   </div>
                 </div>
-                <p style={styles.helper}>
-                  {stagedFiles.length === 0
-                    ? 'Use the file picker to stage one or more ICICI statements before importing them.'
-                    : 'Review each file row, resolve any sheet choices, and keep rejected or duplicate-blocked files visible while you decide what to import.'}
-                </p>
-                {stagedFiles.length === 0 ? (
-                  <div style={styles.emptyStateStrip}>
-                    <div style={styles.emptyMetric}>
-                      <span style={styles.emptyMetricLabel}>Batch mode</span>
-                      <strong style={styles.emptyMetricValue}>Multi-file staging</strong>
-                    </div>
-                    <div style={styles.emptyMetric}>
-                      <span style={styles.emptyMetricLabel}>Trust posture</span>
-                      <strong style={styles.emptyMetricValue}>Source files never stored</strong>
-                    </div>
+
+                <div style={styles.metricsRow}>
+                  <div style={styles.metricCard}>
+                    <span style={styles.metricLabel}>Ready</span>
+                    <strong style={styles.metricValue}>{readyCount}</strong>
+                    <span style={styles.metricHelper}>Files that can be imported right now.</span>
                   </div>
-                ) : null}
+                  <div style={styles.metricCard}>
+                    <span style={styles.metricLabel}>Needs attention</span>
+                    <strong style={styles.metricValue}>{blockedCount}</strong>
+                    <span style={styles.metricHelper}>Files still needing review, sheet choice, or retry.</span>
+                  </div>
+                </div>
+
+                <div style={styles.commitRow}>
+                  <p style={styles.helper}>
+                    {stagedFiles.length === 0
+                      ? 'Use the stage action above to add ICICI files. Once files appear here, Walnut will keep ready and blocked outcomes together so you can decide from one place.'
+                      : 'Keep this workspace focused on one decision: which files are ready to bring into Walnut right now.'}
+                  </p>
+                  <button
+                    type="button"
+                    aria-label="Commit staged import batch"
+                    style={{ ...styles.primaryButton, opacity: canImport ? 1 : 0.6 }}
+                    onClick={() => void handleCommit()}
+                    disabled={!canImport && stagedFiles.length === 0}
+                  >
+                    Import ready files
+                  </button>
+                </div>
               </section>
 
               {sectionOrder.map((section) => {
@@ -191,7 +212,13 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
 
                 return (
                   <section key={section.status} style={styles.card}>
-                    <h3 style={styles.cardHeading}>{section.heading}</h3>
+                    <div style={styles.sectionHeader}>
+                      <div>
+                        <h3 style={styles.cardHeading}>{section.heading}</h3>
+                        <p style={styles.helper}>{section.description}</p>
+                      </div>
+                      <div style={styles.sectionCount}>{files.length}</div>
+                    </div>
                     <div style={styles.list}>
                       {files.map((file) => (
                         <StagedFileRow
@@ -207,34 +234,12 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
                   </section>
                 )
               })}
-
-              {stagedFiles.length > 0 ? (
-                <section style={styles.card}>
-                  <div style={styles.cardHeader}>
-                    <div>
-                      <div style={styles.kicker}>Resolve sheet choice if needed</div>
-                      <h3 style={styles.cardHeading}>Import summary</h3>
-                    </div>
-                    <button
-                      type="button"
-                      aria-label="Commit staged import batch"
-                      style={{ ...styles.primaryButton, opacity: canImport ? 1 : 0.6 }}
-                      onClick={() => void handleCommit()}
-                      disabled={!canImport && stagedFiles.length === 0}
-                    >
-                      Import statements
-                    </button>
-                  </div>
-                  <p style={styles.helper}>
-                    Walnut will import every ready file, keep rejected and duplicate-blocked files visible in the result, and never store the source statements.
-                  </p>
-                </section>
-              ) : null}
             </>
           ) : (
             <ImportSummary summary={summary} />
           )}
         </div>
+
         <aside style={styles.guidanceColumn}>
           {activePanel?.type === 'worksheet' && activeFile?.worksheetCandidates ? (
             <WorksheetChoicePanel
@@ -245,6 +250,7 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
               onClose={() => setActivePanel(undefined)}
             />
           ) : null}
+
           {activePanel?.type === 'reason' && activeFile ? (
             <ReasonPanel
               heading={activeFile.reasonTitle ?? 'Review file status'}
@@ -256,6 +262,7 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
               onClose={() => setActivePanel(undefined)}
             />
           ) : null}
+
           {activePanel?.type === 'prior-batch' && activePanel.details ? (
             <ReasonPanel
               heading={`Earlier batch: ${activePanel.details.batchLabel}`}
@@ -270,14 +277,14 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
             />
           ) : (
             <section style={styles.guidanceCard}>
-              <div style={styles.kicker}>Supported format guidance</div>
-              <h3 style={styles.cardHeading}>Bring in your ICICI statements</h3>
-              <ul style={styles.guidanceList}>
-                <li>Use ICICI CSV, XLS, or XLSX exports.</li>
-                <li>Stage files before importing them.</li>
-                <li>Review duplicates and unsupported files inside the batch.</li>
-                <li>Statement files are read for import and are not stored by Walnut.</li>
-              </ul>
+              <div style={styles.kicker}>Guided checklist</div>
+              <h3 style={styles.cardHeading}>Keep the import flow simple</h3>
+              <ol style={styles.guidanceList}>
+                <li>Stage all ICICI files that belong in the current batch.</li>
+                <li>Resolve worksheet choices or review anything blocked on the left.</li>
+                <li>Use Import history only if you need earlier-batch context.</li>
+                <li>Commit the batch once the Ready section matches what you expect.</li>
+              </ol>
             </section>
           )}
         </aside>
@@ -288,14 +295,14 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
 
 const styles = {
   root: {
-    width: 'min(100%, 1280px)',
+    width: 'min(100%, 1320px)',
     display: 'grid',
     gap: 'var(--space-xl)'
   },
   layout: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.55fr) minmax(300px, 0.85fr)',
-    gap: 'var(--space-xl)',
+    gridTemplateColumns: 'minmax(0, 1.45fr) minmax(300px, 0.75fr)',
+    gap: 'var(--space-lg)',
     alignItems: 'start'
   },
   taskColumn: {
@@ -304,7 +311,9 @@ const styles = {
   },
   guidanceColumn: {
     display: 'grid',
-    gap: 'var(--space-lg)'
+    gap: 'var(--space-lg)',
+    position: 'sticky' as const,
+    top: 24
   },
   card: {
     display: 'grid',
@@ -315,14 +324,22 @@ const styles = {
     background: 'rgba(245, 241, 232, 0.74)',
     boxShadow: 'var(--shadow-panel)'
   },
+  controlCard: {
+    display: 'grid',
+    gap: 'var(--space-lg)',
+    padding: 'var(--space-xl)',
+    borderRadius: 'var(--radius-lg)',
+    border: '1px solid rgba(15, 118, 110, 0.12)',
+    background: 'linear-gradient(180deg, rgba(245, 241, 232, 0.86), rgba(226, 215, 197, 0.62))',
+    boxShadow: 'var(--shadow-panel)'
+  },
   guidanceCard: {
     display: 'grid',
     gap: 'var(--space-md)',
     padding: 'var(--space-xl)',
     borderRadius: 'var(--radius-lg)',
     border: '1px solid var(--color-border)',
-    background: 'linear-gradient(180deg, rgba(226, 215, 197, 0.88), rgba(245, 241, 232, 0.82))',
-    minHeight: 100
+    background: 'linear-gradient(180deg, rgba(226, 215, 197, 0.88), rgba(245, 241, 232, 0.82))'
   },
   cardHeader: {
     display: 'flex',
@@ -340,6 +357,57 @@ const styles = {
     flexWrap: 'wrap' as const,
     justifyContent: 'flex-end'
   },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 'var(--space-md)',
+    alignItems: 'start'
+  },
+  sectionCount: {
+    minWidth: 40,
+    height: 40,
+    borderRadius: 999,
+    display: 'grid',
+    placeItems: 'center',
+    background: 'rgba(15, 118, 110, 0.08)',
+    color: 'var(--color-accent)',
+    fontWeight: 800
+  },
+  metricsRow: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: 'var(--space-md)'
+  },
+  metricCard: {
+    display: 'grid',
+    gap: 'var(--space-xs)',
+    padding: 'var(--space-lg)',
+    borderRadius: 'var(--radius-md)',
+    background: 'rgba(255, 255, 255, 0.56)',
+    border: '1px solid rgba(30, 27, 22, 0.08)'
+  },
+  metricLabel: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: 'var(--color-muted)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.06em'
+  },
+  metricValue: {
+    fontSize: 28,
+    lineHeight: 1.1,
+    color: 'var(--color-ink)'
+  },
+  metricHelper: {
+    fontSize: 14,
+    color: 'var(--color-muted)'
+  },
+  commitRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 'var(--space-lg)',
+    alignItems: 'end'
+  },
   kicker: {
     fontSize: 14,
     fontWeight: 600,
@@ -352,33 +420,8 @@ const styles = {
   },
   helper: {
     margin: 0,
-    color: 'var(--color-muted)'
-  },
-  emptyStateStrip: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-    gap: 'var(--space-md)',
-    marginTop: 'var(--space-sm)'
-  },
-  emptyMetric: {
-    display: 'grid',
-    gap: 'var(--space-xs)',
-    padding: 'var(--space-md)',
-    borderRadius: 'var(--radius-md)',
-    background: 'rgba(15, 118, 110, 0.06)',
-    border: '1px solid rgba(15, 118, 110, 0.12)'
-  },
-  emptyMetricLabel: {
-    fontSize: 13,
-    fontWeight: 700,
     color: 'var(--color-muted)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.06em'
-  },
-  emptyMetricValue: {
-    fontSize: 16,
-    lineHeight: 1.4,
-    color: 'var(--color-ink)'
+    lineHeight: 1.45
   },
   list: {
     display: 'grid',
@@ -394,13 +437,14 @@ const styles = {
     fontWeight: 600
   },
   primaryButton: {
-    minHeight: 56,
+    minHeight: 54,
     border: 0,
     borderRadius: 999,
     background: 'var(--color-accent)',
     color: '#fff',
     padding: '0 24px',
-    fontWeight: 700
+    fontWeight: 700,
+    whiteSpace: 'nowrap' as const
   },
   guidanceList: {
     margin: 0,
@@ -408,6 +452,6 @@ const styles = {
     color: 'var(--color-muted)',
     display: 'grid',
     gap: 'var(--space-md)',
-    lineHeight: 1.45
+    lineHeight: 1.5
   }
-}
+} as const

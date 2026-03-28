@@ -1,4 +1,4 @@
-import { FileSpreadsheet, History, LayoutDashboard, LockKeyhole, Search, ShieldCheck } from 'lucide-react'
+import { FileSpreadsheet, History, LayoutDashboard, LockKeyhole, Rows3, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { AppShellState } from '../shared/contracts/app-state'
 import { EmptyDashboard } from './features/dashboard/EmptyDashboard'
@@ -9,6 +9,7 @@ import { ReviewQueueScreen } from './features/import/ReviewQueueScreen'
 import { LockScreen } from './features/lock-screen/LockScreen'
 import { OnboardingFlow } from './features/onboarding/OnboardingFlow'
 import { AppShell } from './features/app-shell/AppShell'
+import { TransactionsScreen } from './features/transactions/TransactionsScreen'
 import { createMockWalnutApi } from './mockWalnutApi'
 
 const fallbackState: AppShellState = {
@@ -39,7 +40,7 @@ type ImportAreaScreen =
 
 export const App = () => {
   const [state, setState] = useState<AppShellState>(fallbackState)
-  const [dashboardScreen, setDashboardScreen] = useState<'home' | 'imports'>('home')
+  const [workspaceScreen, setWorkspaceScreen] = useState<'home' | 'imports' | 'transactions'>('home')
   const [importAreaScreen, setImportAreaScreen] = useState<ImportAreaScreen>({ type: 'workspace' })
   const [loading, setLoading] = useState(true)
 
@@ -51,9 +52,9 @@ export const App = () => {
           aria-label="Open dashboard workspace"
           style={{
             ...sidebarStyles.navButton,
-            ...(dashboardScreen === 'home' ? sidebarStyles.navButtonActive : undefined)
+            ...(workspaceScreen === 'home' ? sidebarStyles.navButtonActive : undefined)
           }}
-          onClick={() => setDashboardScreen('home')}
+          onClick={() => setWorkspaceScreen('home')}
         >
           <LayoutDashboard size={18} />
         </button>
@@ -62,10 +63,10 @@ export const App = () => {
           aria-label="Open import workspace"
           style={{
             ...sidebarStyles.navButton,
-            ...(dashboardScreen === 'imports' && importAreaScreen.type === 'workspace' ? sidebarStyles.navButtonActive : undefined)
+            ...(workspaceScreen === 'imports' && importAreaScreen.type === 'workspace' ? sidebarStyles.navButtonActive : undefined)
           }}
           onClick={() => {
-            setDashboardScreen('imports')
+            setWorkspaceScreen('imports')
             setImportAreaScreen({ type: 'workspace' })
           }}
         >
@@ -73,20 +74,28 @@ export const App = () => {
         </button>
         <button
           type="button"
+          aria-label="Open transactions workspace"
+          style={{
+            ...sidebarStyles.navButton,
+            ...(workspaceScreen === 'transactions' ? sidebarStyles.navButtonActive : undefined)
+          }}
+          onClick={() => setWorkspaceScreen('transactions')}
+        >
+          <Rows3 size={18} />
+        </button>
+        <button
+          type="button"
           aria-label="Open import history workspace"
           style={{
             ...sidebarStyles.navButton,
-            ...(dashboardScreen === 'imports' && importAreaScreen.type === 'history' ? sidebarStyles.navButtonActive : undefined)
+            ...(workspaceScreen === 'imports' && importAreaScreen.type === 'history' ? sidebarStyles.navButtonActive : undefined)
           }}
           onClick={() => {
-            setDashboardScreen('imports')
+            setWorkspaceScreen('imports')
             setImportAreaScreen({ type: 'history' })
           }}
         >
           <History size={18} />
-        </button>
-        <button type="button" aria-label="Search workspace placeholder" style={sidebarStyles.navButtonMuted} disabled>
-          <Search size={18} />
         </button>
       </div>
 
@@ -125,7 +134,7 @@ export const App = () => {
 
   useEffect(() => {
     if (state.currentView !== 'dashboard') {
-      setDashboardScreen('home')
+      setWorkspaceScreen('home')
       setImportAreaScreen({ type: 'workspace' })
     }
   }, [state.currentView])
@@ -149,14 +158,20 @@ export const App = () => {
   return (
     <AppShell
       title="Walnut household"
-      eyebrow={dashboardScreen === 'imports' ? 'Stage, review, and import without storing source files' : 'Your local finance workspace is ready'}
+      eyebrow={
+        workspaceScreen === 'imports'
+          ? 'Stage, review, and import without storing source files'
+          : workspaceScreen === 'transactions'
+            ? 'Search, filter, and correct imported records from one local ledger'
+            : 'Your local finance workspace is ready'
+      }
       sidebar={workspaceSidebar}
       contentMode="workspace"
     >
-      {dashboardScreen === 'imports' ? (
+      {workspaceScreen === 'imports' ? (
         importAreaScreen.type === 'workspace' ? (
           <ImportWorkspace
-            onBackToDashboard={() => setDashboardScreen('home')}
+            onBackToDashboard={() => setWorkspaceScreen('home')}
             onOpenHistory={() => setImportAreaScreen({ type: 'history' })}
           />
         ) : importAreaScreen.type === 'history' ? (
@@ -184,8 +199,10 @@ export const App = () => {
             onBackToHistory={() => setImportAreaScreen({ type: 'history' })}
           />
         )
+      ) : workspaceScreen === 'transactions' ? (
+        <TransactionsScreen />
       ) : (
-        <EmptyDashboard onImport={() => setDashboardScreen('imports')} />
+        <EmptyDashboard onImport={() => setWorkspaceScreen('imports')} />
       )}
     </AppShell>
   )

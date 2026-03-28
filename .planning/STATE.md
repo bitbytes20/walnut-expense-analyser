@@ -1,22 +1,23 @@
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 3 complete, ready for Phase 4 discussion
-**Roadmap status:** Release 1 Phases 1, 2, and 3 complete
+**Project status:** Phase 4 complete with UI polish and responsive-shell refinements, ready for Phase 5 discussion
+**Roadmap status:** Release 1 Phases 1, 2, 3, and 4 complete
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 4 - Transaction Ledger and Search discussion
+**Current focus:** Phase 5 - Categories and Rules discussion
 
-**Active enhancement branch:** `enhancement/ui-polish`
-**Enhancement focus:** local profile selection on the lock screen, product-shell visual cleanup, and regression coverage for the updated shell flows
+**Active implementation branch:** `phase/4-transaction-ledger-and-search`
+**Current branch focus:** Phase 4 delivery plus shell, lock-screen, import-workspace, and ledger polish refinements
 
 ## Current Position
 
 - Repo now includes the initial desktop shell, onboarding flow, lock screen, and the full Phase 2 statement import pipeline.
+- The current branch also includes responsive shell updates, multi-profile lock-screen selection, import-workspace cleanup, and ledger polish on top of the Phase 4 transaction workspace.
 - Release 1 is the trusted import-to-insight loop for one ICICI account profile.
 - The project should stay Windows-first, local-first, and offline-first for core flows.
 - Future releases cover budgeting, AI summaries, additional banks, sync, web, and mobile.
@@ -64,10 +65,13 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 - 2026-03-27: Phase 3 Plan 04 executed with summary at `.planning/phases/03-review-queue-and-import-history/03-04-SUMMARY.md`
 - 2026-03-27: Phase 3 verification completed at `.planning/phases/03-review-queue-and-import-history/03-VERIFICATION.md`
 - 2026-03-28: UI polish branch refreshed the shell navigation, lock screen, local profile selection flow, and regression coverage on `enhancement/ui-polish`
+- 2026-03-28: Phase 4 context, research, UI contract, validation, and execution plans created at `.planning/phases/04-transaction-ledger-and-search/`
+- 2026-03-28: Phase 4 executed with summaries at `.planning/phases/04-transaction-ledger-and-search/04-01-SUMMARY.md`, `.planning/phases/04-transaction-ledger-and-search/04-02-SUMMARY.md`, `.planning/phases/04-transaction-ledger-and-search/04-03-SUMMARY.md`, `.planning/phases/04-transaction-ledger-and-search/04-04-SUMMARY.md`, and `.planning/phases/04-transaction-ledger-and-search/04-VERIFICATION.md`
+- 2026-03-28: Phase 4 branch absorbed the active shell polish work, including responsive lock-screen behavior, multi-profile selection, import-workspace layout cleanup, and ledger summary/filter refinements
 
 ## Immediate Next Action
 
-Run `$gsd-discuss-phase 4` to define the transaction ledger, transaction editing scope, and advanced search/filter behavior.
+Run `$gsd-discuss-phase 5` to define the starter categories, user-category management, and reusable rule behavior.
 
 ---
-*Last updated: 2026-03-28 after UI polish and regression hardening*
+*Last updated: 2026-03-28 after Phase 4 delivery polish and verification*

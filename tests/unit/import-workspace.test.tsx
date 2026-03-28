@@ -72,7 +72,7 @@ describe('import workspace', () => {
       new File(['unsupported'], 'mock-unsupported.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     ])
 
-    const stagingHeading = await screen.findByRole('heading', { name: 'Review staged files' })
+    const stagingHeading = await screen.findByRole('heading', { name: 'Review this staged import batch' })
     await waitFor(() => expect(stagingHeading).toHaveFocus())
 
     expect(screen.getByRole('button', { name: 'Review sheet' })).toBeVisible()

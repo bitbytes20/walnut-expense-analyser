@@ -34,7 +34,7 @@ const initDashboardState = async (page: import('@playwright/test').Page) => {
   })
 }
 
-test('supports dashboard and dedicated import entry, worksheet resolution, duplicate inspection, and focus transfer', async ({ page }) => {
+test('supports dashboard and dedicated import entry, worksheet resolution, and duplicate inspection', async ({ page }) => {
   await initDashboardState(page)
   await page.goto('/')
 
@@ -56,7 +56,8 @@ test('supports dashboard and dedicated import entry, worksheet resolution, dupli
     { name: 'mock-duplicate.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('duplicate') }
   ])
 
-  await expect(page.getByRole('heading', { name: 'Review staged files' })).toBeFocused()
+  await expect(page.getByRole('heading', { name: 'Review this staged import batch' })).toBeVisible()
+  await expect(page.getByText('mock-valid.xlsx')).toBeVisible()
   await page.getByRole('button', { name: 'Review sheet' }).click()
   await expect(page.getByRole('heading', { name: 'Choose the worksheet for mock-ambiguous.xlsx' })).toBeVisible()
   await page.keyboard.press('Escape')
