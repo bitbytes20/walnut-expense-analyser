@@ -24,6 +24,7 @@ import type {
   UnlockResult
 } from './security'
 import type { AuditEvent } from './audit'
+import type { GenerateDiagnosticsBundleInput } from './diagnostics'
 import type {
   ApplyRuleToExistingInput,
   CategorizationRuleSummary,
@@ -163,5 +164,6 @@ export interface WalnutApi {
   setDashboardPreferences: (input: DashboardPreferences) => Promise<DashboardPreferences>
   getDashboardSnapshot: (input: DashboardSnapshotQuery) => Promise<DashboardSnapshot>
   getRecurringDetail: (input: DashboardRecurringDetailInput) => Promise<DashboardRecurringDetail>
+  generateDiagnosticsBundle: (input: GenerateDiagnosticsBundleInput) => Promise<string>
   ping: () => Promise<string>
 }

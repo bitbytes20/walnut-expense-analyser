@@ -45,6 +45,7 @@ const walnutApi: WalnutApi = {
   setDashboardPreferences: (input) => ipcRenderer.invoke('dashboard:set-preferences', input),
   getDashboardSnapshot: (input) => ipcRenderer.invoke('dashboard:get-snapshot', input),
   getRecurringDetail: (input) => ipcRenderer.invoke('dashboard:get-recurring-detail', input),
+  generateDiagnosticsBundle: (input) => ipcRenderer.invoke('diagnostics:generate-bundle', input),
   ping: () => ipcRenderer.invoke('app-state:ping')
 }
 
