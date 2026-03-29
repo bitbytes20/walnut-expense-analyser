@@ -1,7 +1,8 @@
-import { FileSpreadsheet, History, LayoutDashboard, LockKeyhole, Rows3, ShieldCheck, Tags } from 'lucide-react'
+import { FileSpreadsheet, History, LayoutDashboard, LockKeyhole, Rows3, Settings, ShieldCheck, Tags } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { AppShellState } from '../shared/contracts/app-state'
 import type { TransactionLedgerQuery, TransactionRuleSuggestion } from '../shared/contracts/transactions'
+import { AuditScreen } from './features/audit/AuditScreen'
 import { DashboardScreen } from './features/dashboard/DashboardScreen'
 import { CategoriesRulesScreen } from './features/categories-rules/CategoriesRulesScreen'
 import { ImportBatchDetailScreen } from './features/import/ImportBatchDetailScreen'
@@ -11,6 +12,7 @@ import { ReviewQueueScreen } from './features/import/ReviewQueueScreen'
 import { LockScreen } from './features/lock-screen/LockScreen'
 import { OnboardingFlow } from './features/onboarding/OnboardingFlow'
 import { AppShell } from './features/app-shell/AppShell'
+import { SettingsScreen } from './features/settings/SettingsScreen'
 import { TransactionsScreen } from './features/transactions/TransactionsScreen'
 import { createMockWalnutApi } from './mockWalnutApi'
 
@@ -42,7 +44,7 @@ type ImportAreaScreen =
 
 export const App = () => {
   const [state, setState] = useState<AppShellState>(fallbackState)
-  const [workspaceScreen, setWorkspaceScreen] = useState<'home' | 'imports' | 'transactions' | 'categories-rules'>('home')
+  const [workspaceScreen, setWorkspaceScreen] = useState<'home' | 'imports' | 'transactions' | 'categories-rules' | 'audit' | 'settings'>('home')
   const [importAreaScreen, setImportAreaScreen] = useState<ImportAreaScreen>({ type: 'workspace' })
   const [ruleSuggestionDraft, setRuleSuggestionDraft] = useState<TransactionRuleSuggestion['draft']>()
   const [transactionsNavigationQuery, setTransactionsNavigationQuery] = useState<TransactionLedgerQuery>()
@@ -125,8 +127,27 @@ export const App = () => {
       </div>
 
       <div style={sidebarStyles.cluster}>
-        <button type="button" aria-label="Audit workspace placeholder" style={sidebarStyles.navButtonMuted} disabled>
+        <button
+          type="button"
+          aria-label="Open audit workspace"
+          style={{
+            ...sidebarStyles.navButton,
+            ...(workspaceScreen === 'audit' ? sidebarStyles.navButtonActive : undefined)
+          }}
+          onClick={() => setWorkspaceScreen('audit')}
+        >
           <ShieldCheck size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label="Open settings"
+          style={{
+            ...sidebarStyles.navButton,
+            ...(workspaceScreen === 'settings' ? sidebarStyles.navButtonActive : undefined)
+          }}
+          onClick={() => setWorkspaceScreen('settings')}
+        >
+          <Settings size={18} />
         </button>
         <button
           type="button"
@@ -190,7 +211,11 @@ export const App = () => {
             ? 'Search, filter, and correct imported records from one local ledger'
             : workspaceScreen === 'categories-rules'
               ? 'Manage protected categories, user taxonomy, and reusable rule automation'
-            : 'Your local finance workspace is ready'
+              : workspaceScreen === 'audit'
+                ? 'Chronological event ledger for security, edits, and review activity'
+                : workspaceScreen === 'settings'
+                  ? 'Configure preferences and export diagnostics for support'
+                  : 'Your local finance workspace is ready'
       }
       sidebar={workspaceSidebar}
       contentMode="workspace"
@@ -240,6 +265,10 @@ export const App = () => {
           initialRuleDraft={ruleSuggestionDraft}
           onRuleDraftHandled={() => setRuleSuggestionDraft(undefined)}
         />
+      ) : workspaceScreen === 'audit' ? (
+        <AuditScreen />
+      ) : workspaceScreen === 'settings' ? (
+        <SettingsScreen />
       ) : (
         <DashboardScreen
           onImport={() => setWorkspaceScreen('imports')}

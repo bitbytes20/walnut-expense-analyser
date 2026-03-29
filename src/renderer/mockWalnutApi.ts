@@ -1921,6 +1921,12 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
       transactions
     }
   },
+  async getAuditEvents(_filters?: { category?: string; entityId?: string }) {
+    return []
+  },
+  async generateDiagnosticsBundle(input: { type: 'full' | 'redacted' }) {
+    return JSON.stringify({ type: input.type, generatedAt: new Date().toISOString(), systemInfo: { nodeVersion: 'mock', platform: 'mock', appVersion: '0.0.0' }, transactions: [], auditEvents: [] }, null, 2)
+  },
   async ping() {
     return 'pong'
   }

@@ -56,6 +56,8 @@ import type {
   DashboardSnapshot,
   DashboardSnapshotQuery
 } from './dashboard'
+import type { AuditEvent } from './audit'
+import type { GenerateDiagnosticsBundleInput } from './diagnostics'
 
 export type AppView = 'onboarding' | 'locked' | 'dashboard'
 
