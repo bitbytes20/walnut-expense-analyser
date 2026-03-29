@@ -55,7 +55,7 @@
 - [ ] **SUPP-02**: App keeps fuller diagnostics locally for owner troubleshooting without exposing them by default.
 - [ ] **CRSH-01**: App stores crash reports locally unless the owner explicitly chooses to share them.
 - [ ] **SETG-01**: Settings screen includes theme, idle-lock timeout, encrypted backup/restore, diagnostics, feature flags, granular cleanup, and full reset controls.
-- [ ] **ACCS-01**: Core workflows support solid keyboard navigation and keyboard shortcuts.
+- [x] **ACCS-01**: Core workflows support solid keyboard navigation and keyboard shortcuts.
 
 ## v2 Requirements
 
@@ -134,7 +134,7 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 | SUPP-02 | Phase 7 | Pending |
 | CRSH-01 | Phase 7 | Pending |
 | SETG-01 | Phase 8 | Pending |
-| ACCS-01 | Phase 8 | Pending |
+| ACCS-01 | Phase 8 | Complete |
 
 **Coverage:**
 - v1 requirements: 34 total
