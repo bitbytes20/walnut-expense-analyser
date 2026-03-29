@@ -16,6 +16,39 @@ import { SettingsScreen } from './features/settings/SettingsScreen'
 import { TransactionsScreen } from './features/transactions/TransactionsScreen'
 import { createMockWalnutApi } from './mockWalnutApi'
 
+type WorkspaceScreen = 'home' | 'imports' | 'transactions' | 'categories-rules' | 'audit' | 'settings'
+
+export interface GlobalShortcutActions {
+  setWorkspaceScreen: (screen: WorkspaceScreen) => void
+  setImportAreaScreen: (screen: { type: 'workspace' | 'history' }) => void
+  lockApp: () => void
+}
+
+export function handleGlobalShortcut(event: KeyboardEvent, actions: GlobalShortcutActions): boolean {
+  // Guard: ignore when focus is on form elements
+  const target = event.target as HTMLElement
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+    return false
+  }
+
+  // Guard: only Ctrl without Alt, Shift, or Meta
+  if (!event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) {
+    return false
+  }
+
+  switch (event.key) {
+    case '1': event.preventDefault(); actions.setWorkspaceScreen('home'); return true
+    case '2': event.preventDefault(); actions.setWorkspaceScreen('imports'); actions.setImportAreaScreen({ type: 'workspace' }); return true
+    case '3': event.preventDefault(); actions.setWorkspaceScreen('transactions'); return true
+    case '4': event.preventDefault(); actions.setWorkspaceScreen('imports'); actions.setImportAreaScreen({ type: 'history' }); return true
+    case '5': event.preventDefault(); actions.setWorkspaceScreen('categories-rules'); return true
+    case '6': event.preventDefault(); actions.setWorkspaceScreen('audit'); return true
+    case '7': event.preventDefault(); actions.setWorkspaceScreen('settings'); return true
+    case '8': event.preventDefault(); actions.lockApp(); return true
+    default: return false
+  }
+}
+
 const fallbackState: AppShellState = {
   currentView: 'onboarding',
   onboarding: {
@@ -44,7 +77,7 @@ type ImportAreaScreen =
 
 export const App = () => {
   const [state, setState] = useState<AppShellState>(fallbackState)
-  const [workspaceScreen, setWorkspaceScreen] = useState<'home' | 'imports' | 'transactions' | 'categories-rules' | 'audit' | 'settings'>('home')
+  const [workspaceScreen, setWorkspaceScreen] = useState<WorkspaceScreen>('home')
   const [importAreaScreen, setImportAreaScreen] = useState<ImportAreaScreen>({ type: 'workspace' })
   const [ruleSuggestionDraft, setRuleSuggestionDraft] = useState<TransactionRuleSuggestion['draft']>()
   const [transactionsNavigationQuery, setTransactionsNavigationQuery] = useState<TransactionLedgerQuery>()
@@ -56,7 +89,7 @@ export const App = () => {
       <div style={sidebarStyles.cluster}>
         <button
           type="button"
-          title="Dashboard"
+          title="Dashboard (Ctrl+1)"
           aria-label="Open dashboard workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -71,7 +104,7 @@ export const App = () => {
         </button>
         <button
           type="button"
-          title="Import"
+          title="Import (Ctrl+2)"
           aria-label="Open import workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -87,7 +120,7 @@ export const App = () => {
         </button>
         <button
           type="button"
-          title="Transactions"
+          title="Transactions (Ctrl+3)"
           aria-label="Open transactions workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -103,7 +136,7 @@ export const App = () => {
         </button>
         <button
           type="button"
-          title="Import History"
+          title="Import History (Ctrl+4)"
           aria-label="Open import history workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -119,7 +152,7 @@ export const App = () => {
         </button>
         <button
           type="button"
-          title="Categories & Rules"
+          title="Categories & Rules (Ctrl+5)"
           aria-label="Open categories and rules workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -134,7 +167,7 @@ export const App = () => {
       <div style={{ ...sidebarStyles.cluster, marginTop: 'auto' }}>
         <button
           type="button"
-          title="Audit Log"
+          title="Audit Log (Ctrl+6)"
           aria-label="Open audit workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -146,7 +179,7 @@ export const App = () => {
         </button>
         <button
           type="button"
-          title="Settings"
+          title="Settings (Ctrl+7)"
           aria-label="Open settings"
           style={{
             ...sidebarStyles.navButton,
@@ -158,7 +191,7 @@ export const App = () => {
         </button>
         <button
           type="button"
-          title="Lock"
+          title="Lock (Ctrl+8)"
           aria-label="Lock workspace from sidebar"
           style={sidebarStyles.navButton}
           onClick={() =>
@@ -191,6 +224,19 @@ export const App = () => {
       setWorkspaceScreen('home')
       setImportAreaScreen({ type: 'workspace' })
     }
+  }, [state.currentView])
+
+  useEffect(() => {
+    if (state.currentView !== 'dashboard') return
+    const handler = (event: KeyboardEvent) => {
+      handleGlobalShortcut(event, {
+        setWorkspaceScreen,
+        setImportAreaScreen,
+        lockApp: () => void window.walnut.lockNow().then((nextState) => setState({ ...nextState, currentView: 'locked' }))
+      })
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [state.currentView])
 
   if (loading) {
@@ -276,7 +322,16 @@ export const App = () => {
       ) : workspaceScreen === 'audit' ? (
         <AuditScreen />
       ) : workspaceScreen === 'settings' ? (
-        <SettingsScreen />
+        <SettingsScreen
+          onRequirePinSetup={() => {
+            void window.walnut.loadAppState().then((nextState) => {
+              setState({ ...nextState, currentView: 'onboarding' })
+            })
+          }}
+          onFullReset={(nextState) => {
+            setState(nextState)
+          }}
+        />
       ) : (
         <DashboardScreen
           onImport={() => setWorkspaceScreen('imports')}

@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-last_updated: "2026-03-29T07:41:28.029Z"
+status: v1.0 milestone complete
+last_updated: "2026-03-29T17:04:33.700Z"
 progress:
   total_phases: 8
-  completed_phases: 7
-  total_plans: 26
-  completed_plans: 26
+  completed_phases: 8
+  total_plans: 30
+  completed_plans: 30
 ---
 
 # State: Walnut Expense Analyser
@@ -22,14 +22,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 07 — audit-and-diagnostics
+**Current focus:** Phase 08 — settings-and-release-hardening
 
 **Active implementation branch:** `phase/6-dashboard-analytics`
 **Current branch focus:** Phase 6 dashboard analytics implementation and verification
 
 ## Current Position
 
-Phase: 8
+Phase: 08
 Plan: Not started
 
 - Repo now includes the initial desktop shell, onboarding flow, lock screen, and the full Phase 2 statement import pipeline.
@@ -97,9 +97,19 @@ Plan: Not started
 - 2026-03-28: Phase 6 validation strategy and execution plans created at `.planning/phases/06-dashboard-analytics/06-VALIDATION.md`, `.planning/phases/06-dashboard-analytics/06-01-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-02-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-03-PLAN.md`, and `.planning/phases/06-dashboard-analytics/06-04-PLAN.md`
 - 2026-03-28: Phase 6 executed with summaries at `.planning/phases/06-dashboard-analytics/06-01-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-02-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-03-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-04-SUMMARY.md`, and `.planning/phases/06-dashboard-analytics/06-VERIFICATION.md`
 
+## Phase 8 Decisions
+
+- changePin uses _setRepositoryForTesting pattern for testability without mocking Electron IPC
+- Idle lock timeout reads from AppConfig at timer-reset time; 0 means never lock
+- CSS theme toggle: data-theme attribute on root element with :not guard on OS preference media query
+- clearTransactionsAndAudit wraps deletes in SQLite BEGIN/COMMIT for atomicity
+- fullAppReset deletes device_profiles/snapshots tables to ensure clean slate
+- handleGlobalShortcut exported as pure function for testability; GlobalShortcutActions interface uses WorkspaceScreen union type for TypeScript correctness
+- setImportAreaScreen in GlobalShortcutActions uses '{ type: workspace | history }' narrowing to satisfy Dispatch<SetStateAction<ImportAreaScreen>> constraint
+
 ## Immediate Next Action
 
-Run `$gsd-discuss-phase 7` to plan the audit ledger, diagnostics, and supportability phase.
+Phase 8 complete. All 4 plans executed and verified. Release 1.0.0 hardening is done. Ready for final integration testing and release.
 
 ---
-*Last updated: 2026-03-28 after Phase 6 execution*
+*Last updated: 2026-03-29 after Phase 8 Plan 04 human verification approved*

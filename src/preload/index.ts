@@ -46,6 +46,13 @@ const walnutApi: WalnutApi = {
   getDashboardSnapshot: (input) => ipcRenderer.invoke('dashboard:get-snapshot', input),
   getRecurringDetail: (input) => ipcRenderer.invoke('dashboard:get-recurring-detail', input),
   generateDiagnosticsBundle: (input) => ipcRenderer.invoke('diagnostics:generate-bundle', input),
+  getAppConfig: () => ipcRenderer.invoke('walnut:getAppConfig'),
+  setAppConfig: (input) => ipcRenderer.invoke('walnut:setAppConfig', input),
+  changePin: (input) => ipcRenderer.invoke('walnut:changePin', input),
+  exportBackup: (pin) => ipcRenderer.invoke('walnut:exportBackup', pin),
+  importBackup: (pin) => ipcRenderer.invoke('walnut:importBackup', pin),
+  clearTransactions: () => ipcRenderer.invoke('walnut:clearTransactions'),
+  fullReset: () => ipcRenderer.invoke('walnut:fullReset'),
   ping: () => ipcRenderer.invoke('app-state:ping')
 }
 

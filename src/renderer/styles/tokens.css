@@ -26,8 +26,9 @@
   --font-display-size: 32px;
 }
 
+/* System default dark mode — only applies when no explicit data-theme is set */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --color-bg: #171813;
     --color-surface: #26271f;
     --color-ink: #F7F2E8;
@@ -35,6 +36,26 @@
     --color-border: rgba(247, 242, 232, 0.1);
     --shadow-panel: 0 24px 80px rgba(0, 0, 0, 0.3);
   }
+}
+
+/* Explicit dark theme override */
+[data-theme="dark"] {
+  --color-bg: #171813;
+  --color-surface: #26271f;
+  --color-ink: #F7F2E8;
+  --color-muted: #C1B8A7;
+  --color-border: rgba(247, 242, 232, 0.1);
+  --shadow-panel: 0 24px 80px rgba(0, 0, 0, 0.3);
+}
+
+/* Explicit light theme override (needed when OS is dark but user wants light) */
+[data-theme="light"] {
+  --color-bg: #F5F1E8;
+  --color-surface: #E2D7C5;
+  --color-ink: #1E1B16;
+  --color-muted: #5B544B;
+  --color-border: rgba(30, 27, 22, 0.12);
+  --shadow-panel: 0 24px 80px rgba(15, 20, 17, 0.12);
 }
 
 * {

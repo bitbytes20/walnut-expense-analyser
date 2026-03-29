@@ -17,7 +17,10 @@ import { app } from 'electron'
 import { existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type {
+  AppConfig,
   AppShellState,
+  BackupPayload,
+  ClearTransactionsResult,
   CompleteOnboardingInput,
   DeviceProfileSummary,
   OnboardingProgress,
@@ -353,6 +356,13 @@ interface DeviceProfileSnapshot {
 
 const activeProfileKey = 'active_profile_id'
 const dashboardPreferencesKey = 'dashboard_preferences'
+const appConfigKey = 'app_config'
+
+const defaultAppConfig: AppConfig = {
+  theme: 'system',
+  idleLockTimeoutMs: 900000,
+  featureFlags: { aiSummaries: false }
+}
 
 const buildDbPath = () => {
   const configuredPath = process.env.WALNUT_DB_PATH
@@ -1989,6 +1999,203 @@ export class WalnutRepository {
     return normalized
   }
 
+  getAppConfig(): AppConfig {
+    const stored = this.getAppSetting(appConfigKey)
+    if (!stored) return { ...defaultAppConfig, featureFlags: { ...defaultAppConfig.featureFlags } }
+    const parsed = JSON.parse(stored) as Partial<AppConfig>
+    return {
+      ...defaultAppConfig,
+      ...parsed,
+      featureFlags: {
+        ...defaultAppConfig.featureFlags,
+        ...(parsed.featureFlags ?? {})
+      }
+    }
+  }
+
+  setAppConfig(input: Partial<AppConfig>): AppConfig {
+    const current = this.getAppConfig()
+    const updated: AppConfig = {
+      ...current,
+      ...input,
+      featureFlags: {
+        ...current.featureFlags,
+        ...(input.featureFlags ?? {})
+      }
+    }
+    this.setAppSetting(appConfigKey, JSON.stringify(updated))
+    return updated
+  }
+
+  exportBackupPayload(): BackupPayload {
+    const onboardingRow = this.sqlite
+      .prepare('SELECT * FROM onboarding_progress LIMIT 1')
+      .get() as Record<string, unknown> | undefined
+
+    // Strip sensitive fields from onboarding
+    const onboardingProgress: Record<string, unknown> = {}
+    if (onboardingRow) {
+      const { pin_hash, recovery_code_ciphertext, recovery_words_ciphertext, draft_pin, recovery_code, recovery_words_json, ...safe } = onboardingRow as Record<string, unknown>
+      void pin_hash; void recovery_code_ciphertext; void recovery_words_ciphertext; void draft_pin; void recovery_code; void recovery_words_json
+      Object.assign(onboardingProgress, safe)
+    }
+
+    const accountProfiles = this.sqlite
+      .prepare('SELECT * FROM account_profiles')
+      .all() as Record<string, unknown>[]
+
+    const importBatches = this.sqlite
+      .prepare('SELECT * FROM import_batches')
+      .all() as Record<string, unknown>[]
+
+    const importAttempts = this.sqlite
+      .prepare('SELECT * FROM import_attempts')
+      .all() as Record<string, unknown>[]
+
+    const importSourceFiles = this.sqlite
+      .prepare('SELECT * FROM import_source_files')
+      .all() as Record<string, unknown>[]
+
+    const importedTransactions = this.sqlite
+      .prepare('SELECT * FROM imported_transactions')
+      .all() as Record<string, unknown>[]
+
+    const reviewItems = this.sqlite
+      .prepare('SELECT * FROM review_items')
+      .all() as Record<string, unknown>[]
+
+    const categories = this.sqlite
+      .prepare('SELECT * FROM categories')
+      .all() as Record<string, unknown>[]
+
+    const categorizationRules = this.sqlite
+      .prepare('SELECT * FROM categorization_rules')
+      .all() as Record<string, unknown>[]
+
+    const auditEvents = this.sqlite
+      .prepare('SELECT * FROM audit_events')
+      .all() as Record<string, unknown>[]
+
+    const appSettingsRaw = this.sqlite
+      .prepare('SELECT key, value FROM app_settings')
+      .all() as Array<{ key: string; value: string }>
+
+    // Get household name from onboarding progress
+    const profileRow = this.sqlite
+      .prepare('SELECT * FROM onboarding_progress LIMIT 1')
+      .get() as Record<string, unknown> | undefined
+    const householdName = profileRow?.household_name ? String(profileRow.household_name) : ''
+
+    return {
+      version: 1,
+      createdAt: new Date().toISOString(),
+      householdName,
+      tables: {
+        onboardingProgress,
+        accountProfiles,
+        importBatches,
+        importAttempts,
+        importSourceFiles,
+        importedTransactions,
+        reviewItems,
+        categories,
+        categorizationRules,
+        auditEvents,
+        appSettings: appSettingsRaw
+      }
+    }
+  }
+
+  importBackupPayload(payload: BackupPayload): void {
+    const transaction = this.sqlite.transaction(() => {
+      // Clear all data tables (preserving security_state)
+      this.sqlite.exec(`
+        DELETE FROM imported_transactions;
+        DELETE FROM review_items;
+        DELETE FROM import_source_files;
+        DELETE FROM import_attempts;
+        DELETE FROM import_batches;
+        DELETE FROM account_profiles;
+        DELETE FROM categories;
+        DELETE FROM categorization_rules;
+        DELETE FROM audit_events;
+        DELETE FROM app_settings;
+      `)
+
+      // Insert account profiles
+      for (const row of payload.tables.accountProfiles) {
+        const keys = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        this.sqlite.prepare(`INSERT OR IGNORE INTO account_profiles (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+      }
+
+      // Insert import batches
+      for (const row of payload.tables.importBatches) {
+        const keys = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        this.sqlite.prepare(`INSERT OR IGNORE INTO import_batches (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+      }
+
+      // Insert import attempts
+      for (const row of payload.tables.importAttempts) {
+        const keys = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        this.sqlite.prepare(`INSERT OR IGNORE INTO import_attempts (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+      }
+
+      // Insert import source files
+      for (const row of payload.tables.importSourceFiles) {
+        const keys = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        this.sqlite.prepare(`INSERT OR IGNORE INTO import_source_files (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+      }
+
+      // Insert imported transactions
+      for (const row of payload.tables.importedTransactions) {
+        const keys = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        this.sqlite.prepare(`INSERT OR IGNORE INTO imported_transactions (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+      }
+
+      // Insert review items
+      for (const row of payload.tables.reviewItems) {
+        const keys = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        this.sqlite.prepare(`INSERT OR IGNORE INTO review_items (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+      }
+
+      // Insert categories
+      for (const row of payload.tables.categories) {
+        const keys = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        this.sqlite.prepare(`INSERT OR IGNORE INTO categories (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+      }
+
+      // Insert categorization rules
+      for (const row of payload.tables.categorizationRules) {
+        const keys = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        this.sqlite.prepare(`INSERT OR IGNORE INTO categorization_rules (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+      }
+
+      // Insert audit events
+      for (const row of payload.tables.auditEvents) {
+        const keys = Object.keys(row).join(', ')
+        const placeholders = Object.keys(row).map(() => '?').join(', ')
+        this.sqlite.prepare(`INSERT OR IGNORE INTO audit_events (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+      }
+
+      // Insert app settings
+      for (const { key, value } of payload.tables.appSettings) {
+        this.sqlite
+          .prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+          .run(key, value, new Date().toISOString())
+      }
+    })
+
+    transaction()
+  }
+
   getDashboardSnapshot(input: DashboardSnapshotQuery): DashboardSnapshot {
     const resolvedQuery = this.resolveDashboardQuery(input)
     const rows = this.listTransactions({
@@ -3596,6 +3803,53 @@ export class WalnutRepository {
 
     return true
   }
+
+  clearTransactionsAndAudit(): ClearTransactionsResult {
+    const txnIds = (this.sqlite.prepare('SELECT id FROM imported_transactions').all() as Array<{ id: string }>).map((r) => r.id)
+    const deletedCount = txnIds.length
+
+    this.sqlite.exec('BEGIN')
+    try {
+      if (txnIds.length > 0) {
+        for (let i = 0; i < txnIds.length; i += 500) {
+          const chunk = txnIds.slice(i, i + 500)
+          const placeholders = chunk.map(() => '?').join(',')
+          this.sqlite.prepare(`DELETE FROM audit_events WHERE entity_id IN (${placeholders})`).run(...chunk)
+        }
+      }
+      this.sqlite.prepare("DELETE FROM audit_events WHERE category = 'transaction'").run()
+      this.sqlite.exec(`
+        DELETE FROM imported_transactions;
+        DELETE FROM review_items;
+        DELETE FROM import_source_files;
+        DELETE FROM import_attempts;
+        DELETE FROM import_batches;
+      `)
+      this.sqlite.exec('COMMIT')
+    } catch (e) {
+      this.sqlite.exec('ROLLBACK')
+      throw e
+    }
+
+    return { deletedCount }
+  }
+
+  fullAppReset(): AppShellState {
+    this.clearWorkspaceTables()
+    this.sqlite.exec(`
+      DELETE FROM categories;
+      DELETE FROM categorization_rules;
+      DELETE FROM audit_events;
+      DELETE FROM app_settings;
+      DELETE FROM device_profiles;
+      DELETE FROM device_profile_snapshots;
+    `)
+    this.resetWorkspaceRows()
+    const stamp = nowIso()
+    this.seedSystemCategories(stamp)
+    this.seedStarterRules(stamp)
+    return this.loadAppState()
+  }
 }
 
 let repositoryInstance: WalnutRepository | undefined
@@ -3603,4 +3857,9 @@ let repositoryInstance: WalnutRepository | undefined
 export const getWalnutRepository = () => {
   repositoryInstance ??= new WalnutRepository()
   return repositoryInstance
+}
+
+/** For unit tests only — overrides the singleton with a pre-constructed instance (pass undefined to reset) */
+export const _setRepositoryForTesting = (repo: WalnutRepository | undefined) => {
+  repositoryInstance = repo
 }
