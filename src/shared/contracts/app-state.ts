@@ -23,6 +23,7 @@ import type {
   SecurityState,
   UnlockResult
 } from './security'
+import type { AuditEvent } from './audit'
 import type {
   ApplyRuleToExistingInput,
   CategorizationRuleSummary,
@@ -131,6 +132,7 @@ export interface WalnutApi {
   copyRecoveryKeyAcknowledged: () => Promise<AppShellState>
   downloadRecoveryKeyAcknowledged: () => Promise<AppShellState>
   getSecurityEvents: () => Promise<SecurityEvent[]>
+  getAuditEvents: (filters?: { category?: string; entityId?: string }) => Promise<AuditEvent[]>
   stageImportFiles: (input?: StageImportFilesInput) => Promise<StageImportFilesResult>
   chooseImportSheet: (input: ChooseImportSheetInput) => Promise<StageImportFilesResult>
   removeStagedFile: (input: RemoveStagedFileInput) => Promise<StageImportFilesResult>

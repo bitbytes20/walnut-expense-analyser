@@ -14,6 +14,7 @@ const walnutApi: WalnutApi = {
   copyRecoveryKeyAcknowledged: () => ipcRenderer.invoke('app-state:copy-recovery-ack'),
   downloadRecoveryKeyAcknowledged: () => ipcRenderer.invoke('app-state:download-recovery-ack'),
   getSecurityEvents: () => ipcRenderer.invoke('app-state:get-security-events'),
+  getAuditEvents: (filters) => ipcRenderer.invoke('app-state:get-audit-events', filters),
   stageImportFiles: (input) => ipcRenderer.invoke('import:stage-files', input),
   chooseImportSheet: (input) => ipcRenderer.invoke('import:choose-sheet', input),
   removeStagedFile: (input) => ipcRenderer.invoke('import:remove-staged-file', input),

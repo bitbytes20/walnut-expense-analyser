@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CategoryTreeNode } from '../../../shared/contracts/categories'
+import type { AuditEvent } from '../../../shared/contracts/audit'
 import type { TransactionDetail, TransactionNormalizedType, TransactionReviewState, TransactionRuleSuggestion, UpdateTransactionInput } from '../../../shared/contracts/transactions'
 
 interface TransactionDetailDrawerProps {
@@ -33,7 +34,7 @@ const formatCurrency = (minor?: number) =>
 const flattenCategories = (nodes: CategoryTreeNode[]): Array<{ id: string; label: string }> =>
   nodes.flatMap((node) => [
     { id: node.id, label: node.path.join(' > ') },
-    ...flattenCategories(node.children)
+    ...flattenCategories(node.children as CategoryTreeNode[])
   ])
 
 export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClose, onSave, onUseRuleSuggestion }: TransactionDetailDrawerProps) => {
@@ -46,6 +47,8 @@ export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClos
   const [tags, setTags] = useState('')
   const [reviewStateOverride, setReviewStateOverride] = useState<TransactionReviewState | ''>('')
   const [categoryOptions, setCategoryOptions] = useState<Array<{ id: string; label: string }>>([])
+  const [tab, setTab] = useState<'edit' | 'history'>('edit')
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -73,6 +76,17 @@ export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClos
     setReference(detail.reference ?? '')
     setTags(detail.tags.join(', '))
     setReviewStateOverride(detail.reviewStateOverride ?? '')
+
+    let cancelledEvents = false
+    void window.walnut.getAuditEvents({ entityId: detail.id }).then((events) => {
+      if (!cancelledEvents) {
+        setAuditEvents(events)
+      }
+    })
+
+    return () => {
+      cancelledEvents = true
+    }
   }, [detail])
 
   if (!detail) {
@@ -107,107 +121,130 @@ export const TransactionDetailDrawer = ({ detail, saving, ruleSuggestion, onClos
         </div>
       </div>
 
-      <form
-        style={styles.form}
-        onSubmit={(event) => {
-          event.preventDefault()
-          onSave({
-            transactionId: detail.id,
-            transactionDateRaw,
-            description,
-            signedAmountMinor: Math.round(Number(signedAmount || '0') * 100),
-            normalizedType,
-            categoryId: categoryId || null,
-            category:
-              categoryId
-                ? categoryOptions.find((option) => option.id === categoryId)?.label ?? null
-                : null,
-            reference: reference.trim() ? reference.trim() : null,
-            tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-            reviewStateOverride: reviewStateOverride || null
-          })
-        }}
-      >
-        <label style={styles.field}>
-          <span style={styles.label}>Date</span>
-          <input type="text" value={transactionDateRaw} onChange={(event) => setTransactionDateRaw(event.target.value)} style={styles.input} />
-        </label>
+      <div style={styles.tabs}>
+        <button type="button" onClick={() => setTab('edit')} style={tab === 'edit' ? styles.tabActive : styles.tab}>
+          Edit Details
+        </button>
+        <button type="button" onClick={() => setTab('history')} style={tab === 'history' ? styles.tabActive : styles.tab}>
+          Audit History ({auditEvents.length})
+        </button>
+      </div>
 
-        <label style={styles.field}>
-          <span style={styles.label}>Description</span>
-          <input type="text" value={description} onChange={(event) => setDescription(event.target.value)} style={styles.input} />
-        </label>
+      {tab === 'edit' ? (
+        <form
+          style={styles.form}
+          onSubmit={(event) => {
+            event.preventDefault()
+            onSave({
+              transactionId: detail.id,
+              transactionDateRaw,
+              description,
+              signedAmountMinor: Math.round(Number(signedAmount || '0') * 100),
+              normalizedType,
+              categoryId: categoryId || null,
+              category:
+                categoryId
+                  ? categoryOptions.find((option) => option.id === categoryId)?.label ?? null
+                  : null,
+              reference: reference.trim() ? reference.trim() : null,
+              tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+              reviewStateOverride: reviewStateOverride || null
+            })
+          }}
+        >
+          <label style={styles.field}>
+            <span style={styles.label}>Date</span>
+            <input type="text" value={transactionDateRaw} onChange={(event) => setTransactionDateRaw(event.target.value)} style={styles.input} />
+          </label>
 
-        <label style={styles.field}>
-          <span style={styles.label}>Amount</span>
-          <input type="number" inputMode="decimal" value={signedAmount} onChange={(event) => setSignedAmount(event.target.value)} style={styles.input} />
-        </label>
+          <label style={styles.field}>
+            <span style={styles.label}>Description</span>
+            <input type="text" value={description} onChange={(event) => setDescription(event.target.value)} style={styles.input} />
+          </label>
 
-        <label style={styles.field}>
-          <span style={styles.label}>Type</span>
-          <select aria-label="Type" value={normalizedType} onChange={(event) => setNormalizedType(event.target.value as TransactionNormalizedType)} style={styles.input}>
-            {typeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label style={styles.field}>
+            <span style={styles.label}>Amount</span>
+            <input type="number" inputMode="decimal" value={signedAmount} onChange={(event) => setSignedAmount(event.target.value)} style={styles.input} />
+          </label>
 
-        <label style={styles.field}>
-          <span style={styles.label}>Category</span>
-          <select aria-label="Category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} style={styles.input}>
-            <option value="">No category</option>
-            {categoryOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label style={styles.field}>
+            <span style={styles.label}>Type</span>
+            <select aria-label="Type" value={normalizedType} onChange={(event) => setNormalizedType(event.target.value as TransactionNormalizedType)} style={styles.input}>
+              {typeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label style={styles.field}>
-          <span style={styles.label}>Reference</span>
-          <input type="text" value={reference} onChange={(event) => setReference(event.target.value)} style={styles.input} />
-        </label>
+          <label style={styles.field}>
+            <span style={styles.label}>Category</span>
+            <select aria-label="Category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} style={styles.input}>
+              <option value="">No category</option>
+              {categoryOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label style={styles.field}>
-          <span style={styles.label}>Tags</span>
-          <input type="text" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="travel, shared" style={styles.input} />
-        </label>
+          <label style={styles.field}>
+            <span style={styles.label}>Reference</span>
+            <input type="text" value={reference} onChange={(event) => setReference(event.target.value)} style={styles.input} />
+          </label>
 
-        <label style={styles.field}>
-          <span style={styles.label}>Review state override</span>
-          <select value={reviewStateOverride} onChange={(event) => setReviewStateOverride(event.target.value as TransactionReviewState | '')} style={styles.input}>
-            {reviewStateOptions.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label style={styles.field}>
+            <span style={styles.label}>Tags</span>
+            <input type="text" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="travel, shared" style={styles.input} />
+          </label>
 
-        {ruleSuggestion ? (
-          <div style={styles.ruleSuggestion}>
-            <div style={styles.kicker}>Rule suggestion</div>
-            <strong>{ruleSuggestion.title}</strong>
-            <p style={styles.helper}>{ruleSuggestion.description}</p>
-            {onUseRuleSuggestion ? (
-              <div style={styles.actions}>
-                <button type="button" style={styles.secondaryButton} onClick={() => onUseRuleSuggestion(ruleSuggestion)}>
-                  Create reusable rule
-                </button>
-              </div>
-            ) : null}
+          <label style={styles.field}>
+            <span style={styles.label}>Review state override</span>
+            <select value={reviewStateOverride} onChange={(event) => setReviewStateOverride(event.target.value as TransactionReviewState | '')} style={styles.input}>
+              {reviewStateOptions.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {ruleSuggestion ? (
+            <div style={styles.ruleSuggestion}>
+              <div style={styles.kicker}>Rule suggestion</div>
+              <strong>{ruleSuggestion.title}</strong>
+              <p style={styles.helper}>{ruleSuggestion.description}</p>
+              {onUseRuleSuggestion ? (
+                <div style={styles.actions}>
+                  <button type="button" style={styles.secondaryButton} onClick={() => onUseRuleSuggestion(ruleSuggestion)}>
+                    Create reusable rule
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div style={styles.actions}>
+            <button type="submit" style={styles.primaryButton} disabled={saving}>
+              {saving ? 'Saving...' : 'Save transaction'}
+            </button>
           </div>
-        ) : null}
-
-        <div style={styles.actions}>
-          <button type="submit" style={styles.primaryButton} disabled={saving}>
-            {saving ? 'Saving...' : 'Save transaction'}
-          </button>
+        </form>
+      ) : (
+        <div style={styles.historyList}>
+          {auditEvents.length === 0 ? <p style={styles.helper}>No history available for this transaction.</p> : null}
+          {auditEvents.map(event => (
+            <div key={event.id} style={styles.historyItem}>
+              <div style={styles.metaGrid}>
+                <span style={styles.kicker}>{new Date(event.timestampISO).toLocaleString()}</span>
+                <span style={styles.historyType}>{event.eventType}</span>
+              </div>
+            </div>
+          ))}
         </div>
-      </form>
+      )}
     </aside>
   )
 }
@@ -324,5 +361,43 @@ const styles = {
     color: '#fff',
     padding: '0 18px',
     fontWeight: 700
+  },
+  tabs: {
+    display: 'flex',
+    gap: 'var(--space-sm)',
+    marginBottom: 'var(--space-md)'
+  },
+  tab: {
+    background: 'none',
+    border: 'none',
+    padding: 'var(--space-xs) 0',
+    fontSize: 14,
+    fontWeight: 600,
+    color: 'var(--color-muted)',
+    cursor: 'pointer'
+  },
+  tabActive: {
+    background: 'none',
+    border: 'none',
+    padding: 'var(--space-xs) 0',
+    fontSize: 14,
+    fontWeight: 700,
+    color: 'var(--color-ink)',
+    cursor: 'pointer',
+    borderBottom: '2px solid var(--color-ink)'
+  },
+  historyList: {
+    display: 'grid',
+    gap: 'var(--space-sm)'
+  },
+  historyItem: {
+    padding: 'var(--space-sm)',
+    borderRadius: 'var(--radius-md)',
+    background: 'rgba(255, 255, 255, 0.4)',
+    border: '1px solid rgba(15, 118, 110, 0.08)'
+  },
+  historyType: {
+    fontWeight: 600,
+    color: 'var(--color-ink)'
   }
 } as const

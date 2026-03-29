@@ -1576,38 +1576,71 @@ export class WalnutRepository {
     const nextReviewStateOverride =
       input.reviewStateOverride === undefined ? current.reviewStateOverride ?? null : input.reviewStateOverride
 
-    this.sqlite
-      .prepare(
-        `UPDATE imported_transactions
-         SET transaction_date_raw = ?,
-             transaction_date_sortable = ?,
-             cleaned_description = ?,
-             debit_amount_minor = ?,
-             credit_amount_minor = ?,
-             direction = ?,
-             normalized_type = ?,
-             category_id = ?,
-             category_label = ?,
-             reference = ?,
-             tags_json = ?,
-             review_state_override = ?
-         WHERE id = ?`
-      )
-      .run(
-        nextDateRaw,
-        toSortableDateKey(nextDateRaw),
-        nextDescription,
-        nextDebitAmountMinor,
-        nextCreditAmountMinor,
-        nextDirection,
-        nextNormalizedType,
-        nextCategoryId,
-        nextCategory,
-        nextReference,
-        JSON.stringify(nextTags),
-        nextReviewStateOverride,
-        input.transactionId
-      )
+    const updateTx = this.sqlite.transaction(() => {
+      this.sqlite
+        .prepare(
+          `UPDATE imported_transactions
+           SET transaction_date_raw = ?,
+               transaction_date_sortable = ?,
+               cleaned_description = ?,
+               debit_amount_minor = ?,
+               credit_amount_minor = ?,
+               direction = ?,
+               normalized_type = ?,
+               category_id = ?,
+               category_label = ?,
+               reference = ?,
+               tags_json = ?,
+               review_state_override = ?
+           WHERE id = ?`
+        )
+        .run(
+          nextDateRaw,
+          toSortableDateKey(nextDateRaw),
+          nextDescription,
+          nextDebitAmountMinor,
+          nextCreditAmountMinor,
+          nextDirection,
+          nextNormalizedType,
+          nextCategoryId,
+          nextCategory,
+          nextReference,
+          JSON.stringify(nextTags),
+          nextReviewStateOverride,
+          input.transactionId
+        )
+
+      this.sqlite
+        .prepare(
+          'INSERT INTO audit_events (id, timestamp_iso, category, event_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?)'
+        )
+        .run(
+          crypto.randomUUID(),
+          nowIso(),
+          'transaction',
+          'transaction:edited',
+          input.transactionId,
+          JSON.stringify({
+            before: current,
+            after: {
+              ...current,
+              transactionDateRaw: nextDateRaw,
+              transactionDateSortable: toSortableDateKey(nextDateRaw),
+              description: nextDescription,
+              signedAmountMinor: nextSignedAmountMinor,
+              direction: nextDirection,
+              normalizedType: nextNormalizedType,
+              categoryId: nextCategoryId,
+              category: nextCategory,
+              reference: nextReference,
+              tags: nextTags,
+              reviewStateOverride: nextReviewStateOverride
+            }
+          })
+        )
+    })
+    
+    updateTx()
 
     const detail = this.getTransactionDetail({ transactionId: input.transactionId })
     const ruleSuggestion: TransactionRuleSuggestion | undefined =

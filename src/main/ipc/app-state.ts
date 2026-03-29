@@ -17,6 +17,7 @@ export const registerAppStateIpc = () => {
   ipcMain.handle('app-state:copy-recovery-ack', () => repository.acknowledgeRecoverySaved())
   ipcMain.handle('app-state:download-recovery-ack', () => repository.acknowledgeRecoverySaved())
   ipcMain.handle('app-state:get-security-events', () => repository.getSecurityEvents())
+  ipcMain.handle('app-state:get-audit-events', (_event, filters) => repository.getAuditEvents(filters))
   ipcMain.handle('app-state:complete-onboarding', async (_event, input: CompleteOnboardingInput) => {
     const recoveryKey = generateRecoveryKey()
     const secrets = await setupSecuritySecrets(input.pin, recoveryKey)
