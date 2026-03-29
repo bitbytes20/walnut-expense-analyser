@@ -45,10 +45,12 @@ Status: completed on `phase/6-dashboard-analytics`.
 ### Phase 7: Audit and Diagnostics
 
 Goal: make important actions traceable and supportable through the audit ledger and diagnostics flow.
+Status: completed and merged into `release/1.0.0`.
 
 ### Phase 8: Settings and Release Hardening
 
 Goal: complete owner controls, backup/restore, accessibility, and release quality rails.
+Status: completed and merged into `release/1.0.0`.
 
 ## Release 2: Core
 
@@ -191,20 +193,39 @@ Execution artifacts:
 - `.planning/phases/06-dashboard-analytics/06-04-SUMMARY.md`
 - `.planning/phases/06-dashboard-analytics/06-VERIFICATION.md`
 
-## Active Enhancement Branches
+## Phase 7 Completed Waves
 
-### UI Polish and Multi-Profile Lock Screen
+Phase 7 was decomposed into four execution waves and all four are now implemented:
 
-Goal: improve the product shell presentation between roadmap phases without changing the release roadmap shape.
+- Wave 1: unified audit persistence, `audit_events` ledger table, and crash logging via `electron-log`
+- Wave 2: transaction edit auditing with ACID commit, and inline History tab in the transaction detail drawer
+- Wave 3: diagnostics bundle generation with privacy redaction and IPC endpoint
+- Wave 4: Audit screen, Settings navigation integration, and diagnostics export UI
 
-Current branch scope:
+Execution artifacts:
 
-- left-rail-first navigation with duplicate top-right actions removed
-- refreshed empty dashboard and import workspace spacing
-- multi-profile local lock screen with profile selection before PIN entry
-- dedicated create-new-profile screen instead of inline expansion
-- PIN reveal toggle on the lock screen
-- refreshed browser and unit tests covering the new shell, lock flows, and responsive refinements
+- `.planning/phases/07-audit-and-diagnostics/07-01-SUMMARY.md`
+- `.planning/phases/07-audit-and-diagnostics/07-02-SUMMARY.md`
+- `.planning/phases/07-audit-and-diagnostics/07-03-SUMMARY.md`
+- `.planning/phases/07-audit-and-diagnostics/07-04-SUMMARY.md`
+- `.planning/phases/07-audit-and-diagnostics/07-VERIFICATION.md`
+
+## Phase 8 Completed Waves
+
+Phase 8 was decomposed into four execution waves and all four are now implemented:
+
+- Wave 1: settings backend — AppConfig persistence, encrypted backup/restore, settings and backup IPC
+- Wave 2: security operations — change PIN, clear transactions, full reset, configurable idle lock timeout, theme data-attribute support
+- Wave 3: keyboard navigation — global keyboard shortcuts with exported pure function for unit-testable handling
+- Wave 4: settings UI — full Settings screen with theme toggle, PIN change, feature flags, danger zone, and accessibility
+
+Execution artifacts:
+
+- `.planning/phases/08-settings-and-release-hardening/08-01-SUMMARY.md`
+- `.planning/phases/08-settings-and-release-hardening/08-02-SUMMARY.md`
+- `.planning/phases/08-settings-and-release-hardening/08-03-SUMMARY.md`
+- `.planning/phases/08-settings-and-release-hardening/08-04-SUMMARY.md`
+- `.planning/phases/08-settings-and-release-hardening/08-VERIFICATION.md`
 
 ## How We Track Delivery
 

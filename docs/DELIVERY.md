@@ -47,7 +47,7 @@ Each epic should include:
 
 Create stories only for phases that already have `*-PLAN.md` files.
 
-At the moment, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6 have plan files, so the active story set is:
+All phases in v1.0 (Phases 1–8) have plan files. The full story set is:
 
 - Phase 1 / Wave 1
 - Phase 1 / Wave 2
@@ -71,6 +71,14 @@ At the moment, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6 have pla
 - Phase 6 / Wave 2
 - Phase 6 / Wave 3
 - Phase 6 / Wave 4
+- Phase 7 / Wave 1
+- Phase 7 / Wave 2
+- Phase 7 / Wave 3
+- Phase 7 / Wave 4
+- Phase 8 / Wave 1
+- Phase 8 / Wave 2
+- Phase 8 / Wave 3
+- Phase 8 / Wave 4
 
 ## Phase 1 Story Breakdown
 
@@ -366,6 +374,108 @@ Plan reference:
 
 - `.planning/phases/06-dashboard-analytics/06-04-PLAN.md`
 
+## Phase 7 Story Breakdown
+
+### Wave 1 Story
+
+Scope:
+
+- unified `AuditEvent` contract and `audit_events` SQLite table
+- crash logging via `electron-log` to `{userData}/logs/walnut.log`
+- refactored `logSecurityEvent` and `insertReviewAuditEvent` to write to the new ledger
+
+Plan reference:
+
+- `.planning/phases/07-audit-and-diagnostics/07-01-PLAN.md`
+
+### Wave 2 Story
+
+Scope:
+
+- ACID transaction edit + audit insertion via `sqlite.transaction()`
+- `getAuditEvents` IPC contract exposed through preload
+- inline History tab in `TransactionDetailDrawer` for per-transaction edit history
+
+Plan reference:
+
+- `.planning/phases/07-audit-and-diagnostics/07-02-PLAN.md`
+
+### Wave 3 Story
+
+Scope:
+
+- `generateDiagnosticsBundle` IPC endpoint
+- privacy redaction pipeline (`RedactedTransaction` contract)
+- `diagnostics.ts` service with pure redaction function
+
+Plan reference:
+
+- `.planning/phases/07-audit-and-diagnostics/07-03-PLAN.md`
+
+### Wave 4 Story
+
+Scope:
+
+- `AuditScreen` with category-filtered chronological feed
+- `SettingsScreen` scaffold with left-rail navigation integration
+- diagnostics export UI using the browser File API
+
+Plan reference:
+
+- `.planning/phases/07-audit-and-diagnostics/07-04-PLAN.md`
+
+## Phase 8 Story Breakdown
+
+### Wave 1 Story
+
+Scope:
+
+- `AppConfig` key-value persistence with deep-merge
+- encrypted backup (AES-256-GCM + scrypt) and restore flows
+- settings and backup IPC handlers
+- TDD coverage for backup-service and app-config
+
+Plan reference:
+
+- `.planning/phases/08-settings-and-release-hardening/08-01-PLAN.md`
+
+### Wave 2 Story
+
+Scope:
+
+- `changePin` service with current-PIN verification and audit logging
+- `clearTransactionsAndAudit` and `fullAppReset` repository methods
+- configurable idle lock timeout from `AppConfig`
+- `data-theme` CSS attribute selectors for light/dark override
+
+Plan reference:
+
+- `.planning/phases/08-settings-and-release-hardening/08-02-PLAN.md`
+
+### Wave 3 Story
+
+Scope:
+
+- global keyboard shortcuts via `handleGlobalShortcut` pure function
+- `useEffect`-based listener with cleanup
+- unit test coverage without mounting the full App component
+
+Plan reference:
+
+- `.planning/phases/08-settings-and-release-hardening/08-03-PLAN.md`
+
+### Wave 4 Story
+
+Scope:
+
+- complete Settings screen: Preferences, Security, Backup, Feature Flags, Danger Zone
+- segmented theme selector, expandable PIN-change card, pill toggle switches
+- focus trap with auto-focus and inline focus-ring accessibility
+
+Plan reference:
+
+- `.planning/phases/08-settings-and-release-hardening/08-04-PLAN.md`
+
 ## Completion Workflow
 
 When a phase completes:
@@ -378,20 +488,22 @@ When a phase completes:
 
 ## Current Delivery Snapshot
 
+v1.0 (Release 1: Foundation) is complete and fully merged into `release/1.0.0`. All 8 phases and 30 execution waves shipped.
+
 - Phase 1 implementation is complete and merged into `release/1.0.0`
 - Phase 1 tracking items are epic `#1` and stories `#14`, `#15`, and `#16`
-- Phase 2 implementation is complete on `phase/2-statement-import-pipeline`
+- Phase 2 implementation is complete and merged into `release/1.0.0`
 - Phase 2 tracking items are epic `#2` and stories `#18`, `#19`, and `#20`
-- Phase 3 implementation is complete on `phase/3-review-queue-and-import-history`
+- Phase 3 implementation is complete and merged into `release/1.0.0`
 - Phase 3 tracking items are epic `#3` and stories `#22`, `#23`, `#24`, and `#25`
-- Phase 4 implementation is complete on `phase/4-transaction-ledger-and-search`
+- Phase 4 implementation is complete and merged into `release/1.0.0`
 - Phase 4 tracking items are epic `#4` and stories `#29`, `#30`, `#31`, and `#32`
-- The current Phase 4 branch also carries the active shell and ledger polish follow-through
-- That polish scope now includes multi-profile local selection on the lock screen, a dedicated new-profile flow, responsive lock-screen behavior, cleaner import workspace hierarchy, and updated ledger summaries/search/pagination coverage
-- Phase 5 implementation is complete on `phase/5-categories-and-rules`
+- Phase 5 implementation is complete and merged into `release/1.0.0`
 - Phase 5 tracking items are epic `#5` and stories `#35`, `#36`, `#37`, and `#39`
-- Phase 6 implementation is complete on `phase/6-dashboard-analytics`
-- Next discussion track is Phase 7: Audit and Diagnostics
+- Phase 6 implementation is complete and merged into `release/1.0.0`
+- Phase 7 implementation is complete and merged into `release/1.0.0`
+- Phase 8 implementation is complete and merged into `release/1.0.0`
+- Next milestone: v2.0 Release 2: Core (Phases 9–11)
 
 ## Documentation Expectations
 
