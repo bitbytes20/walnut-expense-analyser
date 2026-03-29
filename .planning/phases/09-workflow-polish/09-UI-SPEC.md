@@ -60,11 +60,11 @@ All type tokens are inherited from `tokens.css`. No new sizes introduced.
 | Role | Size | Weight | Line Height | Where Used in Phase 9 |
 |------|------|--------|-------------|----------------------|
 | Body | 16px | 400 | 1.5 | Bulk action confirmation messages, preset list item names, error detail paragraph text |
-| Label | 14px | 400 | 1.4 | Action button labels in bulk bar, filter preset section header, keyboard shortcut hint tooltip text |
+| Label | 14px | 400 | 1.4 | Action button labels in bulk bar, filter preset section header, keyboard shortcut hint tooltip text, empty preset note, delete confirm strip |
 | Heading | 20px | 600 | 1.2 | Bulk action bar "N selected" count heading (matches existing `ReviewBulkActionBar` heading pattern) |
-| Display | 32px | 600 | 1.1 | Not used in this phase |
+| Caption | 12px | 400 | 1.4 | Row number label in error detail panel (`"Row {n}"`), "Restore" button in preset list rows |
 
-Exactly 2 weights declared: 400 (body, label) and 600 (heading, action bar count, kicker label). The Label role is distinguished from Body by font size (14px vs 16px).
+Exactly 2 weights declared: 400 (body, label, caption) and 600 (heading, action bar count, kicker label). The Caption role is distinguished from Label by font size (12px vs 14px) and is reserved for compact secondary metadata that must not compete with adjacent body content.
 
 Source: Matched against `ReviewBulkActionBar.tsx` existing style values and `tokens.css`.
 
@@ -149,7 +149,7 @@ Primary focal point per surface:
 - **"View reason" button on `StagedFileRow`:** Already exists for `status: 'rejected'`. Phase 9 extends click behavior: if `file.parseErrors` array is present and non-empty, the button label changes to "View error details" and clicking toggles inline expansion (D-10). If `parseErrors` is absent (generic reject reason), the button routes to the existing `ReasonPanel` as before — no regression.
 - **Inline error expansion panel:** Appears directly below the `StagedFileRow` using a CSS `height` transition (collapse/expand). Panel uses `var(--color-surface)` background, `3px solid var(--color-destructive)` left border, `var(--space-lg)` padding.
 - **Error row item layout:** Each parse error renders as a small card within the panel:
-  - Row number label: `"Row {n}"` — `fontSize: 12, fontWeight: 600, color: var(--color-muted)` — top-left
+  - Row number label: `"Row {n}"` — `fontSize: 12, fontWeight: 400, color: var(--color-muted)` — top-left (Caption role)
   - What was expected vs found: two labeled fields (`Expected:` / `Found:`) — `fontSize: 14` body
   - Suggested fix: `fontSize: 14, fontStyle: italic, color: var(--color-muted)` — below the two fields
   - Separator: `borderBottom: 1px solid var(--color-border)` between error items
@@ -161,13 +161,13 @@ Primary focal point per surface:
 - **Preset section location:** Top of `TransactionFilterDrawer`, above the existing filter controls. A horizontal rule (`var(--color-border)`) visually separates presets from active filters below (D-13).
 - **Preset list (populated state):** Scrollable flat list of saved presets. Each row:
   - Left: preset name — `fontSize: 14, fontWeight: 400, color: var(--color-ink)`
-  - Right: "Restore" button — secondary pill (`fontSize: 12, minHeight: 32, padding: 0 12px`). Click restores all filter values from the preset immediately.
+  - Right: "Restore" button — secondary pill (`fontSize: 12, minHeight: 32, padding: 0 12px`). Click restores all filter values from the preset immediately. (Caption role — compact secondary control, visually de-emphasised against the 14px preset name.)
   - Far right: trash icon (`lucide-react Trash2`, 14px) — `color: var(--color-muted)`, transitions to `var(--color-destructive)` on hover. Click prompts inline confirm (see below).
   - Rename: double-click on preset name converts it to an inline `<input>` with the current name pre-filled. `Enter` or blur confirms. `Escape` cancels.
-- **Preset list (empty state — Claude's Discretion):** Thin helper note: `"No presets saved yet. Set your filters then save them as a preset below."` — `fontSize: 13, color: var(--color-muted), fontStyle: italic`. Vertically compact; does not inflate the drawer height.
+- **Preset list (empty state — Claude's Discretion):** Thin helper note: `"No presets saved yet. Set your filters then save them as a preset below."` — `fontSize: 14, color: var(--color-muted), fontStyle: italic`. Vertically compact; does not inflate the drawer height. (Label role — `color: var(--color-muted)` provides the visual de-emphasis without a smaller font size.)
 - **"Save as preset" button:** Bottom of the filter drawer. Secondary pill button. Label: "Save as preset". Only shown when at least one filter is active (to avoid saving empty filter sets).
 - **Naming inline input (D-14):** Clicking "Save as preset" replaces the button inline with a text `<input>` + "Save" button row. `<input>` `placeholder="Preset name"`, `autoFocus`, `maxLength={64}`. "Save" is accent-primary and disabled until input is non-empty. `Escape` cancels and restores the "Save as preset" button.
-- **Delete confirmation:** Inline — clicking the trash icon shows a mini confirm row in-place: `"Delete "{name}"?"` with "Delete" (destructive text) and "Cancel" (muted text) side by side at `fontSize: 13`. No modal overlay.
+- **Delete confirmation:** Inline — clicking the trash icon shows a mini confirm row in-place: `"Delete "{name}"?"` with "Delete" (destructive text) and "Cancel" (muted text) side by side at `fontSize: 14`. No modal overlay. (Label role — `color: var(--color-muted)` / `color: var(--color-destructive)` provide the visual hierarchy.)
 - **Preset storage:** SQLite via IPC (D-12). Preset list is fetched on filter drawer open and on any CRUD operation. No localStorage fallback.
 
 ---
@@ -281,3 +281,10 @@ No third-party component registries are used. All UI is built from inline React 
 | `08-UI-SPEC.md` (Phase 8 precedent) | Typography role sizes confirmed consistent; spacing scale confirmed; shortcut guard pattern; Danger Zone left-border visual grammar |
 | `01-UI-SPEC.md` (Phase 1 precedent) | Color role definitions, accent reserved-for list format |
 | REQUIREMENTS.md | WORKFLOW-01 through WORKFLOW-09 descriptions and success criteria |
+
+## Revision History
+
+| Date | Change |
+|------|--------|
+| 2026-03-30 | Initial draft |
+| 2026-03-30 | Typography fix (checker revision): replaced Display (32px, unused in phase) with Caption (12px / 400 / 1.4) to cover row number label and "Restore" button; removed `fontSize: 13` from Interaction Contracts (empty preset note and delete confirm strip now use Label 14px — `color: var(--color-muted)` provides the visual de-emphasis); `fontSize: 12` row number label weight corrected from 600 to 400 (Caption role). Table now has exactly 4 rows and all sizes in use are covered. |
