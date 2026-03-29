@@ -33,7 +33,7 @@ export function redactDiagnosticTransaction(tx: TransactionLedgerRow): RedactedT
 export function generateDiagnosticsBundle(type: 'full' | 'redacted'): string {
   const repository = getWalnutRepository()
   const transactions = repository.listTransactions()
-  const auditEvents = repository.getSecurityEvents()
+  const auditEvents = repository.getAuditEvents()
 
   const processedTransactions =
     type === 'redacted'
