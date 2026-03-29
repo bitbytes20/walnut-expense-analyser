@@ -59,17 +59,13 @@ All type tokens are inherited from `tokens.css`. No new sizes introduced.
 | Role | Size | Weight | Line Height | Where Used in Phase 8 |
 |------|------|--------|-------------|----------------------|
 | Body | 14px | 400 | 1.5 | Section descriptions, feature flag labels, backup notes |
-| Label | 12px | 500 | 1.4 | Action card action labels, crash note headings, input helper text, shortcut hint text |
+| Label | 12px | 400 | 1.4 | Action card action labels, crash note headings, input helper text, shortcut hint text |
 | Heading | 16px | 600 | 1.3 | Section headings (Preferences, Security, Backup, Support, Feature Flags, Danger Zone) |
 | Display | 24px | 600 | 1.2 | Page title ("Settings") |
 
 Source: Matched against `SettingsScreen.tsx` existing style values (`fontSize: 24` page title, `fontSize: 16` section heading, `fontSize: 14` body/buttons, `fontSize: 12` action description and crash note heading).
 
-Font-weight inventory (exactly 2 in use):
-- 400 — body copy, section descriptions, helper text
-- 600 — page title, section headings, action labels (500 for inline labels only, inheriting established pattern from action cards)
-
-Note: `fontWeight: 500` appears on action card labels in the existing `SettingsScreen.tsx`. This is an established project pattern and is retained as a mid-weight for interactive row labels — not an additional declared weight.
+Exactly 2 weights declared: 400 (body, label, helper text) and 600 (heading, display, action labels). The Label role is distinguished from Body by font size (12px vs 14px), so no weight difference is required.
 
 ---
 
@@ -102,6 +98,12 @@ Destructive (`var(--color-destructive)`) is reserved for:
 - Danger Zone section heading visual treatment (left border or background tint, 8% opacity destructive)
 
 Color source: `src/renderer/styles/tokens.css` — all values read directly, no inference.
+
+---
+
+## Visuals
+
+Primary focal point: page title ("Settings", 24px Display, weight 600). Secondary focal points: section `<h2>` headings (16px, weight 600) which structure the vertical scan path down the page. Strongest visual signal: Danger Zone section — destructive left-border (`3px solid var(--color-destructive)`) combined with a `rgba(180, 35, 24, 0.04)` background tint distinguishes it clearly from all other sections without using accent color.
 
 ---
 
@@ -155,7 +157,7 @@ Color source: `src/renderer/styles/tokens.css` — all values read directly, no 
 ### Feature Flags Section (labelled "Lab" in the UI heading)
 
 - One toggle row for Phase 8 release 1 (D-11):
-  - Label: "AI Summaries" (14px, 500 weight)
+  - Label: "AI Summaries" (14px, 400 weight)
   - Description: "Show a narrative AI summary on the dashboard. Off by default. Requires an external AI service when enabled." (12px, 400, `var(--color-muted)`)
   - Toggle: custom CSS toggle switch (pill shape); checked state uses `var(--color-accent)` track; unchecked uses `var(--color-border)` track; thumb is `#fff`; toggle is keyboard focusable with `role="switch"` and `aria-checked`
   - Off by default (D-11)
