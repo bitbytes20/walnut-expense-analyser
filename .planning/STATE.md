@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Release 2 — Core
-status: defining requirements
-last_updated: "2026-03-29T00:00:00.000Z"
+status: Phase 9 next
+last_updated: "2026-03-30T00:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -14,30 +14,32 @@ progress:
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** v2.0 milestone started — defining requirements
-**Roadmap status:** v1.0 shipped (8 phases); v2.0 Phases 9-11 to be defined
+**Project status:** v2.0 roadmap created — Phase 9 next
+**Roadmap status:** v1.0 shipped (8 phases, 30 plans); v2.0 Phases 9-14 defined (49 requirements)
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-03-29)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** v2.0 — workflow polish, rule system expansion, budgeting foundations
+**Current focus:** v2.0 — workflow polish, rule system expansion, budgeting foundations, AI insights, family members, WanderLog
 
 **Active implementation branch:** `release/1.1.0`
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 9 — Workflow Polish
 Plan: —
-Status: Defining requirements
-Last activity: 2026-03-29 — Milestone v2.0 started
+Status: Phase 9 next
+Last activity: 2026-03-30 — v2.0 roadmap created (49 requirements, Phases 9-14)
 
-- Repo now includes the initial desktop shell, onboarding flow, lock screen, and the full Phase 2 statement import pipeline.
-- The current branch also includes responsive shell updates, multi-profile lock-screen selection, import-workspace cleanup, and ledger polish on top of the Phase 4 transaction workspace.
-- Release 1 is the trusted import-to-insight loop for one ICICI account profile.
-- The project should stay Windows-first, local-first, and offline-first for core flows.
-- Future releases cover budgeting, AI summaries, additional banks, sync, web, and mobile.
+Progress: [░░░░░░] 0/6 phases complete
+
+- v1.0 shipped 2026-03-29: 8 phases, 30 plans, ~19,100 lines TypeScript across 78 source files.
+- v2.0 starts at Phase 9 with workflow polish improvements to the surfaces used daily.
+- Phase ordering: 9 (Workflow) → 10 (Rules) → 11 (Budget) → 12 (AI) → 13 (Family) → 14 (WanderLog).
+- Phase 13 depends on Phase 11 (FAMILY-06 uses budget data); Phase 14 depends on Phase 13 (WLOG-08 needs family members) and Phase 9 (WLOG-03 reuses multi-select).
+- Phase 12 (AI) depends on Phase 11 (AI-02 budget health commentary needs budget data).
 
 ## Active Decisions Already Locked
 
@@ -57,6 +59,17 @@ Last activity: 2026-03-29 — Milestone v2.0 started
 - Batch detail now uses a receipt payload with summary, file outcomes, and grouped transaction drill-down
 - Review mutations now emit durable audit rows through the existing local event ledger and persist resolution metadata for restore semantics
 - Renderer queue work should refetch authoritative batch detail after resolve or restore instead of keeping mutation state locally
+
+## v2.0 Phase Summary
+
+| Phase | Goal | Requirements |
+|-------|------|--------------|
+| 9 — Workflow Polish | Users can move faster through review, categorization, and transaction management | WORKFLOW-01 to WORKFLOW-09 (9) |
+| 10 — Rule System Expansion | Precise composable rules; category rename/merge correctness guaranteed | RULES-01 to RULES-11 (11) |
+| 11 — Budgeting Foundations | Monthly spend targets with color-coded variance view | BUDGET-01 to BUDGET-05 (5) |
+| 12 — AI Insights | Owner-triggered AI insights card with no passive data egress | AI-01 to AI-04 (4) |
+| 13 — Family Members | Multi-member profiles sharing one taxonomy; family aggregate dashboard | FAMILY-01 to FAMILY-09 (9) |
+| 14 — WanderLog | Named expense-tracking contexts overlaid on the standard ledger | WLOG-01 to WLOG-11 (11) |
 
 ## Delivery Expectations
 
@@ -97,6 +110,8 @@ Last activity: 2026-03-29 — Milestone v2.0 started
 - 2026-03-28: Phase 6 UI design contract approved at `.planning/phases/06-dashboard-analytics/06-UI-SPEC.md`
 - 2026-03-28: Phase 6 validation strategy and execution plans created at `.planning/phases/06-dashboard-analytics/06-VALIDATION.md`, `.planning/phases/06-dashboard-analytics/06-01-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-02-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-03-PLAN.md`, and `.planning/phases/06-dashboard-analytics/06-04-PLAN.md`
 - 2026-03-28: Phase 6 executed with summaries at `.planning/phases/06-dashboard-analytics/06-01-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-02-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-03-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-04-SUMMARY.md`, and `.planning/phases/06-dashboard-analytics/06-VERIFICATION.md`
+- 2026-03-29: Phase 7 and Phase 8 completed; v1.0 shipped
+- 2026-03-30: v2.0 roadmap created — Phases 9-14, 49 requirements mapped
 
 ## Phase 8 Decisions
 
@@ -110,7 +125,8 @@ Last activity: 2026-03-29 — Milestone v2.0 started
 
 ## Immediate Next Action
 
-Phase 8 complete. All 4 plans executed and verified. Release 1.0.0 hardening is done. Ready for final integration testing and release.
+v2.0 roadmap complete. 49 requirements mapped across Phases 9-14. Ready to plan Phase 9.
+Next: `/gsd:plan-phase 9`
 
 ---
-*Last updated: 2026-03-29 after Phase 8 Plan 04 human verification approved*
+*Last updated: 2026-03-30 — v2.0 roadmap created, Phase 9 next*

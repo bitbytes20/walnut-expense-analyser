@@ -119,65 +119,63 @@ Explicitly excluded with rationale.
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WORKFLOW-01 | — | Pending |
-| WORKFLOW-02 | — | Pending |
-| WORKFLOW-03 | — | Pending |
-| WORKFLOW-04 | — | Pending |
-| WORKFLOW-05 | — | Pending |
-| WORKFLOW-06 | — | Pending |
-| WORKFLOW-07 | — | Pending |
-| WORKFLOW-08 | — | Pending |
-| WORKFLOW-09 | — | Pending |
-| RULES-01 | — | Pending |
-| RULES-02 | — | Pending |
-| RULES-03 | — | Pending |
-| RULES-04 | — | Pending |
-| RULES-05 | — | Pending |
-| RULES-06 | — | Pending |
-| RULES-07 | — | Pending |
-| RULES-08 | — | Pending |
-| RULES-09 | — | Pending |
-| RULES-10 | — | Pending |
-| RULES-11 | — | Pending |
-| BUDGET-01 | — | Pending |
-| BUDGET-02 | — | Pending |
-| BUDGET-03 | — | Pending |
-| BUDGET-04 | — | Pending |
-| BUDGET-05 | — | Pending |
-| AI-01 | — | Pending |
-| AI-02 | — | Pending |
-| AI-03 | — | Pending |
-| AI-04 | — | Pending |
-| FAMILY-01 | — | Pending |
-| FAMILY-02 | — | Pending |
-| FAMILY-03 | — | Pending |
-| FAMILY-04 | — | Pending |
-| FAMILY-05 | — | Pending |
-| FAMILY-06 | — | Pending |
-| FAMILY-07 | — | Pending |
-| FAMILY-08 | — | Pending |
-| FAMILY-09 | — | Pending |
-| WLOG-01 | — | Pending |
-| WLOG-02 | — | Pending |
-| WLOG-03 | — | Pending |
-| WLOG-04 | — | Pending |
-| WLOG-05 | — | Pending |
-| WLOG-06 | — | Pending |
-| WLOG-07 | — | Pending |
-| WLOG-08 | — | Pending |
-| WLOG-09 | — | Pending |
-| WLOG-10 | — | Pending |
-| WLOG-11 | — | Pending |
+| WORKFLOW-01 | Phase 9 | Pending |
+| WORKFLOW-02 | Phase 9 | Pending |
+| WORKFLOW-03 | Phase 9 | Pending |
+| WORKFLOW-04 | Phase 9 | Pending |
+| WORKFLOW-05 | Phase 9 | Pending |
+| WORKFLOW-06 | Phase 9 | Pending |
+| WORKFLOW-07 | Phase 9 | Pending |
+| WORKFLOW-08 | Phase 9 | Pending |
+| WORKFLOW-09 | Phase 9 | Pending |
+| RULES-01 | Phase 10 | Pending |
+| RULES-02 | Phase 10 | Pending |
+| RULES-03 | Phase 10 | Pending |
+| RULES-04 | Phase 10 | Pending |
+| RULES-05 | Phase 10 | Pending |
+| RULES-06 | Phase 10 | Pending |
+| RULES-07 | Phase 10 | Pending |
+| RULES-08 | Phase 10 | Pending |
+| RULES-09 | Phase 10 | Pending |
+| RULES-10 | Phase 10 | Pending |
+| RULES-11 | Phase 10 | Pending |
+| BUDGET-01 | Phase 11 | Pending |
+| BUDGET-02 | Phase 11 | Pending |
+| BUDGET-03 | Phase 11 | Pending |
+| BUDGET-04 | Phase 11 | Pending |
+| BUDGET-05 | Phase 11 | Pending |
+| AI-01 | Phase 12 | Pending |
+| AI-02 | Phase 12 | Pending |
+| AI-03 | Phase 12 | Pending |
+| AI-04 | Phase 12 | Pending |
+| FAMILY-01 | Phase 13 | Pending |
+| FAMILY-02 | Phase 13 | Pending |
+| FAMILY-03 | Phase 13 | Pending |
+| FAMILY-04 | Phase 13 | Pending |
+| FAMILY-05 | Phase 13 | Pending |
+| FAMILY-06 | Phase 13 | Pending |
+| FAMILY-07 | Phase 13 | Pending |
+| FAMILY-08 | Phase 13 | Pending |
+| FAMILY-09 | Phase 13 | Pending |
+| WLOG-01 | Phase 14 | Pending |
+| WLOG-02 | Phase 14 | Pending |
+| WLOG-03 | Phase 14 | Pending |
+| WLOG-04 | Phase 14 | Pending |
+| WLOG-05 | Phase 14 | Pending |
+| WLOG-06 | Phase 14 | Pending |
+| WLOG-07 | Phase 14 | Pending |
+| WLOG-08 | Phase 14 | Pending |
+| WLOG-09 | Phase 14 | Pending |
+| WLOG-10 | Phase 14 | Pending |
+| WLOG-11 | Phase 14 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 49 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 49 ⚠
+- Mapped to phases: 49
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 — v2.0 initial definition (49 requirements across 6 feature areas)*
+*Last updated: 2026-03-30 — v2.0 traceability complete (49/49 mapped across Phases 9-14)*
