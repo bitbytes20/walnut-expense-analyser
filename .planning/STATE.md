@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-last_updated: "2026-03-29T13:41:51.460Z"
+status: Milestone complete
+last_updated: "2026-03-29T16:58:20.332Z"
 progress:
   total_phases: 8
   completed_phases: 8
@@ -29,8 +29,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 ## Current Position
 
-Phase: 08 (settings-and-release-hardening) — EXECUTING
-Plan: 4 of 4
+Phase: 08
+Plan: Not started
 
 - Repo now includes the initial desktop shell, onboarding flow, lock screen, and the full Phase 2 statement import pipeline.
 - The current branch also includes responsive shell updates, multi-profile lock-screen selection, import-workspace cleanup, and ledger polish on top of the Phase 4 transaction workspace.

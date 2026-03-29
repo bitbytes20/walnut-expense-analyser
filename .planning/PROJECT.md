@@ -18,11 +18,11 @@ A household owner can reliably import local bank statements and quickly understa
 
 ### Active
 
-- [ ] Deliver a trusted local-first desktop workflow from onboarding to dashboard insight.
-- [ ] Support strict ICICI statement ingestion with strong correctness, review, and duplicate handling.
+- [x] Deliver a trusted local-first desktop workflow from onboarding to dashboard insight. — Validated in Phase 1: Product Shell and Security
+- [x] Support strict ICICI statement ingestion with strong correctness, review, and duplicate handling. — Validated in Phases 2–3: Statement Import Pipeline and Review Queue
 - [x] Provide searchable transactions, category/rule management, and auditability for every meaningful change. — Validated in Phase 7: Audit and Diagnostics
-- [ ] Ship a premium finance dashboard with fast filtering, date controls, and strong keyboard accessibility.
-- [x] Keep data private on-device with PIN protection, encrypted backups, diagnostics redaction, and no retained statement files. — Validated in Phase 7: Audit and Diagnostics (diagnostics redaction pipeline complete)
+- [x] Ship a premium finance dashboard with fast filtering, date controls, and strong keyboard accessibility. — Validated in Phases 6 and 8: Dashboard Analytics and Settings/Release Hardening
+- [x] Keep data private on-device with PIN protection, encrypted backups, diagnostics redaction, and no retained statement files. — Validated in Phase 8: Settings and Release Hardening (backup encryption, change-PIN, full reset)
 
 ### Out of Scope
 
