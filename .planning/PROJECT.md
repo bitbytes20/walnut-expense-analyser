@@ -1,5 +1,14 @@
 # Walnut Expense Analyser
 
+## Current Milestone: v2.0 Release 2 — Core
+
+**Goal:** Harden the trusted local loop through workflow polish, a stronger rule engine, and budgeting foundations.
+
+**Target features:**
+- Review throughput improvements, search ergonomics, and import troubleshooting speed
+- Rule system expansion: richer rule authoring, merge safety, category/rule maintenance
+- Budgeting foundations: budget models, category targets, variance reporting
+
 ## What This Is
 
 Walnut Expense Analyser is a Windows-first desktop app for a local household to import personal bank statements and understand spending clearly. v1.0 shipped a complete import-to-insight loop for a single ICICI account profile, combining guided onboarding, strong local privacy, strict statement parsing, review workflows, searchable transaction ledger, category/rule engine, premium analytics dashboard, full audit ledger, diagnostics, and owner settings with encrypted backup/restore.
@@ -31,7 +40,7 @@ A household owner can reliably import local bank statements and quickly understa
 - ✓ Owner settings with encrypted backup/restore, change-PIN, configurable idle timeout, theme toggle, keyboard shortcuts — v1.0 (Phase 8)
 - ✓ Data privacy: parsed records only, no retained statement files, PIN protection, diagnostics redaction — v1.0 (Phases 1-8)
 
-### Active — v2.0 Goals
+### Active — v2.0
 
 - [ ] Improve review throughput, search ergonomics, and import troubleshooting speed
 - [ ] Strengthen categorization controls and operational safety for daily use
@@ -102,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-29 after v1.0 milestone completion — all 8 phases, 34/34 requirements satisfied*
+*Last updated: 2026-03-29 — v2.0 milestone started*

@@ -1,36 +1,37 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: v1.0 milestone complete
-last_updated: "2026-03-29T17:04:33.700Z"
+milestone: v2.0
+milestone_name: Release 2 — Core
+status: defining requirements
+last_updated: "2026-03-29T00:00:00.000Z"
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 30
-  completed_plans: 30
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # State: Walnut Expense Analyser
 
 **Initialized:** 2026-03-27
-**Project status:** Phase 6 complete, ready for Phase 7 discussion
-**Roadmap status:** Release 1 Phases 1, 2, 3, 4, 5, and 6 complete; Phase 7 next
+**Project status:** v2.0 milestone started — defining requirements
+**Roadmap status:** v1.0 shipped (8 phases); v2.0 Phases 9-11 to be defined
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-03-27)
+See: `.planning/PROJECT.md` (updated 2026-03-29)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 08 — settings-and-release-hardening
+**Current focus:** v2.0 — workflow polish, rule system expansion, budgeting foundations
 
-**Active implementation branch:** `phase/6-dashboard-analytics`
-**Current branch focus:** Phase 6 dashboard analytics implementation and verification
+**Active implementation branch:** `release/1.1.0`
 
 ## Current Position
 
-Phase: 08
-Plan: Not started
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-29 — Milestone v2.0 started
 
 - Repo now includes the initial desktop shell, onboarding flow, lock screen, and the full Phase 2 statement import pipeline.
 - The current branch also includes responsive shell updates, multi-profile lock-screen selection, import-workspace cleanup, and ledger polish on top of the Phase 4 transaction workspace.
