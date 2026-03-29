@@ -75,6 +75,7 @@ import type {
   StagedImportFile
 } from '../../shared/contracts/import'
 import type { LockReason, SecurityEvent, SecurityState } from '../../shared/contracts/security'
+import type { AuditEvent } from '../../shared/contracts/audit'
 import type {
   GetTransactionDetailInput,
   TransactionDetail,
@@ -439,6 +440,14 @@ export class WalnutRepository {
         metadata_json TEXT,
         created_at TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS audit_events (
+        id TEXT PRIMARY KEY,
+        timestamp_iso TEXT NOT NULL,
+        category TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        entity_id TEXT,
+        metadata TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS account_profiles (
         id TEXT PRIMARY KEY,
         bank_name TEXT NOT NULL DEFAULT 'ICICI',
@@ -567,6 +576,10 @@ export class WalnutRepository {
         ON review_items(batch_id, state);
       CREATE INDEX IF NOT EXISTS idx_review_items_attempt_id
         ON review_items(import_attempt_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_events_timestamp
+        ON audit_events(timestamp_iso DESC);
+      CREATE INDEX IF NOT EXISTS idx_audit_events_entity
+        ON audit_events(entity_id);
     `)
 
     this.ensureColumn('imported_transactions', 'tags_json', 'TEXT')
@@ -1296,26 +1309,60 @@ export class WalnutRepository {
   }
 
   logSecurityEvent(eventType: string, metadata?: Record<string, unknown>) {
-    const event: SecurityEvent = {
+    const event: AuditEvent = {
       id: crypto.randomUUID(),
+      timestampISO: nowIso(),
+      category: 'security',
       eventType,
-      createdAt: nowIso(),
-      metadataJson: metadata ? JSON.stringify(metadata) : undefined
+      metadata: metadata ? JSON.stringify(metadata) : '{}'
     }
-    this.sqlite.prepare('INSERT INTO security_events (id, event_type, metadata_json, created_at) VALUES (?, ?, ?, ?)').run(event.id, event.eventType, event.metadataJson ?? null, event.createdAt)
-    return event
+    this.sqlite.prepare(
+      'INSERT INTO audit_events (id, timestamp_iso, category, event_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(event.id, event.timestampISO, event.category, event.eventType, null, event.metadata)
+    
+    return {
+      id: event.id,
+      eventType: event.eventType,
+      createdAt: event.timestampISO,
+      metadataJson: event.metadata === '{}' ? undefined : event.metadata
+    } as SecurityEvent
+  }
+
+  getAuditEvents(filters?: { category?: string; entityId?: string }): AuditEvent[] {
+    let query = 'SELECT * FROM audit_events WHERE 1=1'
+    const params: unknown[] = []
+
+    if (filters?.category) {
+      query += ' AND category = ?'
+      params.push(filters.category)
+    }
+    if (filters?.entityId) {
+      query += ' AND entity_id = ?'
+      params.push(filters.entityId)
+    }
+
+    query += ' ORDER BY timestamp_iso DESC'
+
+    return this.sqlite
+      .prepare(query)
+      .all(...params)
+      .map((row: unknown) => ({
+        id: String((row as Record<string, unknown>).id),
+        timestampISO: String((row as Record<string, unknown>).timestamp_iso),
+        category: (row as Record<string, unknown>).category as AuditEvent['category'],
+        eventType: String((row as Record<string, unknown>).event_type),
+        entityId: (row as Record<string, unknown>).entity_id ? String((row as Record<string, unknown>).entity_id) : undefined,
+        metadata: String((row as Record<string, unknown>).metadata)
+      }))
   }
 
   getSecurityEvents(): SecurityEvent[] {
-    return this.sqlite
-      .prepare('SELECT * FROM security_events ORDER BY created_at DESC')
-      .all()
-      .map((row: unknown) => ({
-        id: String((row as Record<string, unknown>).id),
-        eventType: String((row as Record<string, unknown>).event_type),
-        createdAt: String((row as Record<string, unknown>).created_at),
-        metadataJson: (row as Record<string, unknown>).metadata_json ? String((row as Record<string, unknown>).metadata_json) : undefined
-      }))
+    return this.getAuditEvents({ category: 'security' }).map(e => ({
+      id: e.id,
+      eventType: e.eventType,
+      createdAt: e.timestampISO,
+      metadataJson: e.metadata === '{}' ? undefined : e.metadata
+    }))
   }
 
   findDuplicateImportByFingerprint(fileFingerprint: string): PriorImportBatchReference | undefined {
@@ -2542,8 +2589,10 @@ export class WalnutRepository {
 
   private insertReviewAuditEvent(eventType: string, metadata: Record<string, unknown>, createdAt: string) {
     this.sqlite
-      .prepare('INSERT INTO security_events (id, event_type, metadata_json, created_at) VALUES (?, ?, ?, ?)')
-      .run(crypto.randomUUID(), eventType, JSON.stringify(metadata), createdAt)
+      .prepare(
+        'INSERT INTO audit_events (id, timestamp_iso, category, event_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?)'
+      )
+      .run(crypto.randomUUID(), createdAt, 'review', eventType, null, JSON.stringify(metadata))
   }
 
   private buildResolutionPayload(input: ReturnType<WalnutRepository['sanitizeResolutionInput']>) {

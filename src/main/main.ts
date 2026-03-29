@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
+import log from 'electron-log/main'
 import { registerAppStateIpc } from './ipc/app-state'
 import { registerCategoriesIpc } from './ipc/categories'
 import { registerDashboardIpc } from './ipc/dashboard'
@@ -11,6 +12,10 @@ import { SessionLockManager } from './security/session-lock'
 process.env.DIST_ELECTRON = join(__dirname, '..')
 process.env.DIST = join(process.env.DIST_ELECTRON, '../renderer')
 process.env.PUBLIC = app.isPackaged ? process.env.DIST : join(process.env.DIST_ELECTRON, '../../public')
+
+log.initialize()
+log.transports.file.resolvePathFn = () => join(app.getPath('userData'), 'logs/walnut.log')
+log.errorHandler.startCatching({ showDialog: false })
 
 let mainWindow: BrowserWindow | null = null
 
