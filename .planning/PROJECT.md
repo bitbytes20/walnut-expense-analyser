@@ -20,9 +20,9 @@ A household owner can reliably import local bank statements and quickly understa
 
 - [ ] Deliver a trusted local-first desktop workflow from onboarding to dashboard insight.
 - [ ] Support strict ICICI statement ingestion with strong correctness, review, and duplicate handling.
-- [ ] Provide searchable transactions, category/rule management, and auditability for every meaningful change.
+- [x] Provide searchable transactions, category/rule management, and auditability for every meaningful change. — Validated in Phase 7: Audit and Diagnostics
 - [ ] Ship a premium finance dashboard with fast filtering, date controls, and strong keyboard accessibility.
-- [ ] Keep data private on-device with PIN protection, encrypted backups, diagnostics redaction, and no retained statement files.
+- [x] Keep data private on-device with PIN protection, encrypted backups, diagnostics redaction, and no retained statement files. — Validated in Phase 7: Audit and Diagnostics (diagnostics redaction pipeline complete)
 
 ### Out of Scope
 
@@ -69,7 +69,7 @@ A household owner can reliably import local bank statements and quickly understa
 | Dedicated review queue plus mixed import gating | Critical errors should block, lower-risk items can be resolved later | - Pending |
 | Built-in starter categories and rules | Improves first-use value and reduces manual setup friction | - Pending |
 | Premium dashboard with both themes | Product should feel intentional and polished from the start | - Pending |
-| Full audit ledger and diagnostics bundle | Finance workflows need traceability and supportability | - Pending |
+| Full audit ledger and diagnostics bundle | Finance workflows need traceability and supportability | Validated in Phase 7 |
 | Release roadmap `Foundation -> Core -> Smart` | Keeps the first release focused while preserving future AI and expansion plans | - Pending |
 
 ## Evolution
@@ -90,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after Phase 1 execution*
+*Last updated: 2026-03-29 after Phase 7 execution — Phases 1–7 complete, Phase 8 (Settings and Release Hardening) next*
