@@ -45,8 +45,8 @@ Declared values (multiples of 4 only — inherited from `tokens.css`):
 
 Exceptions:
 - Keyboard shortcut tooltip: 0px padding increase — shortcut hint appended inline to existing `title` attribute, no new element
-- Type-to-confirm input: 12px vertical / 16px horizontal internal padding (sits between sm and md — intentional for readable text entry)
-- Idle-lock timeout options: `<select>` or segmented control with 8px vertical / 12px horizontal option padding for finger/click target comfort
+- Type-to-confirm input: 16px vertical / 16px horizontal internal padding (consistent and readable text entry)
+- Idle-lock timeout options: `<select>` or segmented control with 8px vertical / 16px horizontal option padding for finger/click target comfort
 
 Source: `src/renderer/styles/tokens.css`. Same scale used in Phases 1–7.
 
@@ -171,7 +171,7 @@ Color source: `src/renderer/styles/tokens.css` — all values read directly, no 
   1. **Clear Transactions**
      - Description: "Permanently deletes all transaction records and their associated audit events. Your categories, rules, and account profile are kept."
      - Button: "Clear Transactions" — destructive styling (`var(--color-destructive)` background, white text)
-     - Confirmation: single dialog — "Clear all transactions? This cannot be undone. Your categories, rules, and profile will not be affected." with "Clear Transactions" (destructive) / "Cancel" buttons
+     - Confirmation: single dialog — "Clear all transactions? This cannot be undone. Your categories, rules, and profile will not be affected." with "Clear Transactions" (destructive) / "Keep Transactions" buttons
 
   2. **Full App Reset**
      - Description: "Wipes everything and returns the app to first-run onboarding. This cannot be undone."
