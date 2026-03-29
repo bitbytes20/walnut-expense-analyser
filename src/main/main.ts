@@ -8,6 +8,8 @@ import { registerImportIpc } from './ipc/import'
 import { registerTransactionsIpc } from './ipc/transactions'
 import { registerSecurityIpc } from './ipc/security'
 import { registerDiagnosticsIpc } from './ipc/diagnostics'
+import { registerSettingsIpc } from './ipc/settings'
+import { registerBackupIpc } from './ipc/backup'
 import { SessionLockManager } from './security/session-lock'
 
 process.env.DIST_ELECTRON = join(__dirname, '..')
@@ -42,6 +44,8 @@ const createWindow = async () => {
   registerTransactionsIpc()
   registerSecurityIpc(mainWindow, sessionLock)
   registerDiagnosticsIpc()
+  registerSettingsIpc()
+  registerBackupIpc()
   sessionLock.registerWindow(mainWindow)
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
