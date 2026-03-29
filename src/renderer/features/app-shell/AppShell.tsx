@@ -34,7 +34,8 @@ export const AppShell = ({ title, eyebrow, actions, sidebar, appName = 'Walnut E
 
 const shellStyles = {
   root: {
-    minHeight: '100vh',
+    height: '100vh',
+    overflow: 'hidden',
     padding: 'var(--space-xl)',
     display: 'flex',
     flexDirection: 'column' as const,
@@ -108,6 +109,7 @@ const shellStyles = {
   },
   workspaceMain: {
     minWidth: 0,
+    overflowY: 'auto' as const,
     display: 'grid',
     alignItems: 'start'
   }

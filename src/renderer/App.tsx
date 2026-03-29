@@ -131,7 +131,7 @@ export const App = () => {
         </button>
       </div>
 
-      <div style={sidebarStyles.cluster}>
+      <div style={{ ...sidebarStyles.cluster, marginTop: 'auto' }}>
         <button
           type="button"
           title="Audit Log"
@@ -296,7 +296,6 @@ const sidebarStyles = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column' as const,
-    justifyContent: 'space-between',
     alignItems: 'center',
     gap: 'var(--space-xl)',
     padding: 'var(--space-md) 0'
