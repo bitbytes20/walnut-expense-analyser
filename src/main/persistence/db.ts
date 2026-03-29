@@ -2384,6 +2384,26 @@ export class WalnutRepository {
           null
         )
       }
+
+      this.sqlite.prepare(
+        'INSERT INTO audit_events (id, timestamp_iso, category, event_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?)'
+      ).run(
+        crypto.randomUUID(),
+        input.importedAt,
+        'import',
+        'import.batch.committed',
+        input.batchId,
+        JSON.stringify({
+          batchId: input.batchId,
+          batchLabel: input.batchLabel,
+          status: input.status,
+          acceptedTransactionCount,
+          fileCount: importedFiles.length + input.rejectedFiles.length + input.duplicateBlockedFiles.length,
+          rejectedFileCount: input.rejectedFiles.length,
+          blockedDuplicateCount,
+          unresolvedReviewCount
+        })
+      )
     })
 
     transaction()

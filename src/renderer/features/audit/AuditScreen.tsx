@@ -33,12 +33,21 @@ function formatTimestamp(iso: string): string {
 function describeEvent(event: AuditEvent): string {
   try {
     const meta = JSON.parse(event.metadata) as Record<string, unknown>
+    if (event.eventType === 'import.batch.committed') {
+      const status = typeof meta.status === 'string' ? meta.status : ''
+      const txCount = typeof meta.acceptedTransactionCount === 'number' ? meta.acceptedTransactionCount : 0
+      const label = typeof meta.batchLabel === 'string' ? meta.batchLabel : 'batch'
+      const review = typeof meta.unresolvedReviewCount === 'number' && meta.unresolvedReviewCount > 0
+        ? ` · ${meta.unresolvedReviewCount} items for review`
+        : ''
+      return `${label} — ${status} · ${txCount} transactions${review}`
+    }
     if (typeof meta.description === 'string') return meta.description
-    if (typeof meta.action === 'string') return `Action: ${meta.action}`
-    if (event.eventType) return event.eventType.replace(/[_:]/g, ' ')
+    if (typeof meta.action === 'string') return `${event.eventType.replace(/[_:]/g, '.')} · ${meta.action}`
+    if (event.eventType) return event.eventType.replace(/[_.]/g, ' ')
     return 'Event recorded'
   } catch {
-    return event.eventType.replace(/[_:]/g, ' ')
+    return event.eventType.replace(/[_.]/g, ' ')
   }
 }
 
