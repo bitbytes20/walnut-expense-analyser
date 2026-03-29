@@ -324,14 +324,16 @@ export const SettingsScreen = ({ onRequirePinSetup, onFullReset }: SettingsScree
         <div style={styles.fieldGroup}>
           <label style={styles.fieldLabel}>Theme</label>
           <div style={styles.segmentedGroup} role="group" aria-label="Theme selection">
-            {(['light', 'dark', 'system'] as const).map((opt) => (
+            {(['light', 'dark', 'system'] as const).map((opt, idx) => (
               <button
                 key={opt}
                 type="button"
                 aria-pressed={config.theme === opt}
                 style={{
                   ...styles.segmentButton,
-                  ...(config.theme === opt ? styles.segmentButtonActive : styles.segmentButtonInactive)
+                  ...(config.theme === opt ? styles.segmentButtonActive : styles.segmentButtonInactive),
+                  borderRadius: idx === 0 ? '6px 0 0 6px' : idx === 2 ? '0 6px 6px 0' : 0,
+                  marginLeft: idx > 0 ? -1 : 0
                 }}
                 onClick={() => void handleThemeChange(opt)}
                 onFocus={(e) => { e.currentTarget.style.outline = '2px solid var(--color-accent)'; e.currentTarget.style.outlineOffset = '2px' }}
@@ -423,7 +425,7 @@ export const SettingsScreen = ({ onRequirePinSetup, onFullReset }: SettingsScree
                     minLength={6}
                     value={newPin}
                     onChange={(e) => { setNewPin(e.target.value); setNewPinError('') }}
-                    onBlur={validateChangePinFields}
+                    onBlur={(e) => { validateChangePinFields(); e.currentTarget.style.outline = ''; e.currentTarget.style.outlineOffset = '' }}
                     style={styles.pinInput}
                     onFocus={(e) => { e.currentTarget.style.outline = '2px solid var(--color-accent)'; e.currentTarget.style.outlineOffset = '2px' }}
                   />
@@ -439,7 +441,7 @@ export const SettingsScreen = ({ onRequirePinSetup, onFullReset }: SettingsScree
                     minLength={6}
                     value={confirmPin}
                     onChange={(e) => { setConfirmPin(e.target.value); setNewPinError('') }}
-                    onBlur={validateChangePinFields}
+                    onBlur={(e) => { validateChangePinFields(); e.currentTarget.style.outline = ''; e.currentTarget.style.outlineOffset = '' }}
                     style={styles.pinInput}
                     onFocus={(e) => { e.currentTarget.style.outline = '2px solid var(--color-accent)'; e.currentTarget.style.outlineOffset = '2px' }}
                   />
