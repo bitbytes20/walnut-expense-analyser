@@ -54,27 +54,101 @@ Status: completed and merged into `release/1.0.0`.
 
 ## Release 2: Core
 
+GitHub Milestone: [v2.0 Release 2: Core](https://github.com/bitbytes20/walnut-expense-analyser/milestone/2) — due 2026-04-05
+
 ### Phase 9: Workflow Polish
 
-Goal: improve review throughput, search ergonomics, and import troubleshooting speed.
+Goal: users can move through review, categorization, and transaction management faster with fewer interactions per task.
+Requirements: WORKFLOW-01 to WORKFLOW-09 (9 requirements)
+Epic: [#9](https://github.com/bitbytes20/walnut-expense-analyser/issues/9)
+
+Key capabilities:
+- Multi-select transactions with checkboxes (shift+click, select-all); batch categorize and tag
+- Batch approve/dismiss review queue items while respecting existing gating rules
+- Keyboard shortcuts for review queue approve/reject
+- Structured import error messages with row-level detail and in-session retry flow
+- Saved named filter presets with one-click restore
 
 ### Phase 10: Rule System Expansion
 
-Goal: strengthen categorization controls and operational safety for daily use.
+Goal: users can author precise, composable categorization rules and trust that category renames and merges do not silently corrupt rule targets or transaction labels.
+Requirements: RULES-01 to RULES-11 (11 requirements)
+Epic: [#10](https://github.com/bitbytes20/walnut-expense-analyser/issues/10)
+
+Key capabilities:
+- Contains / starts-with / ends-with / amount-range match operators
+- Multi-condition AND rules
+- Drag-and-drop rule priority (first-match-wins)
+- Category rename (propagates atomically to transactions + rule targets)
+- Category merge with preview count and atomic reassignment
+- Category archive (hidden from pickers, history intact)
+- Regex match operator (opt-in advanced, with live preview + ReDoS guard via safe-regex2)
+- Rule export/import as JSON with side-by-side conflict detection
+- User-authored rules auto-applied at import commit time (correctness fix)
 
 ### Phase 11: Budgeting Foundations
 
-Goal: begin budgeting only after trust in import and categorization is proven.
+Goal: users can set monthly spend targets per category and immediately see whether they are on track, over, or under budget.
+Requirements: BUDGET-01 to BUDGET-05 (5 requirements)
+Epic: [#11](https://github.com/bitbytes20/walnut-expense-analyser/issues/11)
+
+Key capabilities:
+- Monthly budget per category with "same for all months" annual shortcut
+- Color-coded budget vs actual view (green/amber/red) with summary card
+- In-app over-budget indicator without navigating to the budget screen
+- Per-category rollover (opt-in, carries unspent/overspent forward)
+
+### Phase 12: AI Insights
+
+Goal: owners who choose to use AI can get a triggered spend narrative and anomaly callouts on the dashboard without any data leaving the device without a deliberate action.
+Requirements: AI-01 to AI-04 (4 requirements)
+Epic: [#12](https://github.com/bitbytes20/walnut-expense-analyser/issues/12)
+Depends on: Phase 11 (budget health commentary requires budget data)
+
+Key capabilities:
+- Configurable AI provider in Settings: Claude API (with API key) or local Ollama (with endpoint URL)
+- Owner-triggered AI insights card: monthly spend narrative, anomaly callouts, budget health commentary, actionable suggestions
+- No spending data sent to cloud without explicit owner action
+- Regenerate or dismiss the insights card from the dashboard
+
+### Phase 13: Family Members
+
+Goal: the owner can add family member profiles so household spending across multiple ICICI accounts is visible in one place.
+Requirements: FAMILY-01 to FAMILY-09 (9 requirements)
+Epic: [#13](https://github.com/bitbytes20/walnut-expense-analyser/issues/13)
+Depends on: Phase 11 (family budget vs actual requires budget data)
+
+Key capabilities:
+- Owner-managed family member profiles (no per-member PIN)
+- Import ICICI statements per family member profile
+- Family Dashboard: aggregate household spend, per-member breakdown, family budget vs actual, unified activity feed
+- Shared household category taxonomy and rules across all members
+
+### Phase 14: WanderLog
+
+Goal: owners can create named expense-tracking contexts (trips, projects, events) overlaid on the standard ledger without altering base records.
+Requirements: WLOG-01 to WLOG-11 (11 requirements)
+Epic: [#51](https://github.com/bitbytes20/walnut-expense-analyser/issues/51)
+Depends on: Phase 13 (per-member WanderLog breakdown), Phase 9 (multi-select bulk assignment)
+
+Key capabilities:
+- Create WanderLogs with optional date range and budget target
+- Assign transactions: individually, bulk multi-select, at import time, or via auto-assignment rules
+- Transactions can belong to multiple WanderLogs simultaneously (no base record mutation)
+- WanderLog dashboard: spend vs budget, spend by category, scoped transaction list, per-member breakdown
+- WanderLog-scoped transaction annotations (e.g. "Rahul's share") stored separately from original description
 
 ## Release 3: Smart
 
-### Phase 12: AI Summaries
+### Phase 15: AI Summaries
 
 Goal: add lightweight narrative AI summaries behind owner-controlled feature flags.
+Epic: [#52](https://github.com/bitbytes20/walnut-expense-analyser/issues/52)
 
-### Phase 13: Expansion Architecture
+### Phase 16: Expansion Architecture
 
 Goal: prepare for additional banks, sync, web, and mobile clients without destabilizing the local core.
+Epic: [#53](https://github.com/bitbytes20/walnut-expense-analyser/issues/53)
 
 ## Phase 1 Completed Waves
 
