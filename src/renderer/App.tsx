@@ -276,7 +276,16 @@ export const App = () => {
       ) : workspaceScreen === 'audit' ? (
         <AuditScreen />
       ) : workspaceScreen === 'settings' ? (
-        <SettingsScreen />
+        <SettingsScreen
+          onRequirePinSetup={() => {
+            void window.walnut.loadAppState().then((nextState) => {
+              setState({ ...nextState, currentView: 'onboarding' })
+            })
+          }}
+          onFullReset={(nextState) => {
+            setState(nextState)
+          }}
+        />
       ) : (
         <DashboardScreen
           onImport={() => setWorkspaceScreen('imports')}
