@@ -2,7 +2,10 @@ import { BrowserWindow, powerMonitor } from 'electron'
 import type { LockReason } from '../../shared/contracts/security'
 import { getWalnutRepository } from '../persistence/db'
 
-export const IDLE_LOCK_TIMEOUT_MS = 15 * 60 * 1000
+export const DEFAULT_IDLE_LOCK_TIMEOUT_MS = 15 * 60 * 1000
+
+/** @deprecated Use DEFAULT_IDLE_LOCK_TIMEOUT_MS or read from AppConfig. Kept for backward compatibility. */
+export const IDLE_LOCK_TIMEOUT_MS = DEFAULT_IDLE_LOCK_TIMEOUT_MS
 
 export class SessionLockManager {
   private idleTimer?: NodeJS.Timeout
@@ -25,9 +28,13 @@ export class SessionLockManager {
     if (this.idleTimer) {
       clearTimeout(this.idleTimer)
     }
+    const repository = getWalnutRepository()
+    const config = repository.getAppConfig()
+    const timeoutMs = config.idleLockTimeoutMs
+    if (timeoutMs === 0) return // 'Never' — no idle timer set
     this.idleTimer = setTimeout(() => {
       void this.lock(window, 'idle')
-    }, IDLE_LOCK_TIMEOUT_MS)
+    }, timeoutMs)
   }
 
   async lock(window: BrowserWindow, reason: LockReason) {
