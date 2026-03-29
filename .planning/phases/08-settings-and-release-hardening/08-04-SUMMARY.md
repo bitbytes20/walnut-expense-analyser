@@ -26,9 +26,9 @@ decisions:
   - "Toggle switch uses inline style functions (toggleTrack/toggleThumb) outside the as-const styles object to allow dynamic checked prop"
   - "Backup/Restore flow: show PIN prompt inline before calling IPC — consistent with plan spec"
 metrics:
-  duration_minutes: 8
+  duration_minutes: 12
   completed_date: "2026-03-29"
-  tasks_completed: 2
+  tasks_completed: 3
   files_modified: 2
 ---
 
@@ -90,6 +90,7 @@ metrics:
 
 1. **Task 1: Preferences + Security + Backup sections** — `eb38430`
 2. **Task 2: Lab + Danger Zone + accessibility polish** — `2739ca3`
+3. **Task 3: Human verification checkpoint** — approved 2026-03-29
 
 ## Verification
 
@@ -103,7 +104,7 @@ metrics:
 
 **Pre-existing test failures (out of scope):** 19 failures in import-history, review-queue, transaction-ledger, import/rejections, import/review-mutations — these existed before Plan 04 and are not caused by settings changes.
 
-**Manual verification (Task 3 checkpoint):** Awaiting human walkthrough of the 15-step verification checklist.
+**Manual verification (Task 3 checkpoint):** Human approved 2026-03-29. All 15 verification steps passed — six sections render in correct order, all interactive controls work end-to-end, keyboard navigation and focus rings confirmed, modal confirmations function correctly.
 
 ## Deviations from Plan
 
