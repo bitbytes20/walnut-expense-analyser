@@ -16,7 +16,7 @@ Trusted import-to-insight loop for a single ICICI account profile on a local Win
 | 4 | Transaction Ledger and Search | Normalize transaction types, support editing/tags, and deliver advanced transaction search/filtering | TRAN-01, TRAN-02, TRAN-04, TRAN-05 |
 | 5 | Categories and Rules | Ship starter categories/rules, user-rule precedence, and user-category management | CATR-01, CATR-02, CATR-03, CATR-04, CATR-05, CATR-06 |
 | 6 | Dashboard Analytics | Deliver the premium dashboard, date-range controls, theme-ready presentation, and fast insight interactions | DASH-01, DASH-02, DASH-03, DASH-04 |
-| 7 | Audit and Diagnostics | Add the full event ledger, audit-backed edit history, redacted diagnostics, local-only deep diagnostics, and local crash reports | TRAN-03, AUDT-01, SUPP-01, SUPP-02, CRSH-01 |
+| 7 | 2/4 | In Progress|  |
 | 8 | Settings and Release Hardening | Complete owner settings, backup/restore, feature flags, reset controls, accessibility, and overall release readiness | SECU-03, SETG-01, ACCS-01 |
 
 ## Release 2: Core

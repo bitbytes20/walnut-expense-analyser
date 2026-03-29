@@ -23,6 +23,8 @@ import type {
   SecurityState,
   UnlockResult
 } from './security'
+import type { AuditEvent } from './audit'
+import type { GenerateDiagnosticsBundleInput } from './diagnostics'
 import type {
   ApplyRuleToExistingInput,
   CategorizationRuleSummary,
@@ -54,6 +56,8 @@ import type {
   DashboardSnapshot,
   DashboardSnapshotQuery
 } from './dashboard'
+import type { AuditEvent } from './audit'
+import type { GenerateDiagnosticsBundleInput } from './diagnostics'
 
 export type AppView = 'onboarding' | 'locked' | 'dashboard'
 
@@ -131,6 +135,7 @@ export interface WalnutApi {
   copyRecoveryKeyAcknowledged: () => Promise<AppShellState>
   downloadRecoveryKeyAcknowledged: () => Promise<AppShellState>
   getSecurityEvents: () => Promise<SecurityEvent[]>
+  getAuditEvents: (filters?: { category?: string; entityId?: string }) => Promise<AuditEvent[]>
   stageImportFiles: (input?: StageImportFilesInput) => Promise<StageImportFilesResult>
   chooseImportSheet: (input: ChooseImportSheetInput) => Promise<StageImportFilesResult>
   removeStagedFile: (input: RemoveStagedFileInput) => Promise<StageImportFilesResult>
@@ -161,5 +166,6 @@ export interface WalnutApi {
   setDashboardPreferences: (input: DashboardPreferences) => Promise<DashboardPreferences>
   getDashboardSnapshot: (input: DashboardSnapshotQuery) => Promise<DashboardSnapshot>
   getRecurringDetail: (input: DashboardRecurringDetailInput) => Promise<DashboardRecurringDetail>
+  generateDiagnosticsBundle: (input: GenerateDiagnosticsBundleInput) => Promise<string>
   ping: () => Promise<string>
 }
