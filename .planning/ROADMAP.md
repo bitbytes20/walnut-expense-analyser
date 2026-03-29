@@ -1,174 +1,64 @@
 # Roadmap: Walnut Expense Analyser
 
 **Created:** 2026-03-27
-**Roadmap shape:** Foundation -> Core -> Smart
-**v1 requirement coverage:** 34 / 34 mapped
 
-## Release 1: Foundation
+## Milestones
+
+- ✅ **v1.0 Release 1: Foundation** — Phases 1-8 (shipped 2026-03-29)
+- 📋 **v2.0 Release 2: Core** — Phases 9-11 (planned)
+- 📋 **v3.0 Release 3: Smart** — Phases 12-13 (planned)
+
+## Phases
+
+<details>
+<summary>✅ v1.0 Release 1: Foundation (Phases 1-8) — SHIPPED 2026-03-29</summary>
 
 Trusted import-to-insight loop for a single ICICI account profile on a local Windows desktop app.
+Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 
-| # | Phase | Goal | Requirements |
-|---|-------|------|--------------|
-| 1 | Product Shell and Security | Establish the local app shell, guided onboarding, account profile, PIN protection, and recovery posture | ONBD-01, SECU-01, SECU-02, ACCT-01 |
-| 2 | Statement Import Pipeline | Build the strict ICICI import flow and record-only persistence model with hard duplicate blocking | IMPT-01, IMPT-02, IMPT-03, IMPT-04 |
-| 3 | Review Queue and Import History | Add mixed import gating, a returnable review queue, and import history visibility | IMPT-05, IMPT-06, IMPT-07, REVW-01 |
-| 4 | Transaction Ledger and Search | Normalize transaction types, support editing/tags, and deliver advanced transaction search/filtering | TRAN-01, TRAN-02, TRAN-04, TRAN-05 |
-| 5 | Categories and Rules | Ship starter categories/rules, user-rule precedence, and user-category management | CATR-01, CATR-02, CATR-03, CATR-04, CATR-05, CATR-06 |
-| 6 | Dashboard Analytics | Deliver the premium dashboard, date-range controls, theme-ready presentation, and fast insight interactions | DASH-01, DASH-02, DASH-03, DASH-04 |
-| 7 | Audit and Diagnostics | Add the full event ledger, audit-backed edit history, redacted diagnostics, local-only deep diagnostics, and local crash reports | TRAN-03, AUDT-01, SUPP-01, SUPP-02, CRSH-01 |
-| 8 | Settings and Release Hardening | Complete owner settings, backup/restore, feature flags, reset controls, accessibility, and overall release readiness | SECU-03, SETG-01, ACCS-01 |
+- [x] Phase 1: Product Shell and Security (3/3 plans) — completed 2026-03-27
+- [x] Phase 2: Statement Import Pipeline (3/3 plans) — completed 2026-03-27
+- [x] Phase 3: Review Queue and Import History (4/4 plans) — completed 2026-03-27
+- [x] Phase 4: Transaction Ledger and Search (4/4 plans) — completed 2026-03-28
+- [x] Phase 5: Categories and Rules (4/4 plans) — completed 2026-03-28
+- [x] Phase 6: Dashboard Analytics (4/4 plans) — completed 2026-03-28
+- [x] Phase 7: Audit and Diagnostics (4/4 plans) — completed 2026-03-29
+- [x] Phase 8: Settings and Release Hardening (4/4 plans) — completed 2026-03-29
 
-## Release 2: Core
+</details>
+
+### 📋 v2.0 Release 2: Core (Planned)
 
 Polish and hardening once the trusted local loop is working end-to-end.
 
-| # | Phase | Goal | Planned Scope |
-|---|-------|------|---------------|
-| 9 | Workflow Polish | Improve review throughput, search ergonomics, and import troubleshooting speed | Review-flow polish, saved filter quality, clearer edge-case UX |
-| 10 | Rule System Expansion | Strengthen categorization controls and operational safety for daily use | Richer rule authoring, merge safety, category/rule maintenance tools |
-| 11 | Budgeting Foundations | Begin budgeting only after trust in import and categorization is proven | Budget models, category targets, variance reporting |
+- [ ] Phase 9: Workflow Polish — Review throughput, search ergonomics, import troubleshooting speed
+- [ ] Phase 10: Rule System Expansion — Richer rule authoring, merge safety, category/rule maintenance
+- [ ] Phase 11: Budgeting Foundations — Budget models, category targets, variance reporting
 
-## Release 3: Smart
+### 📋 v3.0 Release 3: Smart (Planned)
 
 Future-facing expansion once the local foundation and core workflows are stable.
 
-| # | Phase | Goal | Planned Scope |
-|---|-------|------|---------------|
-| 12 | AI Summaries | Add lightweight AI narrative summaries behind owner-controlled feature flags | Ephemeral dashboard summaries, safe controls, audit-friendly integration |
-| 13 | Expansion Architecture | Prepare for additional banks, sync, web, and mobile clients without destabilizing the local core | Additional-bank abstractions, sync planning, shared-domain extraction |
+- [ ] Phase 12: AI Summaries — Ephemeral dashboard summaries behind owner-controlled feature flags
+- [ ] Phase 13: Expansion Architecture — Additional banks, sync planning, shared-domain extraction
 
-## Phase Details
+## Progress
 
-### Phase 1: Product Shell and Security
-
-**Goal:** Create the desktop shell and first-run experience that establishes trust, device ownership, and the single-account posture.
-
-**Requirements:** ONBD-01, SECU-01, SECU-02, ACCT-01
-
-**Plans:** 3 plans
-
-Plans:
-- [ ] `01-01-PLAN.md` - Bootstrap the Electron desktop shell, persistence layer, and shared phase contracts
-- [ ] `01-02-PLAN.md` - Implement the persisted onboarding wizard, recovery confirmation, and empty-dashboard handoff
-- [ ] `01-03-PLAN.md` - Implement PIN lock enforcement, lock-screen UX, and recovery-key reset
-
-**Success criteria**
-1. First launch routes the owner through guided onboarding instead of dropping into an incomplete shell.
-2. The app enforces a 6+ digit PIN on launch and idle re-entry.
-3. Recovery-key confirmation is mandatory before onboarding can finish.
-4. The app stores one ICICI account profile as the only release-1 account target.
-
-**UI hint:** yes
-
-### Phase 2: Statement Import Pipeline
-
-**Goal:** Build a narrow but trustworthy statement-ingestion system for known ICICI exports.
-
-**Requirements:** IMPT-01, IMPT-02, IMPT-03, IMPT-04
-
-**Success criteria**
-1. Supported ICICI CSV/XLS/XLSX files import successfully.
-2. Unsupported variants fail clearly without partial silent corruption.
-3. Uploaded files are not retained in app storage after parsing.
-4. Clear duplicate imports are blocked automatically.
-
-**UI hint:** yes
-
-### Phase 3: Review Queue and Import History
-
-**Goal:** Handle ambiguity explicitly so import trust is preserved even when parsing confidence is not perfect.
-
-**Requirements:** IMPT-05, IMPT-06, IMPT-07, REVW-01
-
-**Success criteria**
-1. Ambiguous duplicates or parser uncertainties are sent to review rather than guessed silently.
-2. Critical issues block import completion while lower-risk items can remain unresolved.
-3. Users can revisit a dedicated review queue later and continue triage.
-4. Import history records batch outcomes, counts, and errors.
-
-**UI hint:** yes
-
-### Phase 4: Transaction Ledger and Search
-
-**Goal:** Make imported data explorable and editable enough to support real analysis.
-
-**Requirements:** TRAN-01, TRAN-02, TRAN-04, TRAN-05
-
-**Success criteria**
-1. Transactions are normalized into the product's supported financial types.
-2. Users can edit key fields required to correct parser output.
-3. Users can add freeform tags to support their own retrieval habits.
-4. Search and filtering support both broad exploration and precise narrowing.
-
-**UI hint:** yes
-
-### Phase 5: Categories and Rules
-
-**Goal:** Provide strong categorization defaults without removing user control.
-
-**Requirements:** CATR-01, CATR-02, CATR-03, CATR-04, CATR-05, CATR-06
-
-**Success criteria**
-1. Built-in categories and starter rules work on realistic imported data.
-2. User rules override heuristics consistently.
-3. User-created categories can be managed without damaging built-in categories.
-4. Income can be meaningfully categorized instead of remaining a generic bucket.
-
-**UI hint:** yes
-
-### Phase 6: Dashboard Analytics
-
-**Goal:** Turn trusted local data into fast, premium-feeling insight views.
-
-**Requirements:** DASH-01, DASH-02, DASH-03, DASH-04
-
-**Success criteria**
-1. Dashboard surfaces category, merchant, recurring, trend, and transaction insight blocks.
-2. Users can switch between week, month, year, all-time, and custom ranges.
-3. Interaction feels near-instant on expected local datasets.
-4. Both light and dark mode remain usable and visually intentional.
-
-**UI hint:** yes
-
-### Phase 7: Audit and Diagnostics
-
-**Goal:** Ensure every important system or user action can be understood and supported later.
-
-**Requirements:** TRAN-03, AUDT-01, SUPP-01, SUPP-02, CRSH-01
-
-**Success criteria**
-1. Transaction edits and operational actions produce durable audit events.
-2. Audit screen acts as a full event ledger rather than a narrow edit history.
-3. Users can create a safe redacted diagnostics bundle.
-4. Full local diagnostics and crash reports stay on-device unless intentionally shared.
-
-**UI hint:** yes
-
-### Phase 8: Settings and Release Hardening
-
-**Goal:** Complete owner controls and quality rails needed to treat release 1 as a cohesive product.
-
-**Requirements:** SECU-03, SETG-01, ACCS-01
-
-**Success criteria**
-1. Owner settings expose backup/restore, diagnostics, feature flags, theme, lock timing, and reset tools.
-2. Backup/restore is manual and encrypted.
-3. Keyboard navigation and shortcuts cover core app workflows.
-4. Release quality gates cover privacy, accessibility, and stability expectations.
-
-**UI hint:** yes
-
-## Traceability Summary
-
-- Release 1 Foundation: 34 requirements
-- Release 2 Core: future scope only
-- Release 3 Smart: future scope only
-- All v1 requirements map to exactly one phase
-
-## Next Step
-
-Next recommended command: `$gsd-discuss-phase 1`
+| Phase | Milestone | Plans | Status | Completed |
+|-------|-----------|-------|--------|-----------|
+| 1. Product Shell and Security | v1.0 | 3/3 | Complete | 2026-03-27 |
+| 2. Statement Import Pipeline | v1.0 | 3/3 | Complete | 2026-03-27 |
+| 3. Review Queue and Import History | v1.0 | 4/4 | Complete | 2026-03-27 |
+| 4. Transaction Ledger and Search | v1.0 | 4/4 | Complete | 2026-03-28 |
+| 5. Categories and Rules | v1.0 | 4/4 | Complete | 2026-03-28 |
+| 6. Dashboard Analytics | v1.0 | 4/4 | Complete | 2026-03-28 |
+| 7. Audit and Diagnostics | v1.0 | 4/4 | Complete | 2026-03-29 |
+| 8. Settings and Release Hardening | v1.0 | 4/4 | Complete | 2026-03-29 |
+| 9. Workflow Polish | v2.0 | TBD | Not started | — |
+| 10. Rule System Expansion | v2.0 | TBD | Not started | — |
+| 11. Budgeting Foundations | v2.0 | TBD | Not started | — |
+| 12. AI Summaries | v3.0 | TBD | Not started | — |
+| 13. Expansion Architecture | v3.0 | TBD | Not started | — |
 
 ---
-*Last updated: 2026-03-27 after roadmap creation*
+*Last updated: 2026-03-29 after v1.0 milestone completion*

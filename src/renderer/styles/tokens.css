@@ -1,0 +1,111 @@
+:root {
+  color-scheme: light dark;
+  font-family: 'Manrope', sans-serif;
+  --color-bg: #F5F1E8;
+  --color-surface: #E2D7C5;
+  --color-accent: #0F766E;
+  --color-accent-strong: #0A5A54;
+  --color-destructive: #B42318;
+  --color-ink: #1E1B16;
+  --color-muted: #5B544B;
+  --color-border: rgba(30, 27, 22, 0.12);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+  --shadow-panel: 0 24px 80px rgba(15, 20, 17, 0.12);
+  --font-body-size: 16px;
+  --font-label-size: 14px;
+  --font-heading-size: 20px;
+  --font-display-size: 32px;
+}
+
+/* System default dark mode — only applies when no explicit data-theme is set */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #171813;
+    --color-surface: #26271f;
+    --color-ink: #F7F2E8;
+    --color-muted: #C1B8A7;
+    --color-border: rgba(247, 242, 232, 0.1);
+    --shadow-panel: 0 24px 80px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Explicit dark theme override */
+[data-theme="dark"] {
+  --color-bg: #171813;
+  --color-surface: #26271f;
+  --color-ink: #F7F2E8;
+  --color-muted: #C1B8A7;
+  --color-border: rgba(247, 242, 232, 0.1);
+  --shadow-panel: 0 24px 80px rgba(0, 0, 0, 0.3);
+}
+
+/* Explicit light theme override (needed when OS is dark but user wants light) */
+[data-theme="light"] {
+  --color-bg: #F5F1E8;
+  --color-surface: #E2D7C5;
+  --color-ink: #1E1B16;
+  --color-muted: #5B544B;
+  --color-border: rgba(30, 27, 22, 0.12);
+  --shadow-panel: 0 24px 80px rgba(15, 20, 17, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 22%),
+    var(--color-bg);
+  color: var(--color-ink);
+  font-size: var(--font-body-size);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    filter 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+button:not(:disabled):hover {
+  filter: brightness(0.94);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(30, 27, 22, 0.1);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0);
+  filter: brightness(0.9);
+  box-shadow: 0 4px 12px rgba(30, 27, 22, 0.08);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
