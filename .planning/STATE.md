@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-last_updated: "2026-03-29T13:27:43.070Z"
+last_updated: "2026-03-29T13:31:46.857Z"
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 30
-  completed_plans: 27
+  completed_plans: 28
 ---
 
 # State: Walnut Expense Analyser
@@ -30,7 +30,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 ## Current Position
 
 Phase: 08 (settings-and-release-hardening) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 - Repo now includes the initial desktop shell, onboarding flow, lock screen, and the full Phase 2 statement import pipeline.
 - The current branch also includes responsive shell updates, multi-profile lock-screen selection, import-workspace cleanup, and ledger polish on top of the Phase 4 transaction workspace.
@@ -97,9 +97,17 @@ Plan: 2 of 4
 - 2026-03-28: Phase 6 validation strategy and execution plans created at `.planning/phases/06-dashboard-analytics/06-VALIDATION.md`, `.planning/phases/06-dashboard-analytics/06-01-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-02-PLAN.md`, `.planning/phases/06-dashboard-analytics/06-03-PLAN.md`, and `.planning/phases/06-dashboard-analytics/06-04-PLAN.md`
 - 2026-03-28: Phase 6 executed with summaries at `.planning/phases/06-dashboard-analytics/06-01-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-02-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-03-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-04-SUMMARY.md`, and `.planning/phases/06-dashboard-analytics/06-VERIFICATION.md`
 
+## Phase 8 Decisions
+
+- changePin uses _setRepositoryForTesting pattern for testability without mocking Electron IPC
+- Idle lock timeout reads from AppConfig at timer-reset time; 0 means never lock
+- CSS theme toggle: data-theme attribute on root element with :not guard on OS preference media query
+- clearTransactionsAndAudit wraps deletes in SQLite BEGIN/COMMIT for atomicity
+- fullAppReset deletes device_profiles/snapshots tables to ensure clean slate
+
 ## Immediate Next Action
 
-Run `$gsd-discuss-phase 7` to plan the audit ledger, diagnostics, and supportability phase.
+Execute Phase 8 Plans 03 and 04 (keyboard shortcuts and Settings UI).
 
 ---
-*Last updated: 2026-03-28 after Phase 6 execution*
+*Last updated: 2026-03-29 after Phase 8 Plan 02 execution*
