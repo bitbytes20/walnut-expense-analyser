@@ -56,6 +56,7 @@ export const App = () => {
       <div style={sidebarStyles.cluster}>
         <button
           type="button"
+          title="Dashboard"
           aria-label="Open dashboard workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -70,6 +71,7 @@ export const App = () => {
         </button>
         <button
           type="button"
+          title="Import"
           aria-label="Open import workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -85,6 +87,7 @@ export const App = () => {
         </button>
         <button
           type="button"
+          title="Transactions"
           aria-label="Open transactions workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -100,6 +103,7 @@ export const App = () => {
         </button>
         <button
           type="button"
+          title="Import History"
           aria-label="Open import history workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -115,6 +119,7 @@ export const App = () => {
         </button>
         <button
           type="button"
+          title="Categories & Rules"
           aria-label="Open categories and rules workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -129,6 +134,7 @@ export const App = () => {
       <div style={sidebarStyles.cluster}>
         <button
           type="button"
+          title="Audit Log"
           aria-label="Open audit workspace"
           style={{
             ...sidebarStyles.navButton,
@@ -140,6 +146,7 @@ export const App = () => {
         </button>
         <button
           type="button"
+          title="Settings"
           aria-label="Open settings"
           style={{
             ...sidebarStyles.navButton,
@@ -151,6 +158,7 @@ export const App = () => {
         </button>
         <button
           type="button"
+          title="Lock"
           aria-label="Lock workspace from sidebar"
           style={sidebarStyles.navButton}
           onClick={() =>

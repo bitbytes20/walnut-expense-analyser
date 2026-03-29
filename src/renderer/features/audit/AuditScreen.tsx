@@ -159,7 +159,7 @@ const styles = {
     fontWeight: 600,
     lineHeight: 1.2,
     margin: 0,
-    color: 'var(--color-heading)'
+    color: 'var(--color-ink)'
   },
   pageSubtitle: {
     fontSize: 14,
@@ -184,14 +184,14 @@ const styles = {
     transition: 'background 0.15s, color 0.15s, border-color 0.15s'
   },
   filterButtonActive: {
-    background: 'var(--accent-blue)',
+    background: 'var(--color-accent)',
     color: '#fff',
-    borderColor: 'var(--accent-blue)'
+    borderColor: 'var(--color-accent-strong)'
   },
   filterButtonInactive: {
-    background: 'var(--bg-secondary)',
-    color: 'var(--color-muted)',
-    borderColor: 'rgba(30, 27, 22, 0.12)'
+    background: 'var(--color-surface)',
+    color: 'var(--color-ink)',
+    borderColor: 'var(--color-border)'
   },
   listContainer: {
     flex: 1
@@ -209,7 +209,7 @@ const styles = {
     fontWeight: 600,
     lineHeight: 1.3,
     margin: 0,
-    color: 'var(--color-heading)'
+    color: 'var(--color-ink)'
   },
   emptyBody: {
     fontSize: 14,
@@ -248,7 +248,7 @@ const styles = {
     padding: 'var(--space-md)',
     borderBottom: '1px solid rgba(30, 27, 22, 0.08)',
     gap: 'var(--space-md)',
-    background: 'var(--bg-primary)'
+    background: 'var(--color-bg)'
   },
   eventRowLeft: {
     display: 'flex',
@@ -263,7 +263,7 @@ const styles = {
     lineHeight: 1.4,
     padding: '2px 8px',
     borderRadius: 4,
-    background: 'var(--bg-secondary)',
+    background: 'var(--color-surface)',
     color: 'var(--color-muted)',
     whiteSpace: 'nowrap' as const,
     flexShrink: 0
@@ -272,7 +272,7 @@ const styles = {
     fontSize: 14,
     fontWeight: 400,
     lineHeight: 1.5,
-    color: 'var(--color-body)',
+    color: 'var(--color-ink)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const

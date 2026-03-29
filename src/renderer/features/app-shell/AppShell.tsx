@@ -89,6 +89,7 @@ const shellStyles = {
     flex: 1,
     display: 'grid',
     gridTemplateColumns: '92px minmax(0, 1fr)',
+    gridTemplateRows: '1fr',
     gap: 'var(--space-xl)',
     alignItems: 'stretch'
   },

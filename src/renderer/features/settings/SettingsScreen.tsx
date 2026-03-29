@@ -131,7 +131,7 @@ const styles = {
     fontWeight: 600,
     lineHeight: 1.2,
     margin: 0,
-    color: 'var(--color-heading)'
+    color: 'var(--color-ink)'
   },
   pageSubtitle: {
     fontSize: 14,
@@ -150,7 +150,7 @@ const styles = {
     fontWeight: 600,
     lineHeight: 1.3,
     margin: 0,
-    color: 'var(--color-heading)'
+    color: 'var(--color-ink)'
   },
   sectionDescription: {
     fontSize: 14,
@@ -172,7 +172,7 @@ const styles = {
     padding: 'var(--space-md)',
     borderRadius: 8,
     border: '1px solid rgba(30, 27, 22, 0.10)',
-    background: 'var(--bg-secondary)'
+    background: 'var(--color-surface)'
   },
   actionCardContent: {
     display: 'flex',
@@ -186,7 +186,7 @@ const styles = {
     fontWeight: 500,
     lineHeight: 1.4,
     margin: 0,
-    color: 'var(--color-heading)'
+    color: 'var(--color-ink)'
   },
   actionDescription: {
     fontSize: 12,
@@ -208,17 +208,17 @@ const styles = {
     transition: 'background 0.15s, color 0.15s, border-color 0.15s'
   },
   exportButtonPrimary: {
-    background: 'var(--accent-blue)',
+    background: 'var(--color-accent)',
     color: '#fff',
-    borderColor: 'var(--accent-blue)'
+    borderColor: 'var(--color-accent-strong)'
   },
   exportButtonSecondary: {
-    background: 'var(--bg-primary)',
-    color: 'var(--color-body)',
+    background: 'var(--color-bg)',
+    color: 'var(--color-ink)',
     borderColor: 'rgba(30, 27, 22, 0.18)'
   },
   exportButtonDisabled: {
-    background: 'var(--bg-secondary)',
+    background: 'var(--color-surface)',
     color: 'var(--color-muted)',
     borderColor: 'rgba(30, 27, 22, 0.10)',
     cursor: 'not-allowed'
@@ -227,7 +227,7 @@ const styles = {
     padding: 'var(--space-md)',
     borderRadius: 8,
     border: '1px solid rgba(30, 27, 22, 0.08)',
-    background: 'var(--bg-secondary)',
+    background: 'var(--color-surface)',
     display: 'flex',
     flexDirection: 'column' as const,
     gap: 'var(--space-xs)'
@@ -237,7 +237,7 @@ const styles = {
     fontWeight: 500,
     lineHeight: 1.4,
     margin: 0,
-    color: 'var(--color-heading)',
+    color: 'var(--color-ink)',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.05em'
   },
