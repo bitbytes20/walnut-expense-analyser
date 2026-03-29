@@ -16,7 +16,7 @@ Trusted import-to-insight loop for a single ICICI account profile on a local Win
 | 4 | Transaction Ledger and Search | Normalize transaction types, support editing/tags, and deliver advanced transaction search/filtering | TRAN-01, TRAN-02, TRAN-04, TRAN-05 |
 | 5 | Categories and Rules | Ship starter categories/rules, user-rule precedence, and user-category management | CATR-01, CATR-02, CATR-03, CATR-04, CATR-05, CATR-06 |
 | 6 | Dashboard Analytics | Deliver the premium dashboard, date-range controls, theme-ready presentation, and fast insight interactions | DASH-01, DASH-02, DASH-03, DASH-04 |
-| 7 | 2/4 | In Progress|  |
+| 7 | Audit and Diagnostics | Ensure every important system or user action can be understood and supported later | TRAN-03, AUDT-01, SUPP-01, SUPP-02, CRSH-01 |
 | 8 | Settings and Release Hardening | Complete owner settings, backup/restore, feature flags, reset controls, accessibility, and overall release readiness | SECU-03, SETG-01, ACCS-01 |
 
 ## Release 2: Core
@@ -196,6 +196,15 @@ Plans:
 
 **Requirements:** SECU-03, SETG-01, ACCS-01
 
+**Plans:** 4 plans
+**Status:** Planning complete (2026-03-29)
+
+Plans:
+- [ ] `08-01-PLAN.md` — App config foundation, backup encryption service, and settings/backup IPC wiring
+- [ ] `08-02-PLAN.md` — Change PIN service, cleanup/reset operations, idle timeout config, and theme CSS
+- [ ] `08-03-PLAN.md` — Centralized keyboard shortcut system with Ctrl+1-8 navigation and sidebar hints
+- [ ] `08-04-PLAN.md` — Full Settings screen UI expansion with all six sections and human verification
+
 **Success criteria**
 1. Owner settings expose backup/restore, diagnostics, feature flags, theme, lock timing, and reset tools.
 2. Backup/restore is manual and encrypted.
@@ -213,7 +222,7 @@ Plans:
 
 ## Next Step
 
-Next recommended command: `$gsd-discuss-phase 7`
+Next recommended command: `$gsd-execute-phase 8`
 
 ---
-*Last updated: 2026-03-28 after Phase 6 execution*
+*Last updated: 2026-03-29 after Phase 8 planning*
