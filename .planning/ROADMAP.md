@@ -17,7 +17,7 @@ Trusted import-to-insight loop for a single ICICI account profile on a local Win
 | 5 | Categories and Rules | Ship starter categories/rules, user-rule precedence, and user-category management | CATR-01, CATR-02, CATR-03, CATR-04, CATR-05, CATR-06 |
 | 6 | Dashboard Analytics | Deliver the premium dashboard, date-range controls, theme-ready presentation, and fast insight interactions | DASH-01, DASH-02, DASH-03, DASH-04 |
 | 7 | Audit and Diagnostics | Ensure every important system or user action can be understood and supported later | TRAN-03, AUDT-01, SUPP-01, SUPP-02, CRSH-01 |
-| 8 | 2/4 | In Progress|  |
+| 8 | 4/4 | Complete   | 2026-03-29 |
 
 ## Release 2: Core
 
@@ -196,7 +196,7 @@ Plans:
 
 **Requirements:** SECU-03, SETG-01, ACCS-01
 
-**Plans:** 2/4 plans executed
+**Plans:** 4/4 plans complete
 **Status:** Planning complete (2026-03-29)
 
 Plans:

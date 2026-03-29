@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-last_updated: "2026-03-29T13:31:46.857Z"
+last_updated: "2026-03-29T13:41:51.460Z"
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 30
-  completed_plans: 28
+  completed_plans: 30
 ---
 
 # State: Walnut Expense Analyser
@@ -30,7 +30,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-27)
 ## Current Position
 
 Phase: 08 (settings-and-release-hardening) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 - Repo now includes the initial desktop shell, onboarding flow, lock screen, and the full Phase 2 statement import pipeline.
 - The current branch also includes responsive shell updates, multi-profile lock-screen selection, import-workspace cleanup, and ledger polish on top of the Phase 4 transaction workspace.
@@ -104,10 +104,12 @@ Plan: 3 of 4
 - CSS theme toggle: data-theme attribute on root element with :not guard on OS preference media query
 - clearTransactionsAndAudit wraps deletes in SQLite BEGIN/COMMIT for atomicity
 - fullAppReset deletes device_profiles/snapshots tables to ensure clean slate
+- handleGlobalShortcut exported as pure function for testability; GlobalShortcutActions interface uses WorkspaceScreen union type for TypeScript correctness
+- setImportAreaScreen in GlobalShortcutActions uses '{ type: workspace | history }' narrowing to satisfy Dispatch<SetStateAction<ImportAreaScreen>> constraint
 
 ## Immediate Next Action
 
-Execute Phase 8 Plans 03 and 04 (keyboard shortcuts and Settings UI).
+Execute Phase 8 Plan 04 (Settings UI screen).
 
 ---
-*Last updated: 2026-03-29 after Phase 8 Plan 02 execution*
+*Last updated: 2026-03-29 after Phase 8 Plan 03 execution*

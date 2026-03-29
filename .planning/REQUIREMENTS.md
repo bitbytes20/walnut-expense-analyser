@@ -10,7 +10,7 @@
 - [ ] **ONBD-01**: Owner can complete guided onboarding that sets up the household profile, a 6+ digit PIN, and the first account profile.
 - [ ] **SECU-01**: App requires the PIN on launch and after 15 minutes of inactivity.
 - [ ] **SECU-02**: Owner must confirm they have saved the one-time recovery key before onboarding can finish.
-- [ ] **SECU-03**: Owner can access advanced owner-only settings including feature flags, diagnostics, backup/restore, and reset tools.
+- [x] **SECU-03**: Owner can access advanced owner-only settings including feature flags, diagnostics, backup/restore, and reset tools.
 
 ### Accounts and Imports
 
@@ -54,8 +54,8 @@
 - [ ] **SUPP-01**: User can generate a redacted diagnostics bundle safe to share externally.
 - [ ] **SUPP-02**: App keeps fuller diagnostics locally for owner troubleshooting without exposing them by default.
 - [ ] **CRSH-01**: App stores crash reports locally unless the owner explicitly chooses to share them.
-- [ ] **SETG-01**: Settings screen includes theme, idle-lock timeout, encrypted backup/restore, diagnostics, feature flags, granular cleanup, and full reset controls.
-- [ ] **ACCS-01**: Core workflows support solid keyboard navigation and keyboard shortcuts.
+- [x] **SETG-01**: Settings screen includes theme, idle-lock timeout, encrypted backup/restore, diagnostics, feature flags, granular cleanup, and full reset controls.
+- [x] **ACCS-01**: Core workflows support solid keyboard navigation and keyboard shortcuts.
 
 ## v2 Requirements
 
@@ -104,7 +104,7 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 | ONBD-01 | Phase 1 | Complete |
 | SECU-01 | Phase 1 | Complete |
 | SECU-02 | Phase 1 | Complete |
-| SECU-03 | Phase 8 | Pending |
+| SECU-03 | Phase 8 | Complete |
 | ACCT-01 | Phase 1 | Complete |
 | IMPT-01 | Phase 2 | Pending |
 | IMPT-02 | Phase 2 | Pending |
@@ -133,8 +133,8 @@ Deferred to future releases. Tracked but not in the current roadmap for release 
 | SUPP-01 | Phase 7 | Pending |
 | SUPP-02 | Phase 7 | Pending |
 | CRSH-01 | Phase 7 | Pending |
-| SETG-01 | Phase 8 | Pending |
-| ACCS-01 | Phase 8 | Pending |
+| SETG-01 | Phase 8 | Complete |
+| ACCS-01 | Phase 8 | Complete |
 
 **Coverage:**
 - v1 requirements: 34 total
