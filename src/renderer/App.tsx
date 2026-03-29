@@ -297,17 +297,17 @@ const sidebarStyles = {
     display: 'flex',
     flexDirection: 'column' as const,
     alignItems: 'center',
-    gap: 'var(--space-xl)',
-    padding: 'var(--space-md) 0'
+    gap: 'var(--space-sm)',
+    padding: 'var(--space-sm) 0'
   },
   cluster: {
     display: 'grid',
-    gap: 'var(--space-md)'
+    gap: 'var(--space-sm)'
   },
   navButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     border: '1px solid rgba(30, 27, 22, 0.12)',
     background: 'rgba(245, 241, 232, 0.82)',
     color: 'var(--color-muted)',
@@ -320,9 +320,9 @@ const sidebarStyles = {
     border: '1px solid rgba(15, 118, 110, 0.3)'
   },
   navButtonMuted: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     border: '1px solid rgba(30, 27, 22, 0.08)',
     background: 'rgba(30, 27, 22, 0.04)',
     color: 'var(--color-muted)',
