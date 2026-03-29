@@ -56,8 +56,6 @@ import type {
   DashboardSnapshot,
   DashboardSnapshotQuery
 } from './dashboard'
-import type { AuditEvent } from './audit'
-import type { GenerateDiagnosticsBundleInput } from './diagnostics'
 
 export type AppView = 'onboarding' | 'locked' | 'dashboard'
 
@@ -122,6 +120,54 @@ export interface CompleteOnboardingInput {
   accountDraft?: AccountProfileDraft
 }
 
+export interface AppConfig {
+  theme: 'light' | 'dark' | 'system'
+  idleLockTimeoutMs: number
+  featureFlags: {
+    aiSummaries: boolean
+  }
+}
+
+export interface BackupResult {
+  ok: boolean
+  filePath?: string
+  error?: string
+}
+
+export interface RestoreResult {
+  ok: boolean
+  householdName?: string
+  error?: string
+}
+
+export interface ChangePinInput {
+  currentPin: string
+  newPin: string
+}
+
+export interface ClearTransactionsResult {
+  deletedCount: number
+}
+
+export interface BackupPayload {
+  version: 1
+  createdAt: string
+  householdName: string
+  tables: {
+    onboardingProgress: Record<string, unknown>
+    accountProfiles: Record<string, unknown>[]
+    importBatches: Record<string, unknown>[]
+    importAttempts: Record<string, unknown>[]
+    importSourceFiles: Record<string, unknown>[]
+    importedTransactions: Record<string, unknown>[]
+    reviewItems: Record<string, unknown>[]
+    categories: Record<string, unknown>[]
+    categorizationRules: Record<string, unknown>[]
+    auditEvents: Record<string, unknown>[]
+    appSettings: Array<{ key: string; value: string }>
+  }
+}
+
 export interface WalnutApi {
   loadAppState: () => Promise<AppShellState>
   saveOnboardingProgress: (input: SaveOnboardingProgressInput) => Promise<AppShellState>
@@ -167,5 +213,12 @@ export interface WalnutApi {
   getDashboardSnapshot: (input: DashboardSnapshotQuery) => Promise<DashboardSnapshot>
   getRecurringDetail: (input: DashboardRecurringDetailInput) => Promise<DashboardRecurringDetail>
   generateDiagnosticsBundle: (input: GenerateDiagnosticsBundleInput) => Promise<string>
+  getAppConfig: () => Promise<AppConfig>
+  setAppConfig: (input: Partial<AppConfig>) => Promise<AppConfig>
+  changePin: (input: ChangePinInput) => Promise<{ ok: boolean; error?: string }>
+  exportBackup: (pin: string) => Promise<BackupResult>
+  importBackup: (pin: string) => Promise<RestoreResult>
+  clearTransactions: () => Promise<ClearTransactionsResult>
+  fullReset: () => Promise<AppShellState>
   ping: () => Promise<string>
 }
