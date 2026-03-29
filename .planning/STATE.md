@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-last_updated: "2026-03-29T07:41:28.029Z"
+status: Ready to execute
+last_updated: "2026-03-29T13:27:43.070Z"
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 26
-  completed_plans: 26
+  total_plans: 30
+  completed_plans: 27
 ---
 
 # State: Walnut Expense Analyser
@@ -22,15 +22,15 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-27)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 07 — audit-and-diagnostics
+**Current focus:** Phase 08 — settings-and-release-hardening
 
 **Active implementation branch:** `phase/6-dashboard-analytics`
 **Current branch focus:** Phase 6 dashboard analytics implementation and verification
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
+Phase: 08 (settings-and-release-hardening) — EXECUTING
+Plan: 2 of 4
 
 - Repo now includes the initial desktop shell, onboarding flow, lock screen, and the full Phase 2 statement import pipeline.
 - The current branch also includes responsive shell updates, multi-profile lock-screen selection, import-workspace cleanup, and ledger polish on top of the Phase 4 transaction workspace.
