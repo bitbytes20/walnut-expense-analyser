@@ -83,7 +83,7 @@ Inherited from `tokens.css`. No new colors introduced.
 
 Accent (`var(--color-accent)`) is reserved for:
 1. The "Apply" / primary confirm button inside the bulk category/tag dropdowns in the transaction bulk action bar
-2. The "Save" confirm button that appears inline in the filter drawer when naming a new preset
+2. The "Save preset" confirm button that appears inline in the filter drawer when naming a new preset
 3. The kicker label "Bulk actions" text in `TransactionBulkActionBar` (follows `ReviewBulkActionBar` existing pattern)
 4. Focused checkbox outline ring (`:focus-visible` outline — `2px solid var(--color-accent)`)
 5. Focused preset list item restore button (primary restore pill when focused or hovered)
@@ -166,8 +166,8 @@ Primary focal point per surface:
   - Rename: double-click on preset name converts it to an inline `<input>` with the current name pre-filled. `Enter` or blur confirms. `Escape` cancels.
 - **Preset list (empty state — Claude's Discretion):** Thin helper note: `"No presets saved yet. Set your filters then save them as a preset below."` — `fontSize: 14, color: var(--color-muted), fontStyle: italic`. Vertically compact; does not inflate the drawer height. (Label role — `color: var(--color-muted)` provides the visual de-emphasis without a smaller font size.)
 - **"Save as preset" button:** Bottom of the filter drawer. Secondary pill button. Label: "Save as preset". Only shown when at least one filter is active (to avoid saving empty filter sets).
-- **Naming inline input (D-14):** Clicking "Save as preset" replaces the button inline with a text `<input>` + "Save" button row. `<input>` `placeholder="Preset name"`, `autoFocus`, `maxLength={64}`. "Save" is accent-primary and disabled until input is non-empty. `Escape` cancels and restores the "Save as preset" button.
-- **Delete confirmation:** Inline — clicking the trash icon shows a mini confirm row in-place: `"Delete "{name}"?"` with "Delete" (destructive text) and "Cancel" (muted text) side by side at `fontSize: 14`. No modal overlay. (Label role — `color: var(--color-muted)` / `color: var(--color-destructive)` provide the visual hierarchy.)
+- **Naming inline input (D-14):** Clicking "Save as preset" replaces the button inline with a text `<input>` + "Save preset" button row. `<input>` `placeholder="Preset name"`, `autoFocus`, `maxLength={64}`. "Save preset" is accent-primary and disabled until input is non-empty. `Escape` cancels and restores the "Save as preset" button.
+- **Delete confirmation:** Inline — clicking the trash icon shows a mini confirm row in-place: `"Delete "{name}"?"` with "Delete" (destructive text) and "Keep preset" (muted text) side by side at `fontSize: 14`. No modal overlay. (Label role — `color: var(--color-muted)` / `color: var(--color-destructive)` provide the visual hierarchy.)
 - **Preset storage:** SQLite via IPC (D-12). Preset list is fetched on filter drawer open and on any CRUD operation. No localStorage fallback.
 
 ---
@@ -187,7 +187,7 @@ All components are inline React with inline style objects — no new component l
 | "Replace file" retry button | Secondary pill button at bottom of error panel | New for Phase 9 |
 | Filter preset strip in drawer | Flat list at top of `TransactionFilterDrawer`, separated by `<hr>` | New for Phase 9 |
 | Inline preset name input | Inline `<input>` replacing preset name text on double-click | New for Phase 9 |
-| "Save as preset" inline input row | Replaces button on click: input + "Save" accent button | New for Phase 9 |
+| "Save as preset" inline input row | Replaces button on click: input + "Save preset" accent button | New for Phase 9 |
 | Inline delete confirm strip | Two-button confirm row replacing trash icon on click | New for Phase 9 |
 
 ---
@@ -214,10 +214,10 @@ All components are inline React with inline style objects — no new component l
 | Filter drawer — empty preset note | `No presets saved yet. Set your filters then save them as a preset below.` |
 | Filter drawer — save button | `Save as preset` |
 | Filter drawer — name input placeholder | `Preset name` |
-| Filter drawer — save confirm button | `Save` |
+| Filter drawer — save confirm button | `Save preset` |
 | Filter drawer — delete confirm prompt | `Delete "{name}"?` |
 | Filter drawer — delete confirm action | `Delete` |
-| Filter drawer — delete cancel | `Cancel` |
+| Filter drawer — delete cancel | `Keep preset` |
 | Keyboard shortcut `A` tooltip | `Approve (A)` — appended to existing `title` on approve button |
 | Keyboard shortcut `R` tooltip | `Reject (R)` — appended to existing `title` on reject button |
 
@@ -288,3 +288,4 @@ No third-party component registries are used. All UI is built from inline React 
 |------|--------|
 | 2026-03-30 | Initial draft |
 | 2026-03-30 | Typography fix (checker revision): replaced Display (32px, unused in phase) with Caption (12px / 400 / 1.4) to cover row number label and "Restore" button; removed `fontSize: 13` from Interaction Contracts (empty preset note and delete confirm strip now use Label 14px — `color: var(--color-muted)` provides the visual de-emphasis); `fontSize: 12` row number label weight corrected from 600 to 400 (Caption role). Table now has exactly 4 rows and all sizes in use are covered. |
+| 2026-03-30 | Copywriting fix (checker revision): filter drawer save confirm button relabelled from `Save` to `Save preset` (removes generic single-word label); delete cancel button relabelled from `Cancel` to `Keep preset` (names what is preserved in the delete-confirm context). Same labels updated in Color section accent reserved-for list, Interaction Contracts prose, and Component Inventory table for consistency. |
