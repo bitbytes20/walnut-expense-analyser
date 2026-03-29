@@ -35,7 +35,6 @@ export const AppShell = ({ title, eyebrow, actions, sidebar, appName = 'Walnut E
 const shellStyles = {
   root: {
     height: '100vh',
-    overflow: 'hidden',
     padding: 'var(--space-xl)',
     display: 'flex',
     flexDirection: 'column' as const,
@@ -88,14 +87,13 @@ const shellStyles = {
   },
   workspaceFrame: {
     flex: 1,
-    display: 'grid',
-    gridTemplateColumns: '72px minmax(0, 1fr)',
-    gridTemplateRows: '1fr',
-    gap: 'var(--space-xl)',
-    alignItems: 'stretch'
+    minHeight: 0,
+    display: 'flex',
+    gap: 'var(--space-xl)'
   },
   sidebar: {
-    minHeight: '100%',
+    flexShrink: 0,
+    width: 72,
     borderRadius: 'var(--radius-xl)',
     border: '1px solid var(--color-border)',
     background: 'rgba(226, 215, 197, 0.64)',
@@ -108,9 +106,9 @@ const shellStyles = {
     placeItems: 'center'
   },
   workspaceMain: {
+    flex: 1,
     minWidth: 0,
-    overflowY: 'auto' as const,
-    display: 'grid',
-    alignItems: 'start'
+    minHeight: 0,
+    overflowY: 'auto' as const
   }
 }
