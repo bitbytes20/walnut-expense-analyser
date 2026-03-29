@@ -105,6 +105,30 @@ export const verifyRecoveryInput = (input: string, encryptedCode?: string, encry
   return normalized === plainCode || normalized === plainWords
 }
 
+export const changePin = async (currentPin: string, newPin: string): Promise<{ ok: boolean; error?: string }> => {
+  const repository = getWalnutRepository()
+  const state = repository.loadAppState().security
+
+  if (!state.pinHash) {
+    return { ok: false, error: 'No PIN is set.' }
+  }
+
+  const matched = await verify(state.pinHash, currentPin)
+  if (!matched) {
+    repository.logSecurityEvent('security.pin_change_failed', { reason: 'wrong_current_pin' })
+    return { ok: false, error: 'Current PIN is incorrect.' }
+  }
+
+  if (!isValidPin(newPin)) {
+    return { ok: false, error: 'New PIN must be numeric and at least 6 digits long.' }
+  }
+
+  const newHash = await hash(newPin)
+  repository.updateSecurityState({ pinHash: newHash })
+  repository.logSecurityEvent('security.pin_changed', { changedAt: nowIso() })
+  return { ok: true }
+}
+
 export const beginRecoveryReset = async (payload: RecoveryResetPayload) => {
   if (!isValidPin(payload.newPin)) {
     throw new Error('PIN must be numeric and at least 6 digits long.')

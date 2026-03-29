@@ -3803,6 +3803,53 @@ export class WalnutRepository {
 
     return true
   }
+
+  clearTransactionsAndAudit(): ClearTransactionsResult {
+    const txnIds = (this.sqlite.prepare('SELECT id FROM imported_transactions').all() as Array<{ id: string }>).map((r) => r.id)
+    const deletedCount = txnIds.length
+
+    this.sqlite.exec('BEGIN')
+    try {
+      if (txnIds.length > 0) {
+        for (let i = 0; i < txnIds.length; i += 500) {
+          const chunk = txnIds.slice(i, i + 500)
+          const placeholders = chunk.map(() => '?').join(',')
+          this.sqlite.prepare(`DELETE FROM audit_events WHERE entity_id IN (${placeholders})`).run(...chunk)
+        }
+      }
+      this.sqlite.prepare("DELETE FROM audit_events WHERE category = 'transaction'").run()
+      this.sqlite.exec(`
+        DELETE FROM imported_transactions;
+        DELETE FROM review_items;
+        DELETE FROM import_source_files;
+        DELETE FROM import_attempts;
+        DELETE FROM import_batches;
+      `)
+      this.sqlite.exec('COMMIT')
+    } catch (e) {
+      this.sqlite.exec('ROLLBACK')
+      throw e
+    }
+
+    return { deletedCount }
+  }
+
+  fullAppReset(): AppShellState {
+    this.clearWorkspaceTables()
+    this.sqlite.exec(`
+      DELETE FROM categories;
+      DELETE FROM categorization_rules;
+      DELETE FROM audit_events;
+      DELETE FROM app_settings;
+      DELETE FROM device_profiles;
+      DELETE FROM device_profile_snapshots;
+    `)
+    this.resetWorkspaceRows()
+    const stamp = nowIso()
+    this.seedSystemCategories(stamp)
+    this.seedStarterRules(stamp)
+    return this.loadAppState()
+  }
 }
 
 let repositoryInstance: WalnutRepository | undefined
@@ -3810,4 +3857,9 @@ let repositoryInstance: WalnutRepository | undefined
 export const getWalnutRepository = () => {
   repositoryInstance ??= new WalnutRepository()
   return repositoryInstance
+}
+
+/** For unit tests only — overrides the singleton with a pre-constructed instance (pass undefined to reset) */
+export const _setRepositoryForTesting = (repo: WalnutRepository | undefined) => {
+  repositoryInstance = repo
 }
