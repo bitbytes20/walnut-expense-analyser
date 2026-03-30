@@ -20,7 +20,7 @@ export const TransactionRuleSuggestionSchema = z.object({
   draft: z.object({
     name: z.string(),
     condition: z.object({
-      descriptionContains: z.array(z.string()),
+      descriptionTerms: z.array(z.object({ op: z.enum(['contains', 'starts-with', 'ends-with', 'regex']), value: z.string() })),
       amountMinMinor: z.number().optional(),
       amountMaxMinor: z.number().optional(),
       transactionTypes: z.array(TransactionNormalizedTypeSchema),

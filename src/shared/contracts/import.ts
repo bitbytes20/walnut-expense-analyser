@@ -219,6 +219,11 @@ export interface GetReviewQueueInput {
   state?: ReviewItemState
 }
 
+export interface RuleCategorization {
+  ruleName: string
+  count: number
+}
+
 export interface CommitImportBatchResult {
   attemptId: string
   batchId: string
@@ -233,6 +238,7 @@ export interface CommitImportBatchResult {
   reviewItems: ReviewItem[]
   summary: ImportAttemptSummary
   lazyAccountCreated?: boolean
+  ruleCategorizations?: RuleCategorization[]
 }
 
 export interface PriorImportBatchInspection {
