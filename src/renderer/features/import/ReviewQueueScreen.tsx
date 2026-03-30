@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ImportBatchDetail, ReviewItemEditInput, ReviewItemResolutionAction } from '../../../shared/contracts/import'
+import type { BulkResolveResult, ImportBatchDetail, ReviewItemEditInput, ReviewItemResolutionAction } from '../../../shared/contracts/import'
 import { ReviewBatchGroup } from './ReviewBatchGroup'
 import { ReviewBulkActionBar } from './ReviewBulkActionBar'
 import { ReviewDetailPanel } from './ReviewDetailPanel'
@@ -80,6 +80,7 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
   const [selectedReviewItemIds, setSelectedReviewItemIds] = useState<string[]>([])
   const [knownTotals, setKnownTotals] = useState<Record<string, number>>({})
   const [restoreContext, setRestoreContext] = useState<{ batchId: string; reviewItemIds: string[]; message: string }>()
+  const [lastBulkResult, setLastBulkResult] = useState<BulkResolveResult | null>(null)
 
   const loadQueue = useCallback(
     async (preferredBatchId?: string) => {
@@ -325,11 +326,37 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
       <ReviewBulkActionBar
         selectedCount={selectedReviewItemIds.length}
         busy={mutating}
-        onAction={(action, options) => {
+        bulkResult={lastBulkResult}
+        onAction={async (action, options) => {
           if (!activeBatch) {
             return
           }
-          void resolveItems(activeBatch.summary.batchId, selectedReviewItemIds, action, options)
+          setMutating(true)
+          try {
+            const result = await window.walnut.resolveReviewItemsBulk({
+              batchId: activeBatch.summary.batchId,
+              reviewItemIds: selectedReviewItemIds,
+              action,
+              tag: options?.tag
+            })
+            setLastBulkResult(result.bulkResult)
+            setRestoreContext({
+              batchId: activeBatch.summary.batchId,
+              reviewItemIds: selectedReviewItemIds,
+              message: 'Bulk action saved. Restore review items if this was a mistake.'
+            })
+            window.localStorage.setItem(
+              getRestoreStorageKey(initialBatchId),
+              JSON.stringify({
+                batchId: activeBatch.summary.batchId,
+                reviewItemIds: selectedReviewItemIds,
+                message: 'Bulk action saved. Restore review items if this was a mistake.'
+              })
+            )
+            await Promise.all([loadQueue(activeBatch.summary.batchId), refreshRelatedViews(activeBatch.summary.batchId)])
+          } finally {
+            setMutating(false)
+          }
         }}
       />
 

@@ -58,6 +58,7 @@ import type {
   UpdateCategorizationRuleInput
 } from '../../shared/contracts/categories'
 import type {
+  BulkResolveResult,
   CommitImportBatchResult,
   GetImportBatchDetailInput,
   GetReviewQueueInput,
@@ -2486,6 +2487,90 @@ export class WalnutRepository {
 
     transaction()
     return this.getImportBatchDetail({ batchId: sanitized.batchId })
+  }
+
+  resolveBulkReviewItems(input: ReviewItemResolutionInput): { batchDetail: ImportBatchDetail; bulkResult: BulkResolveResult } {
+    if (input.reviewItemIds.length === 0) {
+      return {
+        batchDetail: this.getImportBatchDetail({ batchId: input.batchId }),
+        bulkResult: { approvedCount: 0, skippedCount: 0 }
+      }
+    }
+
+    const stamp = nowIso()
+    const sanitized = this.sanitizeResolutionInput(input)
+
+    // Check which items have an active import gate (unresolved duplicate-candidate sibling in the same batch)
+    const hasDuplicateGate = (this.sqlite
+      .prepare(
+        `SELECT COUNT(*) as cnt
+         FROM review_items
+         WHERE batch_id = ?
+           AND reason_code = 'duplicate-candidate'
+           AND state = 'pending'`
+      )
+      .get(sanitized.batchId) as { cnt: number }).cnt > 0
+
+    let approvedCount = 0
+    let skippedCount = 0
+
+    const transaction = this.sqlite.transaction(() => {
+      const updateReviewItem = this.sqlite.prepare(
+        `UPDATE review_items
+         SET state = ?, updated_at = ?, resolution_action = ?, resolution_payload_json = ?, resolved_at = ?, restored_at = NULL
+         WHERE id = ?`
+      )
+
+      for (const reviewItemId of sanitized.reviewItemIds) {
+        // Fetch the pending row for this specific item
+        const reviewRow = this.sqlite
+          .prepare(
+            `SELECT * FROM review_items WHERE batch_id = ? AND id = ? AND state = 'pending'`
+          )
+          .get(sanitized.batchId, reviewItemId) as ReviewItemRow | undefined
+
+        if (!reviewRow) {
+          // Item not found or not pending — skip silently
+          skippedCount++
+          continue
+        }
+
+        // If there is an active import gate and this item is not itself a duplicate-candidate, skip it
+        if (hasDuplicateGate && reviewRow.reason_code !== 'duplicate-candidate') {
+          skippedCount++
+          continue
+        }
+
+        this.applyResolutionEffects(reviewRow, sanitized)
+        updateReviewItem.run(
+          'resolved',
+          stamp,
+          sanitized.action,
+          JSON.stringify(this.buildResolutionPayload(sanitized)),
+          stamp,
+          reviewRow.id
+        )
+        this.insertReviewAuditEvent('review:resolved', {
+          action: sanitized.action,
+          batchId: sanitized.batchId,
+          reviewItemIds: [reviewRow.id]
+        }, stamp)
+        approvedCount++
+      }
+
+      this.refreshImportAttemptReviewState(sanitized.batchId, stamp)
+    })
+
+    transaction()
+
+    return {
+      batchDetail: this.getImportBatchDetail({ batchId: sanitized.batchId }),
+      bulkResult: {
+        approvedCount,
+        skippedCount,
+        skippedReason: skippedCount > 0 ? 'import gate still active' : undefined
+      }
+    }
   }
 
   restoreReviewItems(input: ReviewItemRestoreInput): ImportBatchDetail {

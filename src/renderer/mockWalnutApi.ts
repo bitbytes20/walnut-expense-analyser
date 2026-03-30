@@ -1376,6 +1376,13 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
 
     return nextDetail
   },
+  async resolveReviewItemsBulk(input: ReviewItemResolutionInput): Promise<{ batchDetail: ImportBatchDetail; bulkResult: { approvedCount: number; skippedCount: number; skippedReason?: string } }> {
+    const batchDetail = await this.resolveReviewItems(input)
+    return {
+      batchDetail,
+      bulkResult: { approvedCount: input.reviewItemIds.length, skippedCount: 0 }
+    }
+  },
   async restoreReviewItems(input: ReviewItemRestoreInput): Promise<ImportBatchDetail> {
     const details = readImportBatchDetails()
     const detail = details[input.batchId]

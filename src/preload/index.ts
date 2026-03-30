@@ -24,6 +24,7 @@ const walnutApi: WalnutApi = {
   getImportBatchDetail: (input) => ipcRenderer.invoke('import:get-batch-detail', input),
   getReviewQueue: (input) => ipcRenderer.invoke('import:get-review-queue', input),
   resolveReviewItems: (input) => ipcRenderer.invoke('import:resolve-review-items', input),
+  resolveReviewItemsBulk: (input) => ipcRenderer.invoke('import:resolve-review-items-bulk', input),
   restoreReviewItems: (input) => ipcRenderer.invoke('import:restore-review-items', input),
   listTransactions: (input) => ipcRenderer.invoke('transactions:list', input),
   getTransactionDetail: (input) => ipcRenderer.invoke('transactions:get-detail', input),
