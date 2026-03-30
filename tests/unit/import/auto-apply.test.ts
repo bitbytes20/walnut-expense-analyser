@@ -304,7 +304,7 @@ describe('Phase 10: auto-apply rules at import commit', () => {
     // Disabled rule should not apply
     expect(results).toHaveLength(0)
     const transactions = repository.listTransactions({ search: 'burger' })
-    expect(transactions[0].categoryId).toBeNull()
+    expect(transactions[0].categoryId).toBeUndefined()
 
     repository.close()
   })

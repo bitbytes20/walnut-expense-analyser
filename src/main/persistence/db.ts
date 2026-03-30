@@ -2112,6 +2112,100 @@ export class WalnutRepository {
     return this.listRules()
   }
 
+  reorderRules(ruleIds: string[]): CategorizationRuleSummary[] {
+    const updateOrder = this.sqlite.transaction(() => {
+      ruleIds.forEach((id, index) => {
+        this.sqlite
+          .prepare('UPDATE categorization_rules SET sort_order = ?, updated_at = ? WHERE id = ? AND is_system = 0')
+          .run(index + 1, nowIso(), id)
+      })
+    })
+    updateOrder()
+    return this.listRules()
+  }
+
+  applyAllRulesToTransactions(batchId: string): Array<{ ruleName: string; count: number }> {
+    // Fetch enabled user rules in sort_order ASC
+    const rules = this.sqlite
+      .prepare(
+        `SELECT id, name, condition_json, action_json FROM categorization_rules
+         WHERE is_enabled = 1 AND is_system = 0
+         ORDER BY sort_order ASC`
+      )
+      .all() as Array<{ id: string; name: string; condition_json: string; action_json: string }>
+
+    // Fetch uncategorized transactions from this batch
+    const transactions = this.sqlite
+      .prepare(
+        `SELECT t.*, s.file_name, a.batch_label, a.imported_at,
+            0 AS has_pending_review
+         FROM imported_transactions t
+         INNER JOIN import_source_files s ON s.id = t.source_file_id
+         INNER JOIN import_attempts a ON a.batch_id = t.import_batch_id
+         WHERE t.import_batch_id = ? AND (t.category_id IS NULL OR t.category_id = '')`
+      )
+      .all(batchId) as Array<Record<string, unknown>>
+
+    const counts = new Map<string, number>()
+
+    const applyRules = this.sqlite.transaction(() => {
+      for (const rawTx of transactions) {
+        const ledgerRow = this.mapTransactionLedgerRow(rawTx)
+        for (const rule of rules) {
+          const condition = this.parseRuleCondition(rule.condition_json)
+          const action = this.parseRuleAction(rule.action_json)
+          if (this.matchesRuleCondition(ledgerRow, condition)) {
+            // Apply category
+            if (action.categoryId) {
+              const categoryPath = this.getCategoryPathById(action.categoryId)
+              this.sqlite
+                .prepare(
+                  'UPDATE imported_transactions SET category_id = ?, category_label = ? WHERE id = ?'
+                )
+                .run(action.categoryId, categoryPath.join(' > '), ledgerRow.id)
+            }
+            // Apply tags
+            if (action.appendTags?.length) {
+              const existingTags = ledgerRow.tags ?? []
+              const merged = Array.from(new Set([...existingTags, ...action.appendTags]))
+              this.sqlite
+                .prepare('UPDATE imported_transactions SET tags_json = ? WHERE id = ?')
+                .run(JSON.stringify(merged), ledgerRow.id)
+            }
+
+            // Emit audit event
+            this.sqlite
+              .prepare(
+                'INSERT INTO audit_events (id, timestamp_iso, category, event_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?)'
+              )
+              .run(
+                crypto.randomUUID(),
+                nowIso(),
+                'transaction',
+                'transaction:auto-categorized',
+                ledgerRow.id,
+                JSON.stringify({
+                  transactionId: ledgerRow.id,
+                  ruleName: rule.name,
+                  ruleId: rule.id,
+                  categoryId: action.categoryId ?? null,
+                  batchId
+                })
+              )
+
+            counts.set(rule.name, (counts.get(rule.name) ?? 0) + 1)
+            break // first match wins
+          }
+        }
+      }
+    })
+    applyRules()
+
+    return Array.from(counts.entries())
+      .map(([ruleName, count]) => ({ ruleName, count }))
+      .filter((entry) => entry.count > 0)
+  }
+
   testRule(input: RulePreviewInput): RuleTestPreview {
     return this.buildRulePreview(this.normalizeRuleCondition(input.condition), this.normalizeRuleAction(input.action), input.excludeRuleId)
   }

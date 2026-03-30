@@ -37,6 +37,7 @@ import type {
   DeleteCategorizationRuleInput,
   MergeCategoryInput,
   MergeCategoryPreview,
+  ReorderRulesInput,
   RuleApplyPreview,
   RulePreviewInput,
   RuleTestPreview,
@@ -219,6 +220,7 @@ export interface WalnutApi {
   updateRule: (input: UpdateCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
   toggleRule: (input: ToggleCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
   deleteRule: (input: DeleteCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
+  reorderRules: (input: ReorderRulesInput) => Promise<CategorizationRuleSummary[]>
   testRule: (input: RulePreviewInput) => Promise<RuleTestPreview>
   previewRuleApplyToExisting: (input: RulePreviewInput | ApplyRuleToExistingInput) => Promise<RuleApplyPreview>
   applyRuleToExisting: (input: ApplyRuleToExistingInput) => Promise<CategorizationRuleSummary[]>

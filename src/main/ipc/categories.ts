@@ -7,6 +7,7 @@ import type {
   DeleteCategoryInput,
   DeleteCategorizationRuleInput,
   MergeCategoryInput,
+  ReorderRulesInput,
   RulePreviewInput,
   ToggleCategorizationRuleInput,
   UpdateCategoryInput,
@@ -34,6 +35,7 @@ export const registerCategoriesIpc = () => {
   ipcMain.handle('rules:update', (_event, input: UpdateCategorizationRuleInput) => repository.updateRule(input))
   ipcMain.handle('rules:toggle', (_event, input: ToggleCategorizationRuleInput) => repository.toggleRule(input))
   ipcMain.handle('rules:delete', (_event, input: DeleteCategorizationRuleInput) => repository.deleteRule(input))
+  ipcMain.handle('rules:reorder', (_event, input: ReorderRulesInput) => repository.reorderRules(input.ruleIds))
   ipcMain.handle('rules:test', (_event, input: RulePreviewInput) => repository.testRule(input))
   ipcMain.handle('rules:preview-apply', (_event, input: RulePreviewInput | ApplyRuleToExistingInput) =>
     repository.previewRuleApplyToExisting(input)

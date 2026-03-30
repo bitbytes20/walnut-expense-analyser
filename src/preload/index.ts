@@ -41,6 +41,7 @@ const walnutApi: WalnutApi = {
   updateRule: (input) => ipcRenderer.invoke('rules:update', input),
   toggleRule: (input) => ipcRenderer.invoke('rules:toggle', input),
   deleteRule: (input) => ipcRenderer.invoke('rules:delete', input),
+  reorderRules: (input) => ipcRenderer.invoke('rules:reorder', input),
   testRule: (input) => ipcRenderer.invoke('rules:test', input),
   previewRuleApplyToExisting: (input) => ipcRenderer.invoke('rules:preview-apply', input),
   applyRuleToExisting: (input) => ipcRenderer.invoke('rules:apply', input),
