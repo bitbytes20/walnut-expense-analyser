@@ -130,6 +130,11 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
     setActivePanel({ type: 'prior-batch', fileId, details })
   }
 
+  const handleRetry = async (stagedFileId: string) => {
+    const result = await window.walnut.replaceStagedFile({ stagedFileId })
+    updateStage(result)
+  }
+
   const activeFile = activePanel?.fileId ? stagedFiles.find((file) => file.id === activePanel.fileId) : undefined
   const canImport = stagedFiles.some((file) => file.status === 'ready')
 
@@ -228,6 +233,7 @@ export const ImportWorkspace = ({ onBackToDashboard, onOpenHistory }: ImportWork
                           onViewReason={(fileId) => setActivePanel({ type: 'reason', fileId })}
                           onViewEarlierBatch={(fileId) => void handleViewEarlierBatch(fileId)}
                           onRemove={(fileId) => void handleRemove(fileId)}
+                          onRetry={file.status === 'rejected' ? (fileId) => void handleRetry(fileId) : undefined}
                         />
                       ))}
                     </div>
