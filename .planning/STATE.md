@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: "Release 2: Core"
 status: executing
-last_updated: "2026-03-30T03:46:14.756Z"
+last_updated: "2026-03-30T04:06:55.889Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 35
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # State: Walnut Expense Analyser
@@ -30,7 +30,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-29)
 ## Current Position
 
 Phase: 09 (workflow-polish) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -114,6 +114,7 @@ Progress: [░░░░░░] 0/6 phases complete
 - 2026-03-29: Phase 7 and Phase 8 completed; v1.0 shipped
 - 2026-03-30: v2.0 roadmap created — Phases 9-14, 49 requirements mapped
 - 2026-03-30: Phase 9 planned — 5 plans (09-01 to 09-05), 2 waves, WORKFLOW-01 through WORKFLOW-09 covered
+- 2026-03-30: Phase 9 Plan 03 executed — keyboard shortcuts (A/R/arrows), focus auto-advance, mixed-state bulk approve with count summary
 
 ## Phase 8 Decisions
 
@@ -133,10 +134,18 @@ Progress: [░░░░░░] 0/6 phases complete
 - replaceStagedFile deletes old staged entry and re-parses new file while preserving all other staged entries in coordinator
 - Wave 0 test scaffolds use it.todo() stubs so vitest run passes without implementation (stubs enabled in Wave 2 plans)
 
+## Phase 9 Plan 03 Decisions
+
+- handleReviewKeydown extracted as exported pure function with ReviewKeyboardContext interface for unit testing without React rendering
+- flatItems useMemo flattens filteredQueue into batchId/itemId pairs for clamped linear keyboard navigation
+- Import gate = any pending duplicate-candidate item in the batch; non-gate items skipped when gate active; gate items can still be resolved
+- resolveBulkReviewItems is a new repository method; resolveReviewItems unchanged for single-item backward compatibility
+- BulkResolveResult shown in ReviewBulkActionBar as inline text fading after 4 seconds with no pre-action prompt
+
 ## Immediate Next Action
 
-Phase 9 Plan 01 complete. Contracts, DB schema, IPC handlers, and test scaffolds in place.
-Next: Execute 09-02-PLAN.md (multi-select + bulk categorization renderer)
+Phase 9 Plan 03 complete. Keyboard navigation, A/R shortcuts, and mixed-state bulk approve with count summary shipped.
+Next: Execute 09-04-PLAN.md (transaction multi-select range) or 09-05-PLAN.md (filter presets) in parallel.
 
 ---
-*Last updated: 2026-03-30 — Phase 9 Plan 01 complete*
+*Last updated: 2026-03-30 — Phase 9 Plan 03 complete*
