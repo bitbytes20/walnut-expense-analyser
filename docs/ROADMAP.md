@@ -75,6 +75,7 @@ Key capabilities:
 Goal: users can author precise, composable categorization rules and trust that category renames and merges do not silently corrupt rule targets or transaction labels.
 Requirements: RULES-01 to RULES-11 (11 requirements)
 Epic: [#10](https://github.com/bitbytes20/walnut-expense-analyser/issues/10)
+Status: completed on `phase/10-rule-system-expansion` — PR [#57](https://github.com/bitbytes20/walnut-expense-analyser/pull/57) pending merge into `release/1.1.0`
 
 Key capabilities:
 - Contains / starts-with / ends-with / amount-range match operators
@@ -301,6 +302,44 @@ Execution artifacts:
 - `.planning/phases/08-settings-and-release-hardening/08-03-SUMMARY.md`
 - `.planning/phases/08-settings-and-release-hardening/08-04-SUMMARY.md`
 - `.planning/phases/08-settings-and-release-hardening/08-VERIFICATION.md`
+
+## Phase 9 Completed Waves
+
+Phase 9 was decomposed into execution waves and is now implemented:
+
+- Wave 1: multi-select transactions, batch categorize and tag, shift+click and select-all
+- Wave 2: batch approve/dismiss review queue with gating rules respected
+- Wave 3: keyboard shortcuts for review queue (A/R/arrows) and structured import error messages
+- Wave 4: saved named filter presets with one-click restore, rename, and delete
+
+Execution artifacts:
+
+- `.planning/phases/09-workflow-polish/09-01-SUMMARY.md`
+- `.planning/phases/09-workflow-polish/09-02-SUMMARY.md`
+- `.planning/phases/09-workflow-polish/09-03-SUMMARY.md`
+- `.planning/phases/09-workflow-polish/09-04-SUMMARY.md`
+- `.planning/phases/09-workflow-polish/09-VERIFICATION.md`
+- GitHub epic `#9`
+
+## Phase 10 Completed Waves
+
+Phase 10 was decomposed into five execution waves and all five are now implemented:
+
+- Wave 1: extended match operators (contains / starts-with / ends-with / amount-range) and multi-condition AND rules
+- Wave 2: drag-and-drop rule priority (first-match-wins) with persistence
+- Wave 3: category rename and merge with atomic propagation to transactions and rule targets
+- Wave 4: category archive/restore, regex match operator with live preview and ReDoS guard, rule export/import as JSON with conflict detection
+- Wave 5: user-authored rules auto-applied at import commit time (correctness fix) and verification coverage
+
+Execution artifacts:
+
+- `.planning/phases/10-rule-system-expansion/10-01-SUMMARY.md`
+- `.planning/phases/10-rule-system-expansion/10-02-SUMMARY.md`
+- `.planning/phases/10-rule-system-expansion/10-03-SUMMARY.md`
+- `.planning/phases/10-rule-system-expansion/10-04-SUMMARY.md`
+- `.planning/phases/10-rule-system-expansion/10-05-SUMMARY.md`
+- GitHub epic `#10`
+- GitHub PR `#57`
 
 ## How We Track Delivery
 
