@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, ArrowUpDown, Pencil } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import type { TransactionLedgerRow } from '../../../shared/contracts/transactions'
 
 interface TransactionLedgerTableProps {
@@ -7,6 +8,9 @@ interface TransactionLedgerTableProps {
   activeTransactionId?: string
   sortKey: SortKey
   sortDirection: SortDirection
+  selectedIds: Set<string>
+  onSelect: (id: string, checked: boolean, shiftHeld: boolean) => void
+  onSelectAll: (checked: boolean) => void
   onSort: (key: SortKey) => void
   onOpen: (transactionId: string) => void
 }
@@ -45,9 +49,25 @@ export const TransactionLedgerTable = ({
   activeTransactionId,
   sortKey,
   sortDirection,
+  selectedIds,
+  onSelect,
+  onSelectAll,
   onSort,
   onOpen
 }: TransactionLedgerTableProps) => {
+  const selectAllRef = useRef<HTMLInputElement>(null)
+
+  const selectedOnPage = rows.filter((row) => selectedIds.has(row.id)).length
+  const allSelected = rows.length > 0 && selectedOnPage === rows.length
+  const someSelected = selectedOnPage > 0 && selectedOnPage < rows.length
+
+  // React does not support declarative `indeterminate` — set via ref
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected
+    }
+  }, [someSelected])
+
   if (loading) {
     return <section style={styles.loadingCard}>Loading transactions...</section>
   }
@@ -57,6 +77,15 @@ export const TransactionLedgerTable = ({
       <table style={styles.table}>
         <thead>
           <tr>
+            <th style={{ ...styles.headerCell, width: 40, padding: 'var(--space-md)' }}>
+              <input
+                type="checkbox"
+                ref={selectAllRef}
+                aria-label="Select all on this page"
+                checked={allSelected}
+                onChange={(e) => onSelectAll(e.currentTarget.checked)}
+              />
+            </th>
             <th style={styles.headerCell}>
               <button type="button" style={styles.sortButton} onClick={() => onSort('date')}>
                 Date
@@ -88,44 +117,59 @@ export const TransactionLedgerTable = ({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr
-              key={row.id}
-              style={{
-                ...styles.row,
-                ...(activeTransactionId === row.id ? styles.rowActive : undefined)
-              }}
-            >
-              <td style={styles.cellMeta}>{row.transactionDateRaw}</td>
-              <td style={styles.cellPrimary}>
-                <div style={styles.description}>{row.description}</div>
-                {row.reference ? <div style={styles.reference}>{row.reference}</div> : null}
-              </td>
-              <td style={styles.cellAmount}>{row.debitAmountMinor ? formatAmount(row.debitAmountMinor) : '-'}</td>
-              <td style={{ ...styles.cellAmount, color: row.creditAmountMinor ? 'var(--color-accent)' : 'var(--color-muted)' }}>
-                {row.creditAmountMinor ? formatAmount(row.creditAmountMinor) : '-'}
-              </td>
-              <td style={styles.cellAmount}>{row.runningBalanceMinor !== undefined ? formatAmount(row.runningBalanceMinor) : '-'}</td>
-              <td style={styles.cellMeta}>
-                <span style={styles.typePill}>{typeLabelMap[row.normalizedType]}</span>
-              </td>
-              <td style={styles.cellMeta}>
-                <div style={styles.tagsWrap}>
-                  {row.tags.length ? row.tags.map((tag) => <span key={tag} style={styles.tag}>{tag}</span>) : <span style={styles.reference}>No tags</span>}
-                </div>
-              </td>
-              <td style={styles.cellMeta}>
-                <button
-                  type="button"
-                  aria-label={`Edit transaction ${row.description}`}
-                  style={styles.editButton}
-                  onClick={() => onOpen(row.id)}
-                >
-                  <Pencil size={16} />
-                </button>
-              </td>
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const isSelected = selectedIds.has(row.id)
+            return (
+              <tr
+                key={row.id}
+                style={{
+                  ...styles.row,
+                  ...(activeTransactionId === row.id ? styles.rowActive : undefined),
+                  ...(isSelected ? styles.rowSelected : undefined)
+                }}
+              >
+                <td style={{ ...styles.cellMeta, width: 40, padding: 'var(--space-md)' }}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    aria-label={`Select ${row.description}`}
+                    onChange={(e) => {
+                      const shiftHeld = (e.nativeEvent as MouseEvent).shiftKey
+                      onSelect(row.id, e.currentTarget.checked, shiftHeld)
+                    }}
+                  />
+                </td>
+                <td style={styles.cellMeta}>{row.transactionDateRaw}</td>
+                <td style={styles.cellPrimary}>
+                  <div style={styles.description}>{row.description}</div>
+                  {row.reference ? <div style={styles.reference}>{row.reference}</div> : null}
+                </td>
+                <td style={styles.cellAmount}>{row.debitAmountMinor ? formatAmount(row.debitAmountMinor) : '-'}</td>
+                <td style={{ ...styles.cellAmount, color: row.creditAmountMinor ? 'var(--color-accent)' : 'var(--color-muted)' }}>
+                  {row.creditAmountMinor ? formatAmount(row.creditAmountMinor) : '-'}
+                </td>
+                <td style={styles.cellAmount}>{row.runningBalanceMinor !== undefined ? formatAmount(row.runningBalanceMinor) : '-'}</td>
+                <td style={styles.cellMeta}>
+                  <span style={styles.typePill}>{typeLabelMap[row.normalizedType]}</span>
+                </td>
+                <td style={styles.cellMeta}>
+                  <div style={styles.tagsWrap}>
+                    {row.tags.length ? row.tags.map((tag) => <span key={tag} style={styles.tag}>{tag}</span>) : <span style={styles.reference}>No tags</span>}
+                  </div>
+                </td>
+                <td style={styles.cellMeta}>
+                  <button
+                    type="button"
+                    aria-label={`Edit transaction ${row.description}`}
+                    style={styles.editButton}
+                    onClick={() => onOpen(row.id)}
+                  >
+                    <Pencil size={16} />
+                  </button>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </section>
@@ -177,6 +221,9 @@ const styles = {
   },
   rowActive: {
     background: 'rgba(15, 118, 110, 0.08)'
+  },
+  rowSelected: {
+    background: 'rgba(15, 118, 110, 0.06)'
   },
   cellPrimary: {
     padding: 'var(--space-md) var(--space-lg)',

@@ -1,5 +1,5 @@
 import { Filter, Search } from 'lucide-react'
-import { startTransition, useEffect, useMemo, useState } from 'react'
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   TransactionDetail,
   TransactionLedgerQuery,
@@ -10,6 +10,7 @@ import { TransactionDetailDrawer } from './TransactionDetailDrawer'
 import { TransactionEmptyState } from './TransactionEmptyState'
 import { TransactionFilterDrawer } from './TransactionFilterDrawer'
 import { TransactionLedgerTable, type SortDirection, type SortKey } from './TransactionLedgerTable'
+import { computeRangeSelect } from './multiSelectLogic'
 
 const pageSizeOptions = [10, 25, 50, 75, 100, 150, 200] as const
 
@@ -44,6 +45,8 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [pageSize, setPageSize] = useState<number>(50)
   const [currentPage, setCurrentPage] = useState<number>(1)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const shiftAnchorRef = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -81,6 +84,13 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
     setCurrentPage(1)
   }, [submittedSearch, filters])
 
+  // Reset multi-select on page navigation or filter/search change
+  // Intentionally excludes sortKey/sortDirection — selection persists across sort changes
+  useEffect(() => {
+    setSelectedIds(new Set())
+    shiftAnchorRef.current = null
+  }, [currentPage, submittedSearch, filters])
+
   useEffect(() => {
     if (!navigationQuery) {
       return
@@ -93,6 +103,26 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
       search: undefined
     })
   }, [navigationQuery, navigationVersion])
+
+  const handleRowSelect = (id: string, checked: boolean, shiftHeld: boolean) => {
+    const pagedRowIds = pagedRows.map((row) => row.id)
+    const result = computeRangeSelect(
+      pagedRowIds,
+      shiftHeld ? shiftAnchorRef.current : null,
+      id,
+      checked,
+      selectedIds
+    )
+    shiftAnchorRef.current = result.newAnchor
+    setSelectedIds(result.selectedIds)
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    const pagedRowIds = pagedRows.map((row) => row.id)
+    const result = computeRangeSelect(pagedRowIds, null, '__all__', checked, selectedIds)
+    shiftAnchorRef.current = result.newAnchor
+    setSelectedIds(result.selectedIds)
+  }
 
   const openTransaction = async (transactionId: string) => {
     setActiveTransactionId(transactionId)
@@ -295,6 +325,9 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
                 activeTransactionId={activeTransactionId}
                 sortKey={sortKey}
                 sortDirection={sortDirection}
+                selectedIds={selectedIds}
+                onSelect={handleRowSelect}
+                onSelectAll={handleSelectAll}
                 onSort={(key) => {
                   if (key === sortKey) {
                     setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
