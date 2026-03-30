@@ -15,11 +15,11 @@ Walnut Expense Analyser is a Windows-first desktop app for a local household to 
 
 ## Current State
 
-**v1.0 shipped 2026-03-29** — 8 phases, 30 plans, ~19,100 lines TypeScript across 78 source files.
+**v2.0 in progress — Phases 9-10 complete (2026-03-30)**
 
-The trusted local loop is complete: import → review → categorize → analyze → audit. All 34 v1 requirements satisfied. The app is usable end-to-end for a single ICICI account on Windows.
+Phase 9 (workflow polish) and Phase 10 (rule system expansion) are complete. The rule engine now supports contains, starts-with, ends-with, and amount range operators with AND logic, drag-to-reorder priority, auto-apply at import commit, rule export/import with conflict diff, and category correctness guarantees (rename propagation, merge preview, archive/restore). 11 new RULES requirements satisfied.
 
-**Next milestone:** v2.0 Release 2: Core — workflow polish, rule system expansion, budgeting foundations (Phases 9-11).
+**Next:** Phase 11 — Budgeting Foundations (monthly category targets, budget vs actual variance, over-budget indicators).
 
 ## Core Value
 
@@ -43,7 +43,7 @@ A household owner can reliably import local bank statements and quickly understa
 ### Active — v2.0
 
 - [ ] Improve review throughput, search ergonomics, and import troubleshooting speed
-- [ ] Strengthen categorization controls and operational safety for daily use
+- ✓ Strengthen categorization controls and operational safety for daily use — Validated in Phase 10 (rule engine operators, category rename/merge/archive, drag-reorder, auto-apply, export/import)
 - [ ] Begin budgeting only after trust in import and categorization is proven
 
 ### Out of Scope
