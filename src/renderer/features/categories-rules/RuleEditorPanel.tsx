@@ -60,7 +60,7 @@ export const RuleEditorPanel = ({
         }
       : draft
     setName(source?.name ?? '')
-    setDescriptionKeywords((source?.condition.descriptionContains ?? []).join(', '))
+    setDescriptionKeywords((source?.condition.descriptionTerms ?? []).filter((t) => t.op === 'contains').map((t) => t.value).join(', '))
     setTransactionType(source?.condition.transactionTypes[0] ?? '')
     setDirection(source?.condition.directions[0] ?? '')
     setAmountMin(source?.condition.amountMinMinor !== undefined ? String(source.condition.amountMinMinor / 100) : '')
@@ -75,7 +75,7 @@ export const RuleEditorPanel = ({
     const payload = {
       name,
       condition: {
-        descriptionContains: descriptionKeywords.split(',').map((item) => item.trim()).filter(Boolean),
+        descriptionTerms: descriptionKeywords.split(',').map((item) => item.trim()).filter(Boolean).map((value) => ({ op: 'contains' as const, value })),
         amountMinMinor: amountMin ? Math.round(Number(amountMin) * 100) : undefined,
         amountMaxMinor: amountMax ? Math.round(Number(amountMax) * 100) : undefined,
         transactionTypes: transactionType ? [transactionType] : [],
@@ -182,7 +182,10 @@ export const RuleEditorPanel = ({
       </div>
 
       <div style={styles.actions}>
-        <button type="button" style={styles.secondaryButton} onClick={() => onTest(buildPayload())}>
+        <button type="button" style={styles.secondaryButton} onClick={() => {
+          const p = buildPayload()
+          onTest({ condition: p.condition!, action: p.action! })
+        }}>
           Test rule
         </button>
         <button type="button" style={styles.secondaryButton} onClick={() => onPreviewApply(buildPayload())}>

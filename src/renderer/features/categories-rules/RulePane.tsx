@@ -9,7 +9,7 @@ interface RulePaneProps {
 
 const summarizeCondition = (rule: CategorizationRuleSummary) => {
   const parts = [
-    rule.condition.descriptionContains.length ? `contains ${rule.condition.descriptionContains.join(', ')}` : null,
+    rule.condition.descriptionTerms.length ? `matches ${rule.condition.descriptionTerms.map((t) => `${t.op}:${t.value}`).join(', ')}` : null,
     rule.condition.transactionTypes.length ? `types: ${rule.condition.transactionTypes.join(', ')}` : null,
     rule.condition.tags.length ? `tags: ${rule.condition.tags.join(', ')}` : null,
     rule.condition.directions.length ? `direction: ${rule.condition.directions.join(', ')}` : null

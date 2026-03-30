@@ -63,8 +63,10 @@ export const CategoriesRulesScreen = ({ initialRuleDraft, onRuleDraftHandled }: 
       flattenCategories(categories).map((category) => ({
         id: category.id,
         label: category.path.join(' > '),
+        path: category.path,
         kind: category.kind,
-        isActive: category.isActive
+        isActive: category.isActive,
+        isArchived: category.isArchived
       })),
     [categories]
   )

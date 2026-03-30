@@ -34,7 +34,7 @@ describe('rule engine', () => {
     expect(rules.some((rule) => rule.kind === 'system')).toBe(true)
 
     for (const rule of rules) {
-      expect(Array.isArray(rule.condition.descriptionContains)).toBe(true)
+      expect(Array.isArray(rule.condition.descriptionTerms)).toBe(true)
       expect(Array.isArray(rule.condition.transactionTypes)).toBe(true)
       expect(Array.isArray(rule.condition.tags)).toBe(true)
       expect(Array.isArray(rule.condition.directions)).toBe(true)
@@ -87,7 +87,7 @@ describe('rule engine', () => {
     const genericFoodRule: CreateCategorizationRuleInput = {
       name: 'Generic food',
       condition: {
-        descriptionContains: ['king'],
+        descriptionTerms: [{ op: 'contains', value: 'king' }],
         transactionTypes: ['expense'],
         tags: [],
         directions: ['debit']
@@ -101,7 +101,7 @@ describe('rule engine', () => {
     const specificFoodRule: CreateCategorizationRuleInput = {
       name: 'Burger King dining',
       condition: {
-        descriptionContains: ['burger', 'king'],
+        descriptionTerms: [{ op: 'contains', value: 'burger' }, { op: 'contains', value: 'king' }],
         amountMinMinor: 50000,
         amountMaxMinor: 100000,
         transactionTypes: ['expense'],
