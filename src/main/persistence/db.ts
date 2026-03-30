@@ -80,7 +80,13 @@ import type {
 import type { LockReason, SecurityEvent, SecurityState } from '../../shared/contracts/security'
 import type { AuditEvent } from '../../shared/contracts/audit'
 import type {
+  BulkUpdateTransactionsInput,
+  BulkUpdateTransactionsResult,
+  DeleteFilterPresetInput,
+  FilterPreset,
   GetTransactionDetailInput,
+  RenameFilterPresetInput,
+  SaveFilterPresetInput,
   TransactionDetail,
   TransactionLedgerQuery,
   TransactionLedgerRow,
@@ -590,6 +596,13 @@ export class WalnutRepository {
         ON audit_events(timestamp_iso DESC);
       CREATE INDEX IF NOT EXISTS idx_audit_events_entity
         ON audit_events(entity_id);
+      CREATE TABLE IF NOT EXISTS filter_presets (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        filters_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
     `)
 
     this.ensureColumn('imported_transactions', 'tags_json', 'TEXT')
@@ -1686,6 +1699,71 @@ export class WalnutRepository {
     }
   }
 
+  bulkUpdateTransactions(input: BulkUpdateTransactionsInput): BulkUpdateTransactionsResult {
+    let updatedCount = 0
+    const transaction = this.sqlite.transaction(() => {
+      for (const transactionId of input.transactionIds) {
+        const setParts: string[] = []
+        const params: unknown[] = []
+        if (input.categoryId !== undefined) {
+          setParts.push('category_id = ?')
+          params.push(input.categoryId)
+        }
+        if (input.category !== undefined) {
+          setParts.push('category_label = ?')
+          params.push(input.category)
+        }
+        if (input.tags !== undefined) {
+          setParts.push('tags_json = ?')
+          params.push(JSON.stringify(input.tags))
+        }
+        if (setParts.length === 0) continue
+        params.push(transactionId)
+        const result = this.sqlite
+          .prepare(`UPDATE imported_transactions SET ${setParts.join(', ')} WHERE id = ?`)
+          .run(...(params as Parameters<typeof this.sqlite.prepare>))
+        updatedCount += result.changes
+      }
+    })
+    transaction()
+    return { updatedCount }
+  }
+
+  listFilterPresets(): FilterPreset[] {
+    const rows = this.sqlite
+      .prepare('SELECT * FROM filter_presets ORDER BY updated_at DESC')
+      .all() as Record<string, unknown>[]
+    return rows.map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      filters: JSON.parse(String(row.filters_json)) as FilterPreset['filters'],
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at)
+    }))
+  }
+
+  saveFilterPreset(input: SaveFilterPresetInput): FilterPreset[] {
+    const id = crypto.randomUUID()
+    const now = new Date().toISOString()
+    this.sqlite
+      .prepare('INSERT INTO filter_presets (id, name, filters_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+      .run(id, input.name, JSON.stringify(input.filters), now, now)
+    return this.listFilterPresets()
+  }
+
+  renameFilterPreset(input: RenameFilterPresetInput): FilterPreset[] {
+    const now = new Date().toISOString()
+    this.sqlite
+      .prepare('UPDATE filter_presets SET name = ?, updated_at = ? WHERE id = ?')
+      .run(input.name, now, input.id)
+    return this.listFilterPresets()
+  }
+
+  deleteFilterPreset(input: DeleteFilterPresetInput): FilterPreset[] {
+    this.sqlite.prepare('DELETE FROM filter_presets WHERE id = ?').run(input.id)
+    return this.listFilterPresets()
+  }
+
   listImportHistory(input?: ListImportHistoryInput): ImportAttemptSummary[] {
     const rows = this.sqlite
       .prepare(
@@ -2086,6 +2164,10 @@ export class WalnutRepository {
       .get() as Record<string, unknown> | undefined
     const householdName = profileRow?.household_name ? String(profileRow.household_name) : ''
 
+    const filterPresetsRows = this.sqlite
+      .prepare('SELECT * FROM filter_presets')
+      .all() as Record<string, unknown>[]
+
     return {
       version: 1,
       createdAt: new Date().toISOString(),
@@ -2101,7 +2183,8 @@ export class WalnutRepository {
         categories,
         categorizationRules,
         auditEvents,
-        appSettings: appSettingsRaw
+        appSettings: appSettingsRaw,
+        filterPresets: filterPresetsRows
       }
     }
   }
@@ -2120,6 +2203,7 @@ export class WalnutRepository {
         DELETE FROM categorization_rules;
         DELETE FROM audit_events;
         DELETE FROM app_settings;
+        DELETE FROM filter_presets;
       `)
 
       // Insert account profiles
@@ -2190,6 +2274,15 @@ export class WalnutRepository {
         this.sqlite
           .prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
           .run(key, value, new Date().toISOString())
+      }
+
+      // Insert filter presets
+      if (payload.tables.filterPresets) {
+        for (const row of payload.tables.filterPresets) {
+          const keys = Object.keys(row).join(', ')
+          const placeholders = Object.keys(row).map(() => '?').join(', ')
+          this.sqlite.prepare(`INSERT OR IGNORE INTO filter_presets (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+        }
       }
     })
 

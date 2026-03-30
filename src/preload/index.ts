@@ -53,7 +53,13 @@ const walnutApi: WalnutApi = {
   importBackup: (pin) => ipcRenderer.invoke('walnut:importBackup', pin),
   clearTransactions: () => ipcRenderer.invoke('walnut:clearTransactions'),
   fullReset: () => ipcRenderer.invoke('walnut:fullReset'),
-  ping: () => ipcRenderer.invoke('app-state:ping')
+  ping: () => ipcRenderer.invoke('app-state:ping'),
+  bulkUpdateTransactions: (input) => ipcRenderer.invoke('transactions:bulk-update', input),
+  replaceStagedFile: (input) => ipcRenderer.invoke('import:replace-staged-file', input),
+  listFilterPresets: () => ipcRenderer.invoke('filter-presets:list'),
+  saveFilterPreset: (input) => ipcRenderer.invoke('filter-presets:save', input),
+  renameFilterPreset: (input) => ipcRenderer.invoke('filter-presets:rename', input),
+  deleteFilterPreset: (input) => ipcRenderer.invoke('filter-presets:delete', input)
 }
 
 contextBridge.exposeInMainWorld('walnut', walnutApi)

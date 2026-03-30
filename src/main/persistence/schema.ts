@@ -163,3 +163,11 @@ export const reviewItems = sqliteTable('review_items', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull()
 })
+
+export const filterPresets = sqliteTable('filter_presets', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  filtersJson: text('filters_json').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})

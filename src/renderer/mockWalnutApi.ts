@@ -34,6 +34,7 @@ import type {
   ReviewItemResolutionInput,
   ReviewItemRestoreInput,
   RemoveStagedFileInput,
+  ReplaceStagedFileInput,
   StageImportFilesInput,
   StageImportFilesResult,
   StagedImportFile,
@@ -47,7 +48,12 @@ import type {
   UnlockResult
 } from '../shared/contracts/security'
 import type {
+  BulkUpdateTransactionsInput,
+  DeleteFilterPresetInput,
+  FilterPreset,
   GetTransactionDetailInput,
+  RenameFilterPresetInput,
+  SaveFilterPresetInput,
   TransactionDetail,
   TransactionLedgerQuery,
   TransactionLedgerRow,
@@ -1929,5 +1935,23 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
   },
   async ping() {
     return 'pong'
+  },
+  async bulkUpdateTransactions(_input: BulkUpdateTransactionsInput) {
+    return { updatedCount: 0 }
+  },
+  async replaceStagedFile(_input: ReplaceStagedFileInput): Promise<StageImportFilesResult> {
+    return { stagedFiles: [] }
+  },
+  async listFilterPresets(): Promise<FilterPreset[]> {
+    return []
+  },
+  async saveFilterPreset(_input: SaveFilterPresetInput): Promise<FilterPreset[]> {
+    return []
+  },
+  async renameFilterPreset(_input: RenameFilterPresetInput): Promise<FilterPreset[]> {
+    return []
+  },
+  async deleteFilterPreset(_input: DeleteFilterPresetInput): Promise<FilterPreset[]> {
+    return []
   }
 })

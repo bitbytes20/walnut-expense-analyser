@@ -1,10 +1,11 @@
-import { ipcMain, type BrowserWindow } from 'electron'
+import { dialog, ipcMain, type BrowserWindow } from 'electron'
 import type {
   ChooseImportSheetInput,
   CommitImportBatchInput,
   GetImportBatchDetailInput,
   GetReviewQueueInput,
   ListImportHistoryInput,
+  ReplaceStagedFileInput,
   ReviewItemResolutionInput,
   ReviewItemRestoreInput,
   StageImportFilesInput
@@ -20,6 +21,21 @@ export const registerImportIpc = (window: BrowserWindow) => {
   ipcMain.handle('import:stage-files', async (_event, input?: StageImportFilesInput) => {
     const filePaths = await pickImportFiles(window, input)
     return coordinator.stageFilePaths(filePaths)
+  })
+
+  ipcMain.handle('import:replace-staged-file', async (_event, input: ReplaceStagedFileInput) => {
+    let filePath = input.newFilePath
+    if (!filePath) {
+      const result = await dialog.showOpenDialog(window, {
+        properties: ['openFile'],
+        filters: [{ name: 'Statement files', extensions: ['csv', 'xls', 'xlsx'] }]
+      })
+      if (result.canceled || result.filePaths.length === 0) {
+        return coordinator.stageFilePaths([])
+      }
+      filePath = result.filePaths[0]
+    }
+    return coordinator.replaceStagedFile(input.stagedFileId, filePath)
   })
 
   ipcMain.handle('import:choose-sheet', (_event, input: ChooseImportSheetInput) => coordinator.chooseSheet(input))

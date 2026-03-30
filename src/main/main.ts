@@ -5,6 +5,7 @@ import { registerAppStateIpc } from './ipc/app-state'
 import { registerCategoriesIpc } from './ipc/categories'
 import { registerDashboardIpc } from './ipc/dashboard'
 import { registerImportIpc } from './ipc/import'
+import { registerFilterPresetsIpc } from './ipc/filter-presets'
 import { registerTransactionsIpc } from './ipc/transactions'
 import { registerSecurityIpc } from './ipc/security'
 import { registerDiagnosticsIpc } from './ipc/diagnostics'
@@ -42,6 +43,7 @@ const createWindow = async () => {
   registerDashboardIpc()
   registerImportIpc(mainWindow)
   registerTransactionsIpc()
+  registerFilterPresetsIpc()
   registerSecurityIpc(mainWindow, sessionLock)
   registerDiagnosticsIpc()
   registerSettingsIpc()
