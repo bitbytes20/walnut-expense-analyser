@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: "Release 2: Core"
 status: executing
-last_updated: "2026-03-30T03:46:14.756Z"
+last_updated: "2026-03-30T09:30:00.000Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 35
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # State: Walnut Expense Analyser
@@ -30,11 +30,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-29)
 ## Current Position
 
 Phase: 09 (workflow-polish) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-03-30
 
-Progress: [░░░░░░] 0/6 phases complete
+Progress: [█████████░] 89%
 
 - v1.0 shipped 2026-03-29: 8 phases, 30 plans, ~19,100 lines TypeScript across 78 source files.
 - v2.0 starts at Phase 9 with workflow polish improvements to the surfaces used daily.
@@ -132,11 +132,14 @@ Progress: [░░░░░░] 0/6 phases complete
 - bulkUpdateTransactions wraps all updates in SQLite transaction() for atomicity; builds SET clause dynamically from input fields present
 - replaceStagedFile deletes old staged entry and re-parses new file while preserving all other staged entries in coordinator
 - Wave 0 test scaffolds use it.todo() stubs so vitest run passes without implementation (stubs enabled in Wave 2 plans)
+- computeRangeSelect uses '__all__' sentinel for select-all/deselect-all as unified path in pure function
+- Selection resets on currentPage/submittedSearch/filters change; sortKey/sortDirection excluded from reset deps
+- Categories fetched once on TransactionsScreen mount for the bulk action bar
 
 ## Immediate Next Action
 
-Phase 9 Plan 01 complete. Contracts, DB schema, IPC handlers, and test scaffolds in place.
-Next: Execute 09-02-PLAN.md (multi-select + bulk categorization renderer)
+Phase 9 Plan 02 complete. Multi-select, checkbox column, and bulk action bar working.
+Next: Execute 09-03-PLAN.md
 
 ---
-*Last updated: 2026-03-30 — Phase 9 Plan 01 complete*
+*Last updated: 2026-03-30 — Phase 9 Plan 02 complete*
