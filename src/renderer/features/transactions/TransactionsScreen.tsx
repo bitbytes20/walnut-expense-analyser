@@ -1,11 +1,13 @@
 import { Filter, Search } from 'lucide-react'
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
+import type { CategoryTreeNode } from '../../../shared/contracts/categories'
 import type {
   TransactionDetail,
   TransactionLedgerQuery,
   TransactionLedgerRow,
   TransactionRuleSuggestion
 } from '../../../shared/contracts/transactions'
+import { TransactionBulkActionBar } from './TransactionBulkActionBar'
 import { TransactionDetailDrawer } from './TransactionDetailDrawer'
 import { TransactionEmptyState } from './TransactionEmptyState'
 import { TransactionFilterDrawer } from './TransactionFilterDrawer'
@@ -47,6 +49,14 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const shiftAnchorRef = useRef<string | null>(null)
+  const [categories, setCategories] = useState<CategoryTreeNode[]>([])
+
+  // Load categories once for the bulk action bar
+  useEffect(() => {
+    void window.walnut.listCategories().then((nextCategories) => {
+      setCategories(nextCategories)
+    })
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -122,6 +132,37 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
     const result = computeRangeSelect(pagedRowIds, null, '__all__', checked, selectedIds)
     shiftAnchorRef.current = result.newAnchor
     setSelectedIds(result.selectedIds)
+  }
+
+  const refreshTransactions = async () => {
+    const nextRows = await window.walnut.listTransactions({
+      ...filters,
+      search: submittedSearch || undefined
+    })
+    startTransition(() => {
+      setRows(nextRows)
+    })
+  }
+
+  const handleBulkAssignCategory = async (categoryId: string, categoryLabel: string) => {
+    await window.walnut.bulkUpdateTransactions({
+      transactionIds: [...selectedIds],
+      categoryId,
+      category: categoryLabel
+    })
+    setSelectedIds(new Set())
+    shiftAnchorRef.current = null
+    await refreshTransactions()
+  }
+
+  const handleBulkApplyTag = async (tag: string) => {
+    await window.walnut.bulkUpdateTransactions({
+      transactionIds: [...selectedIds],
+      tags: [tag]
+    })
+    setSelectedIds(new Set())
+    shiftAnchorRef.current = null
+    await refreshTransactions()
   }
 
   const openTransaction = async (transactionId: string) => {
@@ -318,6 +359,19 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
                   </div>
                 </div>
               </section>
+
+              {selectedIds.size > 0 ? (
+                <TransactionBulkActionBar
+                  selectedCount={selectedIds.size}
+                  categories={categories}
+                  onAssignCategory={handleBulkAssignCategory}
+                  onApplyTag={handleBulkApplyTag}
+                  onClearSelection={() => {
+                    setSelectedIds(new Set())
+                    shiftAnchorRef.current = null
+                  }}
+                />
+              ) : null}
 
               <TransactionLedgerTable
                 rows={pagedRows}

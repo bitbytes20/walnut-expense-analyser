@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { NormalizedImportRow, StagedImportFile } from '../../src/shared/contracts/import'
 import { WalnutRepository } from '../../src/main/persistence/db'
+import { BulkUpdateTransactionsInputSchema } from '../../src/shared/contracts/transactions'
 
 const createRepository = () => new WalnutRepository(':memory:')
 
@@ -196,6 +197,91 @@ describe('transaction repository', () => {
       direction: 'debit'
     })
 
+    repository.close()
+  })
+})
+
+describe('bulkUpdateTransactions', () => {
+  const createRepoWithTransactions = () => {
+    const repository = createRepository()
+    const stagedFile = createStagedFile('file-bulk', 'bulk.xlsx')
+    repository.persistImportAttempt({
+      attemptId: 'attempt-bulk',
+      batchId: 'batch-bulk',
+      batchLabel: 'Bulk batch',
+      status: 'imported',
+      importedAt: '2026-03-30T09:00:00.000Z',
+      accountLabel: 'ICICI - Household',
+      importedFiles: [stagedFile],
+      rejectedFiles: [],
+      duplicateBlockedFiles: [],
+      acceptedFiles: [
+        {
+          stagedFile,
+          fileFingerprint: 'fingerprint-bulk',
+          transactionSignatures: ['sig-bulk-1', 'sig-bulk-2', 'sig-bulk-3'],
+          rows: [
+            createRow('file-bulk', 0, { cleanedDescription: 'Groceries', debitAmountMinor: 50000 }),
+            createRow('file-bulk', 1, { cleanedDescription: 'Electricity bill', debitAmountMinor: 120000 }),
+            createRow('file-bulk', 2, { cleanedDescription: 'Petrol', debitAmountMinor: 30000 })
+          ]
+        }
+      ],
+      reviewItems: [],
+      lazyAccountCreated: false
+    })
+    return repository
+  }
+
+  it('bulkUpdateTransactions with categoryId updates all specified rows and returns correct count', () => {
+    const repository = createRepoWithTransactions()
+    const rows = repository.listTransactions()
+    expect(rows).toHaveLength(3)
+
+    const ids = rows.slice(0, 2).map((r) => r.id)
+    const result = repository.bulkUpdateTransactions({
+      transactionIds: ids,
+      categoryId: 'cat-utilities',
+      category: 'Utilities'
+    })
+
+    expect(result.updatedCount).toBe(2)
+    const updated = repository.listTransactions({ categories: ['Utilities'] })
+    expect(updated).toHaveLength(2)
+    repository.close()
+  })
+
+  it('bulkUpdateTransactions with tags updates tags_json on all specified rows', () => {
+    const repository = createRepoWithTransactions()
+    const rows = repository.listTransactions()
+    const ids = rows.map((r) => r.id)
+
+    const result = repository.bulkUpdateTransactions({
+      transactionIds: ids,
+      tags: ['reviewed']
+    })
+
+    expect(result.updatedCount).toBe(3)
+    const tagged = repository.listTransactions({ tags: ['reviewed'] })
+    expect(tagged).toHaveLength(3)
+    repository.close()
+  })
+
+  it('bulkUpdateTransactions with empty transactionIds array is rejected by schema validation', () => {
+    expect(() =>
+      BulkUpdateTransactionsInputSchema.parse({ transactionIds: [] })
+    ).toThrow()
+  })
+
+  it('bulkUpdateTransactions with nonexistent IDs returns updatedCount 0', () => {
+    const repository = createRepoWithTransactions()
+    const result = repository.bulkUpdateTransactions({
+      transactionIds: ['nonexistent-id-1', 'nonexistent-id-2'],
+      categoryId: 'cat-food',
+      category: 'Food'
+    })
+
+    expect(result.updatedCount).toBe(0)
     repository.close()
   })
 })
