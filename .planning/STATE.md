@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: "Release 2: Core"
 status: executing
-last_updated: "2026-03-30T14:50:00.000Z"
-last_activity: 2026-03-30 -- Phase 10 execution started
+last_updated: "2026-03-30T15:03:00.000Z"
+last_activity: 2026-03-30 -- Phase 10 Plan 03 complete
 progress:
   total_phases: 11
   completed_phases: 9
   total_plans: 40
-  completed_plans: 35
+  completed_plans: 38
 ---
 
 # State: Walnut Expense Analyser
@@ -30,9 +30,9 @@ See: `.planning/PROJECT.md` (updated 2026-03-29)
 ## Current Position
 
 Phase: 10 (rule-system-expansion) — EXECUTING
-Plan: 1 of 5
+Plan: 3 of 5 complete
 Status: Executing Phase 10
-Last activity: 2026-03-30 -- Phase 10 execution started
+Last activity: 2026-03-30 -- Phase 10 Plan 03 complete
 
 Progress: [░░░░░░] 0/6 phases complete
 
@@ -144,10 +144,18 @@ Progress: [░░░░░░] 0/6 phases complete
 - RuleEditorPanel UI keeps simple comma-separated text field, maps to op:contains terms (full UI in later plans)
 - listRules ORDER BY changed to is_system ASC, sort_order ASC (user rules first per D-05)
 - is_archived column added via ensureColumn pattern for safe migration on existing DBs
+- Live match preview only on regex rows — other operators don't benefit from per-keystroke IPC
+- detectReDoSRisk exported from RuleEditorPanel for reuse
+- Dynamic condition rows replace comma-separated keyword field in RuleEditorPanel
+- Rename propagation wraps categories.name update + imported_transactions.category_label in SQLite transaction() for atomicity (D-17)
+- mergeCategory extends atomic transaction to update rule action_json.categoryId from source to target (Pitfall 4)
+- Archive is soft-delete via is_archived flag; pickers filter !isArchived; historical transaction data preserved
+- CategoryPane uses RowAction union type for per-row inline states (rename/merge-pick/merge-preview/archive-confirm)
+- LIKE-based rule scanning for mergeCategoryPreview: action_json LIKE '%categoryId:X%' to count affected rules
 
 ## Immediate Next Action
 
-Phase 10 Plan 01 complete. Contract foundation in place: descriptionTerms, new IPC schemas, DB columns, and 41 it.todo test scaffolds. Ready for Plan 02 (rule engine implementation).
+Phase 10 Plan 03 complete. Category rename propagation, merge preview with atomic rule target update, archive/restore with picker exclusion all implemented. Ready for Plan 04 (drag reorder for rules).
 
 ---
-*Last updated: 2026-03-30 after Phase 10 Plan 01 completion*
+*Last updated: 2026-03-30 after Phase 10 Plan 03 completion*

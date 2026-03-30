@@ -1951,8 +1951,8 @@ export class WalnutRepository {
       signedAmountMinor: r.signed_amount_minor,
       currentCategoryPath: this.getCategoryPathById(sourceCategoryId),
       nextCategoryPath: this.getCategoryPathById(targetCategoryId),
-      currentType: 'unknown',
-      nextType: 'unknown',
+      currentType: 'expense' as const,
+      nextType: 'expense' as const,
       tags: []
     }))
 
