@@ -1,14 +1,15 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: Release 2 — Core
-status: Phase 9 planned — ready to execute
-last_updated: "2026-03-30T00:00:00.000Z"
+milestone_name: "Release 2: Core"
+status: executing
+last_updated: "2026-03-30T03:46:14.756Z"
+last_activity: 2026-03-30
 progress:
-  total_phases: 6
-  completed_phases: 0
-  total_plans: 5
-  completed_plans: 0
+  total_phases: 9
+  completed_phases: 8
+  total_plans: 35
+  completed_plans: 31
 ---
 
 # State: Walnut Expense Analyser
@@ -22,16 +23,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-29)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** v2.0 — workflow polish, rule system expansion, budgeting foundations, AI insights, family members, WanderLog
+**Current focus:** Phase 09 — workflow-polish
 
 **Active implementation branch:** `release/1.1.0`
 
 ## Current Position
 
-Phase: 9 — Workflow Polish
-Plan: —
-Status: Phase 9 next
-Last activity: 2026-03-30 — v2.0 roadmap created (49 requirements, Phases 9-14)
+Phase: 09 (workflow-polish) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-03-30
 
 Progress: [░░░░░░] 0/6 phases complete
 
@@ -124,10 +125,18 @@ Progress: [░░░░░░] 0/6 phases complete
 - handleGlobalShortcut exported as pure function for testability; GlobalShortcutActions interface uses WorkspaceScreen union type for TypeScript correctness
 - setImportAreaScreen in GlobalShortcutActions uses '{ type: workspace | history }' narrowing to satisfy Dispatch<SetStateAction<ImportAreaScreen>> constraint
 
+## Phase 9 Decisions
+
+- filter_presets uses raw SQL in bootstrap() consistent with all other Phase 9 table creation patterns (not Drizzle migration)
+- Filter preset CRUD methods (save/rename/delete) return full list after mutation — matches categories and rules IPC pattern
+- bulkUpdateTransactions wraps all updates in SQLite transaction() for atomicity; builds SET clause dynamically from input fields present
+- replaceStagedFile deletes old staged entry and re-parses new file while preserving all other staged entries in coordinator
+- Wave 0 test scaffolds use it.todo() stubs so vitest run passes without implementation (stubs enabled in Wave 2 plans)
+
 ## Immediate Next Action
 
-Phase 9 planning complete. 5 plans in 2 waves, all 9 requirements covered, verification passed.
-Next: `/gsd:execute-phase 9`
+Phase 9 Plan 01 complete. Contracts, DB schema, IPC handlers, and test scaffolds in place.
+Next: Execute 09-02-PLAN.md (multi-select + bulk categorization renderer)
 
 ---
-*Last updated: 2026-03-30 — v2.0 roadmap created, Phase 9 next*
+*Last updated: 2026-03-30 — Phase 9 Plan 01 complete*

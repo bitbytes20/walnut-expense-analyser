@@ -9,15 +9,15 @@ Requirements for milestone v2.0 — Release 2: Core. Builds on the v1.0 trusted 
 
 ### Workflow Polish
 
-- [ ] **WORKFLOW-01**: User can select multiple transactions via checkboxes, with shift+click range-select and select-all support
-- [ ] **WORKFLOW-02**: User can assign a category to all selected transactions in one step, with inline count confirmation
-- [ ] **WORKFLOW-03**: User can assign freeform tags to multiple selected transactions at once
-- [ ] **WORKFLOW-04**: User can select multiple review queue items and approve or dismiss them in bulk while existing mixed-import gating rules are still respected
-- [ ] **WORKFLOW-05**: User sees import error messages that name the failing row, describe what was expected vs found, and suggest a remedy
-- [ ] **WORKFLOW-06**: User can retry a failed import with a corrected file without navigating away from the import session
-- [ ] **WORKFLOW-07**: User can approve and reject review queue items using keyboard shortcuts
-- [ ] **WORKFLOW-08**: User can save the current transaction filter state as a named preset and restore it in one click
-- [ ] **WORKFLOW-09**: User can manage saved filter presets (rename, delete, list)
+- [x] **WORKFLOW-01**: User can select multiple transactions via checkboxes, with shift+click range-select and select-all support
+- [x] **WORKFLOW-02**: User can assign a category to all selected transactions in one step, with inline count confirmation
+- [x] **WORKFLOW-03**: User can assign freeform tags to multiple selected transactions at once
+- [x] **WORKFLOW-04**: User can select multiple review queue items and approve or dismiss them in bulk while existing mixed-import gating rules are still respected
+- [x] **WORKFLOW-05**: User sees import error messages that name the failing row, describe what was expected vs found, and suggest a remedy
+- [x] **WORKFLOW-06**: User can retry a failed import with a corrected file without navigating away from the import session
+- [x] **WORKFLOW-07**: User can approve and reject review queue items using keyboard shortcuts
+- [x] **WORKFLOW-08**: User can save the current transaction filter state as a named preset and restore it in one click
+- [x] **WORKFLOW-09**: User can manage saved filter presets (rename, delete, list)
 
 ### Rule System Expansion
 
@@ -121,15 +121,15 @@ Explicitly excluded with rationale.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WORKFLOW-01 | Phase 9 | Pending |
-| WORKFLOW-02 | Phase 9 | Pending |
-| WORKFLOW-03 | Phase 9 | Pending |
-| WORKFLOW-04 | Phase 9 | Pending |
-| WORKFLOW-05 | Phase 9 | Pending |
-| WORKFLOW-06 | Phase 9 | Pending |
-| WORKFLOW-07 | Phase 9 | Pending |
-| WORKFLOW-08 | Phase 9 | Pending |
-| WORKFLOW-09 | Phase 9 | Pending |
+| WORKFLOW-01 | Phase 9 | Complete |
+| WORKFLOW-02 | Phase 9 | Complete |
+| WORKFLOW-03 | Phase 9 | Complete |
+| WORKFLOW-04 | Phase 9 | Complete |
+| WORKFLOW-05 | Phase 9 | Complete |
+| WORKFLOW-06 | Phase 9 | Complete |
+| WORKFLOW-07 | Phase 9 | Complete |
+| WORKFLOW-08 | Phase 9 | Complete |
+| WORKFLOW-09 | Phase 9 | Complete |
 | RULES-01 | Phase 10 | Pending |
 | RULES-02 | Phase 10 | Pending |
 | RULES-03 | Phase 10 | Pending |
