@@ -52,6 +52,9 @@ import type {
   MergeCategoryInput,
   MergeCategoryPreview,
   RuleApplyPreview,
+  RuleConflict,
+  RuleExportEntry,
+  RuleImportResult,
   RulePreviewInput,
   RulePreviewSample,
   RuleTestPreview,
@@ -2144,6 +2147,188 @@ export class WalnutRepository {
     })
 
     transaction()
+    return this.listRules()
+  }
+
+  exportRules(): RuleExportEntry[] {
+    const rules = this.sqlite.prepare(
+      `SELECT name, sort_order, condition_json, action_json
+       FROM categorization_rules
+       WHERE is_system = 0
+       ORDER BY sort_order ASC`
+    ).all() as Array<{ name: string; sort_order: number; condition_json: string; action_json: string }>
+
+    return rules.map((row) => {
+      const condition = JSON.parse(row.condition_json) as CategorizationRuleCondition
+      const action = JSON.parse(row.action_json) as CategorizationRuleAction
+
+      let categoryName: string | undefined
+      if (action.categoryId) {
+        const cat = this.sqlite.prepare(
+          'SELECT name FROM categories WHERE id = ?'
+        ).get(action.categoryId) as { name: string } | undefined
+        categoryName = cat?.name
+      }
+
+      return {
+        name: row.name,
+        sortOrder: row.sort_order,
+        descriptionTerms: condition.descriptionTerms || [],
+        amountMinMinor: condition.amountMinMinor,
+        amountMaxMinor: condition.amountMaxMinor,
+        transactionTypes: condition.transactionTypes || [],
+        tags: condition.tags || [],
+        directions: condition.directions || [],
+        action: {
+          categoryName,
+          type: action.type,
+          appendTags: action.appendTags || []
+        }
+      }
+    })
+  }
+
+  prepareRuleImport(entries: RuleExportEntry[]): RuleImportResult {
+    const existingRules = this.sqlite.prepare(
+      'SELECT name, condition_json, action_json, sort_order, is_system FROM categorization_rules'
+    ).all() as Array<{ name: string; condition_json: string; action_json: string; sort_order: number; is_system: number }>
+
+    const existingNames = new Map(existingRules.map((r) => [r.name.toLowerCase(), r]))
+    const systemNames = new Set(existingRules.filter((r) => r.is_system).map((r) => r.name.toLowerCase()))
+
+    const conflicts: RuleConflict[] = []
+    const warnings: string[] = []
+    let toImportCount = 0
+    let skipped = 0
+
+    for (const entry of entries) {
+      // Ignore system rule names
+      if (systemNames.has(entry.name.toLowerCase())) {
+        skipped++
+        continue
+      }
+
+      // Resolve categoryName -> categoryId to check availability
+      if (entry.action.categoryName) {
+        const cat = this.sqlite.prepare(
+          'SELECT id FROM categories WHERE name = ? COLLATE NOCASE'
+        ).get(entry.action.categoryName) as { id: string } | undefined
+        if (!cat) {
+          warnings.push(`Category '${entry.action.categoryName}' not found — rule imported without category assignment.`)
+        }
+      }
+
+      // Check for name conflict with existing user rules
+      const existing = existingNames.get(entry.name.toLowerCase())
+      if (existing && !existing.is_system) {
+        const existingCondition = JSON.parse(existing.condition_json) as CategorizationRuleCondition
+        const existingAction = JSON.parse(existing.action_json) as CategorizationRuleAction
+        let existingCatName: string | undefined
+        if (existingAction.categoryId) {
+          const cat = this.sqlite.prepare('SELECT name FROM categories WHERE id = ?').get(existingAction.categoryId) as { name: string } | undefined
+          existingCatName = cat?.name
+        }
+        conflicts.push({
+          name: entry.name,
+          existing: {
+            name: existing.name,
+            sortOrder: existing.sort_order,
+            descriptionTerms: existingCondition.descriptionTerms || [],
+            amountMinMinor: existingCondition.amountMinMinor,
+            amountMaxMinor: existingCondition.amountMaxMinor,
+            transactionTypes: existingCondition.transactionTypes || [],
+            tags: existingCondition.tags || [],
+            directions: existingCondition.directions || [],
+            action: { categoryName: existingCatName, type: existingAction.type, appendTags: existingAction.appendTags || [] }
+          },
+          incoming: entry
+        })
+      } else {
+        toImportCount++
+      }
+    }
+
+    return { imported: toImportCount, skipped, conflicts, warnings }
+  }
+
+  commitRuleImport(
+    entries: RuleExportEntry[],
+    resolutions: Array<{ name: string; action: 'keep' | 'replace' | 'skip' }>
+  ): CategorizationRuleSummary[] {
+    const resolutionMap = new Map(resolutions.map((r) => [r.name.toLowerCase(), r.action]))
+
+    const existingRules = this.sqlite.prepare(
+      'SELECT id, name, is_system FROM categorization_rules'
+    ).all() as Array<{ id: string; name: string; is_system: number }>
+
+    const existingByName = new Map(existingRules.map((r) => [r.name.toLowerCase(), r]))
+    const systemNames = new Set(existingRules.filter((r) => r.is_system).map((r) => r.name.toLowerCase()))
+
+    const stamp = nowIso()
+
+    const doImport = this.sqlite.transaction(() => {
+      for (const entry of entries) {
+        // Skip system rule names
+        if (systemNames.has(entry.name.toLowerCase())) continue
+
+        const existing = existingByName.get(entry.name.toLowerCase())
+        const resolution = resolutionMap.get(entry.name.toLowerCase())
+
+        if (existing && !existing.is_system) {
+          // This is a conflict - handle based on resolution
+          if (resolution === 'replace') {
+            this.sqlite.prepare('DELETE FROM categorization_rules WHERE id = ?').run(existing.id)
+          } else {
+            // 'keep' or 'skip' or undefined — do nothing
+            continue
+          }
+        }
+
+        // Resolve categoryName -> categoryId
+        let categoryId: string | undefined
+        if (entry.action.categoryName) {
+          const cat = this.sqlite.prepare('SELECT id FROM categories WHERE name = ? COLLATE NOCASE').get(entry.action.categoryName) as { id: string } | undefined
+          categoryId = cat?.id
+        }
+
+        const condition: CategorizationRuleCondition = {
+          descriptionTerms: entry.descriptionTerms,
+          amountMinMinor: entry.amountMinMinor,
+          amountMaxMinor: entry.amountMaxMinor,
+          transactionTypes: (entry.transactionTypes || []) as CategorizationRuleCondition['transactionTypes'],
+          tags: entry.tags || [],
+          directions: (entry.directions || []) as CategorizationRuleCondition['directions']
+        }
+
+        const action: CategorizationRuleAction = {
+          categoryId,
+          type: entry.action.type as CategorizationRuleAction['type'],
+          appendTags: entry.action.appendTags || []
+        }
+
+        this.sqlite
+          .prepare(
+            `INSERT INTO categorization_rules
+             (id, name, kind, is_system, is_enabled, condition_json, action_json, specificity_score, sort_order, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .run(
+            crypto.randomUUID(),
+            entry.name.trim(),
+            'user',
+            0,
+            1,
+            JSON.stringify(this.normalizeRuleCondition(condition)),
+            JSON.stringify(this.normalizeRuleAction(action)),
+            this.computeRuleSpecificity(condition),
+            this.nextRuleSortOrder(),
+            stamp,
+            stamp
+          )
+      }
+    })
+
+    doImport()
     return this.listRules()
   }
 

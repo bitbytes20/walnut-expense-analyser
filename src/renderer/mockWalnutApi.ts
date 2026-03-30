@@ -18,6 +18,7 @@ import type {
   MergeCategoryInput,
   MergeCategoryPreview,
   RuleApplyPreview,
+  RuleExportEntry,
   RulePreviewInput,
   RuleTestPreview,
   ToggleCategorizationRuleInput,
@@ -1984,6 +1985,15 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
     return []
   },
   async deleteFilterPreset(_input: DeleteFilterPresetInput): Promise<FilterPreset[]> {
+    return []
+  },
+  async exportRules(): Promise<{ success: boolean; reason?: string; count?: number }> {
+    return { success: false, reason: 'no-rules' }
+  },
+  async importRulesPrepare(): Promise<{ result: import('../shared/contracts/categories').RuleImportResult; entries: RuleExportEntry[] } | null> {
+    return null
+  },
+  async importRulesCommit(_input: { entries: RuleExportEntry[]; resolutions: Array<{ name: string; action: 'keep' | 'replace' | 'skip' }> }): Promise<CategorizationRuleSummary[]> {
     return []
   }
 })

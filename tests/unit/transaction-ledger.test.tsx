@@ -180,7 +180,10 @@ const createWalnutApi = () => {
     listFilterPresets: vi.fn().mockResolvedValue([]),
     saveFilterPreset: vi.fn().mockResolvedValue([]),
     renameFilterPreset: vi.fn().mockResolvedValue([]),
-    deleteFilterPreset: vi.fn().mockResolvedValue([])
+    deleteFilterPreset: vi.fn().mockResolvedValue([]),
+    exportRules: vi.fn().mockResolvedValue({ success: false, reason: 'no-rules' }),
+    importRulesPrepare: vi.fn().mockResolvedValue(null),
+    importRulesCommit: vi.fn().mockResolvedValue([])
   } satisfies Partial<WalnutApi>
 
   return api as WalnutApi & {

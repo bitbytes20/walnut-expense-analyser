@@ -38,6 +38,9 @@ import type {
   MergeCategoryInput,
   MergeCategoryPreview,
   RuleApplyPreview,
+  RuleConflict,
+  RuleExportEntry,
+  RuleImportResult,
   RulePreviewInput,
   RuleTestPreview,
   ToggleCategorizationRuleInput,
@@ -222,6 +225,9 @@ export interface WalnutApi {
   testRule: (input: RulePreviewInput) => Promise<RuleTestPreview>
   previewRuleApplyToExisting: (input: RulePreviewInput | ApplyRuleToExistingInput) => Promise<RuleApplyPreview>
   applyRuleToExisting: (input: ApplyRuleToExistingInput) => Promise<CategorizationRuleSummary[]>
+  exportRules: () => Promise<{ success: boolean; reason?: string; count?: number }>
+  importRulesPrepare: () => Promise<{ result: RuleImportResult; entries: RuleExportEntry[] } | null>
+  importRulesCommit: (input: { entries: RuleExportEntry[]; resolutions: Array<{ name: string; action: 'keep' | 'replace' | 'skip' }> }) => Promise<CategorizationRuleSummary[]>
   getDashboardPreferences: () => Promise<DashboardPreferences>
   setDashboardPreferences: (input: DashboardPreferences) => Promise<DashboardPreferences>
   getDashboardSnapshot: (input: DashboardSnapshotQuery) => Promise<DashboardSnapshot>

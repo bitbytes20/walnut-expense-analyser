@@ -542,14 +542,153 @@ describe('Phase 10: drag reorder', () => {
 })
 
 describe('Phase 10: rule export', () => {
-  it.todo('exportRules returns JSON array of user rules only, no system rules')
-  it.todo('exported entries contain name, sortOrder, descriptionTerms, action with categoryName')
-  it.todo('exported entries do NOT contain internal IDs or transaction counts')
+  it('exportRules returns JSON array of user rules only, no system rules', () => {
+    const repository = createRepository()
+
+    // Create 2 user rules
+    repository.createRule({ name: 'User Rule A', condition: { descriptionTerms: [{ op: 'contains', value: 'coffee' }], transactionTypes: [], tags: [], directions: [] }, action: { appendTags: [] } })
+    repository.createRule({ name: 'User Rule B', condition: { descriptionTerms: [{ op: 'contains', value: 'tea' }], transactionTypes: [], tags: [], directions: [] }, action: { appendTags: [] } })
+
+    const exported = repository.exportRules()
+
+    // Only user rules, no system rules
+    expect(exported.length).toBe(2)
+    expect(exported.every((e: { name: string }) => e.name === 'User Rule A' || e.name === 'User Rule B')).toBe(true)
+
+    repository.close()
+  })
+
+  it('exported entries contain name, sortOrder, descriptionTerms, action with categoryName', () => {
+    const repository = createRepository()
+    const category = repository.createCategory({ name: 'Coffee' }).find((c) => c.name === 'Coffee')!
+
+    repository.createRule({
+      name: 'Coffee Rule',
+      condition: { descriptionTerms: [{ op: 'contains', value: 'starbucks' }], transactionTypes: [], tags: [], directions: [] },
+      action: { categoryId: category.id, appendTags: ['drinks'] }
+    })
+
+    const exported = repository.exportRules()
+    const entry = exported.find((e: { name: string }) => e.name === 'Coffee Rule')!
+
+    expect(entry).toBeDefined()
+    expect(typeof entry.sortOrder).toBe('number')
+    expect(Array.isArray(entry.descriptionTerms)).toBe(true)
+    expect(entry.descriptionTerms[0]).toEqual({ op: 'contains', value: 'starbucks' })
+    expect(entry.action.categoryName).toBe('Coffee')
+    expect(entry.action.appendTags).toEqual(['drinks'])
+
+    repository.close()
+  })
+
+  it('exported entries do NOT contain internal IDs or transaction counts', () => {
+    const repository = createRepository()
+    repository.createRule({ name: 'No ID Rule', condition: { descriptionTerms: [{ op: 'contains', value: 'test' }], transactionTypes: [], tags: [], directions: [] }, action: { appendTags: [] } })
+
+    const exported = repository.exportRules()
+    const entry = exported.find((e: { name: string }) => e.name === 'No ID Rule')!
+
+    expect(entry).toBeDefined()
+    expect('id' in entry).toBe(false)
+    expect('affectedTransactionCount' in entry).toBe(false)
+    expect('specificityScore' in entry).toBe(false)
+
+    repository.close()
+  })
 })
 
 describe('Phase 10: rule import', () => {
-  it.todo('imports non-conflicting rules directly')
-  it.todo('detects conflict when incoming rule name matches existing rule name')
-  it.todo('resolves category references by name, returns warning for unresolvable categories')
-  it.todo('ignores incoming entries that match system rule names')
+  it('imports non-conflicting rules directly', () => {
+    const repository = createRepository()
+
+    const result = repository.prepareRuleImport([
+      {
+        name: 'Brand New Rule',
+        sortOrder: 1,
+        descriptionTerms: [{ op: 'contains', value: 'amazon' }],
+        transactionTypes: [],
+        tags: [],
+        directions: [],
+        action: { appendTags: [] }
+      }
+    ])
+
+    expect(result.imported).toBe(1)
+    expect(result.conflicts).toHaveLength(0)
+    expect(result.skipped).toBe(0)
+
+    repository.close()
+  })
+
+  it('detects conflict when incoming rule name matches existing rule name', () => {
+    const repository = createRepository()
+
+    // Create existing user rule
+    repository.createRule({ name: 'Conflict Rule', condition: { descriptionTerms: [{ op: 'contains', value: 'old' }], transactionTypes: [], tags: [], directions: [] }, action: { appendTags: [] } })
+
+    const result = repository.prepareRuleImport([
+      {
+        name: 'Conflict Rule',
+        sortOrder: 1,
+        descriptionTerms: [{ op: 'contains', value: 'new' }],
+        transactionTypes: [],
+        tags: [],
+        directions: [],
+        action: { appendTags: [] }
+      }
+    ])
+
+    expect(result.conflicts).toHaveLength(1)
+    expect(result.conflicts[0].name).toBe('Conflict Rule')
+    expect(result.imported).toBe(0)
+
+    repository.close()
+  })
+
+  it('resolves category references by name, returns warning for unresolvable categories', () => {
+    const repository = createRepository()
+
+    const result = repository.prepareRuleImport([
+      {
+        name: 'Rule With Bad Category',
+        sortOrder: 1,
+        descriptionTerms: [],
+        transactionTypes: [],
+        tags: [],
+        directions: [],
+        action: { categoryName: 'Nonexistent Category XYZ', appendTags: [] }
+      }
+    ])
+
+    expect(result.warnings.length).toBeGreaterThan(0)
+    expect(result.warnings.some((w: string) => w.includes('Nonexistent Category XYZ'))).toBe(true)
+
+    repository.close()
+  })
+
+  it('ignores incoming entries that match system rule names', () => {
+    const repository = createRepository()
+
+    // Get an actual system rule name
+    const systemRules = repository.listRules().filter((r) => r.kind === 'system')
+    const systemRuleName = systemRules[0].name
+
+    const result = repository.prepareRuleImport([
+      {
+        name: systemRuleName,
+        sortOrder: 1,
+        descriptionTerms: [],
+        transactionTypes: [],
+        tags: [],
+        directions: [],
+        action: { appendTags: [] }
+      }
+    ])
+
+    expect(result.skipped).toBe(1)
+    expect(result.imported).toBe(0)
+    expect(result.conflicts).toHaveLength(0)
+
+    repository.close()
+  })
 })
