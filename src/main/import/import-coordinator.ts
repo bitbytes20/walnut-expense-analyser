@@ -292,10 +292,16 @@ export class ImportCoordinator {
       }
     }
 
+    const ruleCategorizations =
+      gate.shouldFinalizeAcceptedTransactions
+        ? this.repository.applyAllRulesToTransactions(batchId)
+        : []
+
     return {
       ...commitResult,
       rejectedFiles,
-      duplicateBlockedFiles
+      duplicateBlockedFiles,
+      ...(ruleCategorizations.length > 0 ? { ruleCategorizations } : {})
     }
   }
 

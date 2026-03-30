@@ -17,6 +17,7 @@ import type {
   DeleteCategorizationRuleInput,
   MergeCategoryInput,
   MergeCategoryPreview,
+  ReorderRulesInput,
   RuleApplyPreview,
   RuleExportEntry,
   RulePreviewInput,
@@ -1713,6 +1714,17 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
   },
   async deleteRule(input: DeleteCategorizationRuleInput) {
     return writeRules(readRules().filter((rule) => rule.id !== input.ruleId))
+  },
+  async reorderRules(input: ReorderRulesInput) {
+    const rules = readRules()
+    const userRules = input.ruleIds
+      .map((id, index) => {
+        const rule = rules.find((r) => r.id === id && r.kind !== 'system')
+        return rule ? { ...rule, sortOrder: index + 1 } : null
+      })
+      .filter(Boolean) as CategorizationRuleSummary[]
+    const systemRules = rules.filter((r) => r.kind === 'system')
+    return writeRules([...userRules, ...systemRules])
   },
   async testRule(_input: RulePreviewInput): Promise<RuleTestPreview> {
     return { matchCount: 0, samples: [] }

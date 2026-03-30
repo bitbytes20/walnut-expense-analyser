@@ -162,6 +162,7 @@ const createWalnutApi = () => {
       ]
     }),
     applyRuleToExisting: vi.fn().mockResolvedValue(rules),
+    reorderRules: vi.fn().mockResolvedValue(rules),
     ping: vi.fn().mockResolvedValue('pong'),
     bulkUpdateTransactions: vi.fn().mockResolvedValue({ updatedCount: 0 }),
     replaceStagedFile: vi.fn().mockResolvedValue({ stagedFiles: [] }),
