@@ -1,5 +1,6 @@
 import type { AccountProfile, AccountProfileDraft } from './account'
 import type {
+  BulkResolveResult,
   ChooseImportSheetInput,
   CommitImportBatchInput,
   CommitImportBatchResult,
@@ -199,6 +200,7 @@ export interface WalnutApi {
   getImportBatchDetail: (input: GetImportBatchDetailInput) => Promise<ImportBatchDetail>
   getReviewQueue: (input?: GetReviewQueueInput) => Promise<ImportBatchDetail[]>
   resolveReviewItems: (input: ReviewItemResolutionInput) => Promise<ImportBatchDetail>
+  resolveReviewItemsBulk: (input: ReviewItemResolutionInput) => Promise<{ batchDetail: ImportBatchDetail; bulkResult: BulkResolveResult }>
   restoreReviewItems: (input: ReviewItemRestoreInput) => Promise<ImportBatchDetail>
   listTransactions: (input?: TransactionLedgerQuery) => Promise<TransactionLedgerRow[]>
   getTransactionDetail: (input: GetTransactionDetailInput) => Promise<TransactionDetail>

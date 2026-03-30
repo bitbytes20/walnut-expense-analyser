@@ -57,11 +57,11 @@ Future-facing expansion once the local foundation and core workflows are stable.
   3. User can approve and reject individual review queue items using keyboard shortcuts without reaching for the mouse
   4. User sees import error messages that identify the failing row, describe what was expected vs found, and suggest a fix; user can retry with a corrected file without navigating away
   5. User can save the current filter state as a named preset and restore it in one click; user can rename, delete, and list all saved presets
-**Plans:** 1/5 plans executed
+**Plans:** 2/5 plans executed
 Plans:
 - [x] 09-01-PLAN.md — Shared contracts, DB schema, IPC handlers, preload bridge, and Wave 0 test scaffolds
 - [ ] 09-02-PLAN.md — Transaction multi-select with checkboxes, shift+click, and bulk category/tag assignment
-- [ ] 09-03-PLAN.md — Review queue keyboard shortcuts (A/R/arrows) and mixed-state bulk approve
+- [x] 09-03-PLAN.md — Review queue keyboard shortcuts (A/R/arrows) and mixed-state bulk approve
 - [ ] 09-04-PLAN.md — Import error diagnostics with row-level detail and in-place file retry
 - [ ] 09-05-PLAN.md — Named filter presets (save, restore, rename, delete) in filter drawer
 **UI hint**: yes
@@ -141,7 +141,7 @@ Plans:
 | 6. Dashboard Analytics | v1.0 | 4/4 | Complete | 2026-03-28 |
 | 7. Audit and Diagnostics | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 8. Settings and Release Hardening | v1.0 | 4/4 | Complete | 2026-03-29 |
-| 9. Workflow Polish | v2.0 | 1/5 | In Progress|  |
+| 9. Workflow Polish | v2.0 | 2/5 | In Progress|  |
 | 10. Rule System Expansion | v2.0 | TBD | Not started | — |
 | 11. Budgeting Foundations | v2.0 | TBD | Not started | — |
 | 12. AI Insights | v2.0 | TBD | Not started | — |
