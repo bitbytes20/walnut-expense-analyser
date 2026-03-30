@@ -2,7 +2,7 @@
 phase: 10
 slug: rule-system-expansion
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-03-30
 ---
@@ -17,20 +17,20 @@ created: 2026-03-30
 
 | Property | Value |
 |----------|-------|
-| **Framework** | {pytest 7.x / jest 29.x / vitest / go test / other} |
-| **Config file** | {path or "none — Wave 0 installs"} |
-| **Quick run command** | `{quick command}` |
-| **Full suite command** | `{full command}` |
-| **Estimated runtime** | ~{N} seconds |
+| **Framework** | vitest 3.2.4 |
+| **Config file** | `vitest.config.ts` (project root) |
+| **Quick run command** | `npm run rebuild:native:node && npx vitest run tests/unit/categories/` |
+| **Full suite command** | `npm run test:unit` |
+| **Estimated runtime** | ~15 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `{quick run command}`
-- **After every plan wave:** Run `{full suite command}`
+- **After every task commit:** Run `npm run rebuild:native:node && npx vitest run tests/unit/categories/`
+- **After every plan wave:** Run `npm run test:unit`
 - **Before `/gsd:verify-work`:** Full suite must be green
-- **Max feedback latency:** {N} seconds
+- **Max feedback latency:** 30 seconds
 
 ---
 
@@ -38,7 +38,17 @@ created: 2026-03-30
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 10-01-01 | 01 | 1 | REQ-{XX} | unit | `{command}` | ✅ / ❌ W0 | ⬜ pending |
+| 10-01-01 | 01 | 1 | RULES-01..11 | tsc | `npx tsc --noEmit 2>&1 \| head -20` | ✅ | ⬜ pending |
+| 10-01-02 | 01 | 1 | RULES-01..11 | tsc | `npm run rebuild:native:node && npx tsc --noEmit 2>&1 \| head -20` | ✅ | ⬜ pending |
+| 10-01-03 | 01 | 1 | RULES-01..11 | unit (Wave 0) | `npm run rebuild:native:node && npx vitest run tests/unit/categories/ tests/unit/import/auto-apply.test.ts 2>&1 \| tail -20` | ❌ W0 | ⬜ pending |
+| 10-02-01 | 02 | 2 | RULES-01,02,03,08 | unit | `npm run rebuild:native:node && npx vitest run tests/unit/categories/rule-engine.test.ts -t "Phase 10" 2>&1 \| tail -30` | ❌ W0 | ⬜ pending |
+| 10-02-02 | 02 | 2 | RULES-01,02,03,08 | tsc | `npx tsc --noEmit 2>&1 \| head -20` | ✅ | ⬜ pending |
+| 10-03-01 | 03 | 2 | RULES-05,06,07 | unit | `npm run rebuild:native:node && npx vitest run tests/unit/categories/category-repository.test.ts -t "Phase 10" 2>&1 \| tail -30` | ❌ W0 | ⬜ pending |
+| 10-03-02 | 03 | 2 | RULES-05,06,07 | tsc | `npx tsc --noEmit 2>&1 \| head -20` | ✅ | ⬜ pending |
+| 10-04-01 | 04 | 3 | RULES-04,11 | unit | `npm run rebuild:native:node && npx vitest run tests/unit/categories/rule-engine.test.ts -t "drag reorder" tests/unit/import/auto-apply.test.ts 2>&1 \| tail -30` | ❌ W0 | ⬜ pending |
+| 10-04-02 | 04 | 3 | RULES-04,11 | tsc | `npx tsc --noEmit 2>&1 \| head -20` | ✅ | ⬜ pending |
+| 10-05-01 | 05 | 3 | RULES-09,10 | unit | `npm run rebuild:native:node && npx vitest run tests/unit/categories/rule-engine.test.ts -t "Phase 10: rule export" -t "Phase 10: rule import" 2>&1 \| tail -30` | ❌ W0 | ⬜ pending |
+| 10-05-02 | 05 | 3 | RULES-09,10 | tsc | `npx tsc --noEmit 2>&1 \| head -20` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -46,11 +56,11 @@ created: 2026-03-30
 
 ## Wave 0 Requirements
 
-- [ ] `{tests/test_file.py}` — stubs for REQ-{XX}
-- [ ] `{tests/conftest.py}` — shared fixtures
-- [ ] `{framework install}` — if no framework detected
+- [ ] `tests/unit/categories/rule-engine.test.ts` — expand existing file: add describe blocks for `starts-with`, `ends-with`, `regex`, `AND conditions`, `drag reorder`, `export`, `import`, `migration`
+- [ ] `tests/unit/categories/category-repository.test.ts` — expand existing file: add describe blocks for `rename propagation`, `merge preview`, `archive`
+- [ ] `tests/unit/import/auto-apply.test.ts` — new file: covers RULES-11 (auto-apply at commit, uncategorized-only targeting, summary generation)
 
-*If none: "Existing infrastructure covers all phase requirements."*
+All Wave 0 stubs created in Plan 01 Task 3.
 
 ---
 
@@ -58,19 +68,19 @@ created: 2026-03-30
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| {behavior} | REQ-{XX} | {reason} | {steps} |
-
-*If none: "All phase behaviors have automated verification."*
+| Drag-and-drop rule reorder visual feedback | RULES-04 | UI interaction requires Electron renderer | Drag a rule up/down in RulePane, verify order persists on reload |
+| Import diff view side-by-side display | RULES-10 | Visual layout verification | Import a JSON with 1 matching rule, verify diff shows Keep/Replace/Skip buttons |
+| Category merge preview modal display | RULES-06 | Modal interaction | Merge two categories, verify count preview shows before confirmation |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < {N}s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** {pending / approved YYYY-MM-DD}
+**Approval:** approved 2026-03-30
