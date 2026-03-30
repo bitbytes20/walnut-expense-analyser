@@ -29,8 +29,8 @@ Requirements for milestone v2.0 — Release 2: Core. Builds on the v1.0 trusted 
 - [x] **RULES-06**: User can merge one category into another; all affected transactions and rule targets are reassigned atomically with a preview count shown before confirmation
 - [x] **RULES-07**: User can archive a category so it disappears from active pickers but its historical transactions remain intact
 - [x] **RULES-08**: User can write a regex rule condition via an opt-in advanced toggle, with live preview of matched transactions and ReDoS validation on input
-- [ ] **RULES-09**: User can export all categorization rules to a JSON file
-- [ ] **RULES-10**: User can import rules from a JSON file, with conflict detection showing a side-by-side diff when an incoming rule overlaps an existing rule
+- [x] **RULES-09**: User can export all categorization rules to a JSON file
+- [x] **RULES-10**: User can import rules from a JSON file, with conflict detection showing a side-by-side diff when an incoming rule overlaps an existing rule
 - [ ] **RULES-11**: User-authored categorization rules are automatically applied to transactions at import commit time
 
 ### Budgeting Foundations
@@ -138,8 +138,8 @@ Explicitly excluded with rationale.
 | RULES-06 | Phase 10 | Complete |
 | RULES-07 | Phase 10 | Complete |
 | RULES-08 | Phase 10 | Complete |
-| RULES-09 | Phase 10 | Pending |
-| RULES-10 | Phase 10 | Pending |
+| RULES-09 | Phase 10 | Complete |
+| RULES-10 | Phase 10 | Complete |
 | RULES-11 | Phase 10 | Pending |
 | BUDGET-01 | Phase 11 | Pending |
 | BUDGET-02 | Phase 11 | Pending |
