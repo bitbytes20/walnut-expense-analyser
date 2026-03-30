@@ -536,9 +536,91 @@ describe('Phase 10: AND conditions', () => {
 })
 
 describe('Phase 10: drag reorder', () => {
-  it.todo('reorderRules persists sort_order values in given order')
-  it.todo('listRules returns user rules sorted by sort_order ASC, system rules last')
-  it.todo('reorderRules ignores system rule IDs silently')
+  it('reorderRules persists sort_order values in given order', () => {
+    const repository = createRepository()
+    const dining = repository.createCategory({ name: 'Dining' }).find((c) => c.name === 'Dining')!
+
+    const makeRule = (name: string) =>
+      repository.createRule({
+        name,
+        condition: { descriptionTerms: [{ op: 'contains', value: name.toLowerCase() }], transactionTypes: [], tags: [], directions: [] },
+        action: { categoryId: dining.id, appendTags: [] }
+      })
+
+    const rulesA = makeRule('Rule A')
+    const idA = rulesA.find((r) => r.name === 'Rule A')!.id
+    makeRule('Rule B')
+    const rulesC = makeRule('Rule C')
+    const idB = rulesC.find((r) => r.name === 'Rule B')!.id
+    const idC = rulesC.find((r) => r.name === 'Rule C')!.id
+
+    // Reorder to C, A, B
+    repository.reorderRules([idC, idA, idB])
+
+    const ordered = repository.listRules().filter((r) => r.kind === 'user')
+    const names = ordered.map((r) => r.name)
+    expect(names).toEqual(['Rule C', 'Rule A', 'Rule B'])
+
+    repository.close()
+  })
+
+  it('listRules returns user rules sorted by sort_order ASC, system rules last', () => {
+    const repository = createRepository()
+    const dining = repository.createCategory({ name: 'Dining' }).find((c) => c.name === 'Dining')!
+
+    repository.createRule({
+      name: 'User Rule 1',
+      condition: { descriptionTerms: [], transactionTypes: [], tags: [], directions: [] },
+      action: { categoryId: dining.id, appendTags: [] }
+    })
+    repository.createRule({
+      name: 'User Rule 2',
+      condition: { descriptionTerms: [], transactionTypes: [], tags: [], directions: [] },
+      action: { categoryId: dining.id, appendTags: [] }
+    })
+
+    const rules = repository.listRules()
+    const userRules = rules.filter((r) => r.kind === 'user')
+    const systemRules = rules.filter((r) => r.kind === 'system')
+
+    // All user rules before system rules
+    const lastUserIndex = rules.findLastIndex((r) => r.kind === 'user')
+    const firstSystemIndex = rules.findIndex((r) => r.kind === 'system')
+    expect(lastUserIndex).toBeLessThan(firstSystemIndex)
+
+    // User rules in ascending sort_order
+    for (let i = 1; i < userRules.length; i++) {
+      expect(userRules[i].sortOrder).toBeGreaterThanOrEqual(userRules[i - 1].sortOrder)
+    }
+    expect(systemRules.length).toBeGreaterThan(0)
+
+    repository.close()
+  })
+
+  it('reorderRules ignores system rule IDs silently', () => {
+    const repository = createRepository()
+    const dining = repository.createCategory({ name: 'Dining' }).find((c) => c.name === 'Dining')!
+
+    const rules = repository.createRule({
+      name: 'User Rule',
+      condition: { descriptionTerms: [], transactionTypes: [], tags: [], directions: [] },
+      action: { categoryId: dining.id, appendTags: [] }
+    })
+    const userRule = rules.find((r) => r.name === 'User Rule')!
+
+    const systemRules = repository.listRules().filter((r) => r.kind === 'system')
+    const systemRuleBefore = systemRules[0]
+    const originalSystemSortOrder = systemRuleBefore.sortOrder
+
+    // Include system rule ID in reorder call — it should be ignored
+    repository.reorderRules([systemRuleBefore.id, userRule.id])
+
+    const after = repository.listRules()
+    const systemAfter = after.find((r) => r.id === systemRuleBefore.id)!
+    expect(systemAfter.sortOrder).toBe(originalSystemSortOrder)
+
+    repository.close()
+  })
 })
 
 describe('Phase 10: rule export', () => {
