@@ -29,12 +29,14 @@ import type { AuditEvent } from './audit'
 import type { GenerateDiagnosticsBundleInput } from './diagnostics'
 import type {
   ApplyRuleToExistingInput,
+  ArchiveCategoryInput,
   CategorizationRuleSummary,
   CreateCategoryInput,
   CreateCategorizationRuleInput,
   DeleteCategoryInput,
   DeleteCategorizationRuleInput,
   MergeCategoryInput,
+  MergeCategoryPreview,
   RuleApplyPreview,
   RulePreviewInput,
   RuleTestPreview,
@@ -209,6 +211,8 @@ export interface WalnutApi {
   createCategory: (input: CreateCategoryInput) => Promise<CategoryTreeNode[]>
   updateCategory: (input: UpdateCategoryInput) => Promise<CategoryTreeNode[]>
   mergeCategory: (input: MergeCategoryInput) => Promise<CategoryTreeNode[]>
+  mergeCategoryPreview: (input: { sourceCategoryId: string; targetCategoryId: string }) => Promise<MergeCategoryPreview>
+  archiveCategory: (input: ArchiveCategoryInput) => Promise<CategoryTreeNode[]>
   deleteCategory: (input: DeleteCategoryInput) => Promise<CategoryTreeNode[]>
   listRules: () => Promise<CategorizationRuleSummary[]>
   createRule: (input: CreateCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>

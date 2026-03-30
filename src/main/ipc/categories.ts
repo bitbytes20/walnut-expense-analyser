@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import type {
   ApplyRuleToExistingInput,
+  ArchiveCategoryInput,
   CreateCategoryInput,
   CreateCategorizationRuleInput,
   DeleteCategoryInput,
@@ -21,6 +22,12 @@ export const registerCategoriesIpc = () => {
   ipcMain.handle('categories:update', (_event, input: UpdateCategoryInput) => repository.updateCategory(input))
   ipcMain.handle('categories:merge', (_event, input: MergeCategoryInput) => repository.mergeCategory(input))
   ipcMain.handle('categories:delete', (_event, input: DeleteCategoryInput) => repository.deleteCategory(input))
+  ipcMain.handle('categories:merge-preview', (_event, input: { sourceCategoryId: string; targetCategoryId: string }) =>
+    repository.mergeCategoryPreview(input.sourceCategoryId, input.targetCategoryId)
+  )
+  ipcMain.handle('categories:archive', (_event, input: ArchiveCategoryInput) =>
+    repository.archiveCategory(input.categoryId, input.isArchived)
+  )
 
   ipcMain.handle('rules:list', () => repository.listRules())
   ipcMain.handle('rules:create', (_event, input: CreateCategorizationRuleInput) => repository.createRule(input))

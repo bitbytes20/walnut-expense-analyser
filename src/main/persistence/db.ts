@@ -48,7 +48,9 @@ import type {
   CreateCategorizationRuleInput,
   DeleteCategoryInput,
   DeleteCategorizationRuleInput,
+  ArchiveCategoryInput,
   MergeCategoryInput,
+  MergeCategoryPreview,
   RuleApplyPreview,
   RulePreviewInput,
   RulePreviewSample,
@@ -1886,21 +1888,75 @@ export class WalnutRepository {
       this.assertValidCategoryParent(current.id, nextParentId)
     }
 
-    this.sqlite
-      .prepare(
-        `UPDATE categories
-         SET name = ?, parent_id = ?, is_active = ?, updated_at = ?
-         WHERE id = ?`
-      )
-      .run(
-        input.name?.trim() ?? current.name,
-        nextParentId,
-        input.isActive === undefined ? current.is_active : input.isActive ? 1 : 0,
-        nowIso(),
-        input.categoryId
-      )
+    const stamp = nowIso()
+    const newName = input.name?.trim() ?? current.name
+    const isRenamingName = input.name !== undefined && input.name.trim() !== current.name
+
+    if (isRenamingName) {
+      // Wrap name update + transaction label propagation in a single atomic transaction (D-17)
+      const renameTransaction = this.sqlite.transaction(() => {
+        this.sqlite
+          .prepare(
+            `UPDATE categories
+             SET name = ?, parent_id = ?, is_active = ?, updated_at = ?
+             WHERE id = ?`
+          )
+          .run(newName, nextParentId, input.isActive === undefined ? current.is_active : input.isActive ? 1 : 0, stamp, input.categoryId)
+
+        // Propagate to denormalized category_label on all transactions
+        const newPath = this.getCategoryPathById(input.categoryId)
+        this.sqlite
+          .prepare('UPDATE imported_transactions SET category_label = ? WHERE category_id = ?')
+          .run(newPath.join(' > '), input.categoryId)
+      })
+      renameTransaction()
+    } else {
+      this.sqlite
+        .prepare(
+          `UPDATE categories
+           SET name = ?, parent_id = ?, is_active = ?, updated_at = ?
+           WHERE id = ?`
+        )
+        .run(newName, nextParentId, input.isActive === undefined ? current.is_active : input.isActive ? 1 : 0, stamp, input.categoryId)
+    }
 
     return this.listCategories()
+  }
+
+  mergeCategoryPreview(sourceCategoryId: string, targetCategoryId: string): MergeCategoryPreview {
+    const txCount = (
+      this.sqlite
+        .prepare('SELECT COUNT(*) as cnt FROM imported_transactions WHERE category_id = ?')
+        .get(sourceCategoryId) as { cnt: number }
+    ).cnt
+
+    const ruleCount = (
+      this.sqlite
+        .prepare(`SELECT COUNT(*) as cnt FROM categorization_rules WHERE action_json LIKE ?`)
+        .get(`%"categoryId":"${sourceCategoryId}"%`) as { cnt: number }
+    ).cnt
+
+    const sampleRows = this.sqlite
+      .prepare(
+        `SELECT id, transaction_date_raw, cleaned_description,
+                COALESCE(credit_amount_minor, -(debit_amount_minor)) as signed_amount_minor
+         FROM imported_transactions WHERE category_id = ? LIMIT 5`
+      )
+      .all(sourceCategoryId) as Array<{ id: string; transaction_date_raw: string; cleaned_description: string; signed_amount_minor: number }>
+
+    const samples: RulePreviewSample[] = sampleRows.map((r) => ({
+      transactionId: r.id,
+      transactionDateRaw: r.transaction_date_raw,
+      description: r.cleaned_description,
+      signedAmountMinor: r.signed_amount_minor,
+      currentCategoryPath: this.getCategoryPathById(sourceCategoryId),
+      nextCategoryPath: this.getCategoryPathById(targetCategoryId),
+      currentType: 'unknown',
+      nextType: 'unknown',
+      tags: []
+    }))
+
+    return { sourceCategoryId, targetCategoryId, affectedTransactionCount: txCount, affectedRuleCount: ruleCount, samples }
   }
 
   mergeCategory(input: MergeCategoryInput): CategoryTreeNode[] {
@@ -1913,17 +1969,37 @@ export class WalnutRepository {
     this.assertValidCategoryParent(target.id, source.id)
 
     const transaction = this.sqlite.transaction(() => {
+      // Reassign transactions from source to target (D-18)
       this.sqlite
         .prepare('UPDATE imported_transactions SET category_id = ?, category_label = ? WHERE category_id = ?')
-        .run(
-          target.id,
-          this.getCategoryPathById(target.id).join(' > '),
-          source.id
-        )
+        .run(target.id, this.getCategoryPathById(target.id).join(' > '), source.id)
+
+      // Update rule action_json targets from source to target (Pitfall 4 fix)
+      const rulesWithSource = this.sqlite
+        .prepare(`SELECT id, action_json FROM categorization_rules WHERE action_json LIKE ?`)
+        .all(`%"categoryId":"${input.sourceCategoryId}"%`) as Array<{ id: string; action_json: string }>
+
+      for (const rule of rulesWithSource) {
+        const action = JSON.parse(rule.action_json) as { categoryId?: string }
+        if (action.categoryId === input.sourceCategoryId) {
+          action.categoryId = input.targetCategoryId
+          this.sqlite
+            .prepare('UPDATE categorization_rules SET action_json = ?, updated_at = ? WHERE id = ?')
+            .run(JSON.stringify(action), nowIso(), rule.id)
+        }
+      }
+
       this.sqlite.prepare('DELETE FROM categories WHERE id = ?').run(source.id)
     })
 
     transaction()
+    return this.listCategories()
+  }
+
+  archiveCategory(categoryId: string, isArchived: boolean): CategoryTreeNode[] {
+    this.sqlite
+      .prepare('UPDATE categories SET is_archived = ?, updated_at = ? WHERE id = ?')
+      .run(isArchived ? 1 : 0, nowIso(), categoryId)
     return this.listCategories()
   }
 
