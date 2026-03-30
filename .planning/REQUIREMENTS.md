@@ -21,14 +21,14 @@ Requirements for milestone v2.0 — Release 2: Core. Builds on the v1.0 trusted 
 
 ### Rule System Expansion
 
-- [ ] **RULES-01**: User can write rule conditions using contains, starts-with, and ends-with string operators
-- [ ] **RULES-02**: User can write rule conditions using amount range operators (greater than, less than, between)
-- [ ] **RULES-03**: User can add multiple AND conditions to a single rule (e.g. "Description contains Uber AND amount > 200")
+- [x] **RULES-01**: User can write rule conditions using contains, starts-with, and ends-with string operators
+- [x] **RULES-02**: User can write rule conditions using amount range operators (greater than, less than, between)
+- [x] **RULES-03**: User can add multiple AND conditions to a single rule (e.g. "Description contains Uber AND amount > 200")
 - [ ] **RULES-04**: User can reorder rules by drag-and-drop to control first-match-wins priority
 - [ ] **RULES-05**: User can rename a category and the new name propagates atomically to all associated transactions and rule targets
 - [ ] **RULES-06**: User can merge one category into another; all affected transactions and rule targets are reassigned atomically with a preview count shown before confirmation
 - [ ] **RULES-07**: User can archive a category so it disappears from active pickers but its historical transactions remain intact
-- [ ] **RULES-08**: User can write a regex rule condition via an opt-in advanced toggle, with live preview of matched transactions and ReDoS validation on input
+- [x] **RULES-08**: User can write a regex rule condition via an opt-in advanced toggle, with live preview of matched transactions and ReDoS validation on input
 - [ ] **RULES-09**: User can export all categorization rules to a JSON file
 - [ ] **RULES-10**: User can import rules from a JSON file, with conflict detection showing a side-by-side diff when an incoming rule overlaps an existing rule
 - [ ] **RULES-11**: User-authored categorization rules are automatically applied to transactions at import commit time
@@ -130,14 +130,14 @@ Explicitly excluded with rationale.
 | WORKFLOW-07 | Phase 9 | Complete |
 | WORKFLOW-08 | Phase 9 | Complete |
 | WORKFLOW-09 | Phase 9 | Complete |
-| RULES-01 | Phase 10 | Pending |
-| RULES-02 | Phase 10 | Pending |
-| RULES-03 | Phase 10 | Pending |
+| RULES-01 | Phase 10 | Complete |
+| RULES-02 | Phase 10 | Complete |
+| RULES-03 | Phase 10 | Complete |
 | RULES-04 | Phase 10 | Pending |
 | RULES-05 | Phase 10 | Pending |
 | RULES-06 | Phase 10 | Pending |
 | RULES-07 | Phase 10 | Pending |
-| RULES-08 | Phase 10 | Pending |
+| RULES-08 | Phase 10 | Complete |
 | RULES-09 | Phase 10 | Pending |
 | RULES-10 | Phase 10 | Pending |
 | RULES-11 | Phase 10 | Pending |

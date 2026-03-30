@@ -76,9 +76,9 @@ Plans:
   3. User merges a category into another and sees a transaction count preview before confirming; all transactions and any rules pointing at the source category are reassigned atomically to the target
   4. User can archive a category so it disappears from active pickers while its historical transactions remain intact and searchable
   5. User can drag rules to reorder them and export/import them as a JSON file; on import, any conflict with an existing rule shows a side-by-side diff before committing; rules apply automatically when a new import is committed
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 Plans:
-- [ ] 10-01-PLAN.md — Contracts, schema columns, descriptionTerms migration, Wave 0 test scaffolds
+- [x] 10-01-PLAN.md — Contracts, schema columns, descriptionTerms migration, Wave 0 test scaffolds
 - [ ] 10-02-PLAN.md — Rule engine evolution: matchesRuleCondition rewrite, dynamic condition row editor UI
 - [ ] 10-03-PLAN.md — Category correctness: rename propagation, merge preview + atomic merge, archive/restore
 - [ ] 10-04-PLAN.md — Drag-reorder rule priority, auto-apply rules at import commit, import summary
@@ -148,7 +148,7 @@ Plans:
 | 7. Audit and Diagnostics | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 8. Settings and Release Hardening | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 9. Workflow Polish | v2.0 | 5/5 | Complete | 2026-03-30 |
-| 10. Rule System Expansion | v2.0 | 1/5 | In progress | — |
+| 10. Rule System Expansion | v2.0 | 1/5 | In Progress|  |
 | 11. Budgeting Foundations | v2.0 | TBD | Not started | — |
 | 12. AI Insights | v2.0 | TBD | Not started | — |
 | 13. Family Members | v2.0 | TBD | Not started | — |
