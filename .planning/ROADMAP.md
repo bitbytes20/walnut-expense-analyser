@@ -31,8 +31,8 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 
 Polish and hardening once the trusted local loop is working end-to-end.
 
-- [ ] Phase 9: Workflow Polish — Review throughput, search ergonomics, import troubleshooting speed
-- [ ] Phase 10: Rule System Expansion — Richer rule authoring, merge safety, category/rule maintenance
+- [x] Phase 9: Workflow Polish — Review throughput, search ergonomics, import troubleshooting speed
+- [ ] Phase 10: Rule System Expansion — Richer rule authoring, merge safety, category/rule maintenance (1/5 plans)
 - [ ] Phase 11: Budgeting Foundations — Budget models, category targets, variance reporting
 
 ### 📋 v3.0 Release 3: Smart (Planned)
@@ -54,11 +54,11 @@ Future-facing expansion once the local foundation and core workflows are stable.
 | 6. Dashboard Analytics | v1.0 | 4/4 | Complete | 2026-03-28 |
 | 7. Audit and Diagnostics | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 8. Settings and Release Hardening | v1.0 | 4/4 | Complete | 2026-03-29 |
-| 9. Workflow Polish | v2.0 | TBD | Not started | — |
-| 10. Rule System Expansion | v2.0 | TBD | Not started | — |
+| 9. Workflow Polish | v2.0 | TBD | Complete | 2026-03-30 |
+| 10. Rule System Expansion | v2.0 | 1/5 | In progress | — |
 | 11. Budgeting Foundations | v2.0 | TBD | Not started | — |
 | 12. AI Summaries | v3.0 | TBD | Not started | — |
 | 13. Expansion Architecture | v3.0 | TBD | Not started | — |
 
 ---
-*Last updated: 2026-03-29 after v1.0 milestone completion*
+*Last updated: 2026-03-30 after Phase 10 Plan 01 completion*

@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: v1.0 milestone complete
-last_updated: "2026-03-29T17:04:33.700Z"
+milestone: v2.0
+milestone_name: Core
+status: Phase 10 in progress
+last_updated: "2026-03-30T14:50:00.000Z"
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 30
-  completed_plans: 30
+  total_phases: 11
+  completed_phases: 9
+  total_plans: 35
+  completed_plans: 31
 ---
 
 # State: Walnut Expense Analyser
@@ -107,9 +107,17 @@ Plan: Not started
 - handleGlobalShortcut exported as pure function for testability; GlobalShortcutActions interface uses WorkspaceScreen union type for TypeScript correctness
 - setImportAreaScreen in GlobalShortcutActions uses '{ type: workspace | history }' narrowing to satisfy Dispatch<SetStateAction<ImportAreaScreen>> constraint
 
+## Phase 10 Decisions
+
+- descriptionTerms uses AND semantics: all terms must match for rule to fire
+- migrateDescriptionContainsToDescriptionTerms() runs at WalnutRepository bootstrap init
+- RuleEditorPanel UI keeps simple comma-separated text field, maps to op:contains terms (full UI in later plans)
+- listRules ORDER BY changed to is_system ASC, sort_order ASC (user rules first per D-05)
+- is_archived column added via ensureColumn pattern for safe migration on existing DBs
+
 ## Immediate Next Action
 
-Phase 8 complete. All 4 plans executed and verified. Release 1.0.0 hardening is done. Ready for final integration testing and release.
+Phase 10 Plan 01 complete. Contract foundation in place: descriptionTerms, new IPC schemas, DB columns, and 41 it.todo test scaffolds. Ready for Plan 02 (rule engine implementation).
 
 ---
-*Last updated: 2026-03-29 after Phase 8 Plan 04 human verification approved*
+*Last updated: 2026-03-30 after Phase 10 Plan 01 completion*
