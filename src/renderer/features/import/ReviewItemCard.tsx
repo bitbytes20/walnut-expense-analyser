@@ -66,7 +66,10 @@ const styles = {
   },
   cardActive: {
     border: '1px solid var(--color-accent)',
-    boxShadow: '0 0 0 1px rgba(15, 118, 110, 0.12)'
+    boxShadow: '0 0 0 1px rgba(15, 118, 110, 0.12)',
+    outline: '2px solid var(--color-accent)',
+    outlineOffset: 2,
+    background: 'rgba(15, 118, 110, 0.04)'
   },
   selectionRow: {
     display: 'flex',

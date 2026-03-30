@@ -10,6 +10,65 @@ interface ReviewQueueScreenProps {
   onBackToHistory: () => void
 }
 
+export interface ReviewKeyboardContext {
+  activeItemId: string | null
+  activeBatchId: string | null
+  flatItems: Array<{ batchId: string; itemId: string }>
+  onApprove: (batchId: string, itemId: string) => void
+  onReject: (batchId: string, itemId: string) => void
+  onNavigate: (batchId: string, itemId: string) => void
+}
+
+export function handleReviewKeydown(
+  event: { key: string; target: { tagName: string; isContentEditable?: boolean }; preventDefault: () => void },
+  ctx: ReviewKeyboardContext
+): void {
+  const { target } = event
+  if (
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.tagName === 'SELECT' ||
+    target.isContentEditable
+  ) {
+    return
+  }
+
+  if ((event.key === 'a' || event.key === 'A') && ctx.activeItemId && ctx.activeBatchId) {
+    event.preventDefault()
+    ctx.onApprove(ctx.activeBatchId, ctx.activeItemId)
+    return
+  }
+
+  if ((event.key === 'r' || event.key === 'R') && ctx.activeItemId && ctx.activeBatchId) {
+    event.preventDefault()
+    ctx.onReject(ctx.activeBatchId, ctx.activeItemId)
+    return
+  }
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    if (ctx.flatItems.length === 0) return
+    const currentIndex = ctx.flatItems.findIndex(
+      (item) => item.batchId === ctx.activeBatchId && item.itemId === ctx.activeItemId
+    )
+    const nextIndex = Math.min(currentIndex + 1, ctx.flatItems.length - 1)
+    const next = ctx.flatItems[nextIndex < 0 ? 0 : nextIndex]
+    if (next) ctx.onNavigate(next.batchId, next.itemId)
+    return
+  }
+
+  if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    if (ctx.flatItems.length === 0) return
+    const currentIndex = ctx.flatItems.findIndex(
+      (item) => item.batchId === ctx.activeBatchId && item.itemId === ctx.activeItemId
+    )
+    const prevIndex = Math.max(currentIndex - 1, 0)
+    const prev = ctx.flatItems[currentIndex < 0 ? 0 : prevIndex]
+    if (prev) ctx.onNavigate(prev.batchId, prev.itemId)
+  }
+}
+
 const getRestoreStorageKey = (batchId?: string) => `walnut.review-restore.${batchId ?? 'all'}`
 
 export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQueueScreenProps) => {
@@ -65,6 +124,14 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
   const activeBatch = filteredQueue.find((batch) => batch.summary.batchId === activeBatchId) ?? filteredQueue[0]
   const activeItem = activeBatch?.reviewItems.find((item) => item.id === activeReviewItemId) ?? activeBatch?.reviewItems[0]
 
+  const flatItems = useMemo(
+    () =>
+      filteredQueue.flatMap((batch) =>
+        batch.reviewItems.map((item) => ({ batchId: batch.summary.batchId, itemId: item.id }))
+      ),
+    [filteredQueue]
+  )
+
   useEffect(() => {
     if (activeBatch?.summary.batchId && activeBatch.summary.batchId !== activeBatchId) {
       setActiveBatchId(activeBatch.summary.batchId)
@@ -84,43 +151,107 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
     await Promise.all([window.walnut.listImportHistory(), window.walnut.getImportBatchDetail({ batchId })])
   }
 
-  const resolveItems = async (
-    batchId: string,
-    reviewItemIds: string[],
-    action: ReviewItemResolutionAction,
-    options?: { edits?: ReviewItemEditInput; tag?: string }
-  ) => {
-    if (reviewItemIds.length === 0) {
-      return
-    }
+  const resolveItems = useCallback(
+    async (
+      batchId: string,
+      reviewItemIds: string[],
+      action: ReviewItemResolutionAction,
+      options?: { edits?: ReviewItemEditInput; tag?: string }
+    ) => {
+      if (reviewItemIds.length === 0) {
+        return
+      }
 
-    setMutating(true)
-    try {
-      await window.walnut.resolveReviewItems({
-        batchId,
-        reviewItemIds,
-        action,
-        edits: options?.edits,
-        tag: options?.tag
-      })
-      setRestoreContext({
-        batchId,
-        reviewItemIds,
-        message: action === 'mark-duplicate' ? 'Duplicate mark saved. Restore this review item if this was a mistake.' : 'Review action saved. Restore this review item if this was a mistake.'
-      })
-      window.localStorage.setItem(
-        getRestoreStorageKey(initialBatchId),
-        JSON.stringify({
+      setMutating(true)
+      try {
+        await window.walnut.resolveReviewItems({
+          batchId,
+          reviewItemIds,
+          action,
+          edits: options?.edits,
+          tag: options?.tag
+        })
+        setRestoreContext({
           batchId,
           reviewItemIds,
           message: action === 'mark-duplicate' ? 'Duplicate mark saved. Restore this review item if this was a mistake.' : 'Review action saved. Restore this review item if this was a mistake.'
         })
+        window.localStorage.setItem(
+          getRestoreStorageKey(initialBatchId),
+          JSON.stringify({
+            batchId,
+            reviewItemIds,
+            message: action === 'mark-duplicate' ? 'Duplicate mark saved. Restore this review item if this was a mistake.' : 'Review action saved. Restore this review item if this was a mistake.'
+          })
+        )
+        await Promise.all([loadQueue(batchId), refreshRelatedViews(batchId)])
+      } finally {
+        setMutating(false)
+      }
+    },
+    [initialBatchId, loadQueue]
+  )
+
+  const navigateToItem = useCallback((batchId: string, itemId: string) => {
+    setActiveBatchId(batchId)
+    setActiveReviewItemId(itemId)
+  }, [])
+
+  const handleApprove = useCallback(
+    (batchId: string, itemId: string) => {
+      const currentIndex = flatItems.findIndex((fi) => fi.batchId === batchId && fi.itemId === itemId)
+      void resolveItems(batchId, [itemId], 'accept-as-is').then(() => {
+        const remaining = flatItems.filter((fi) => !(fi.batchId === batchId && fi.itemId === itemId))
+        if (remaining.length > 0) {
+          const nextIndex = Math.min(currentIndex, remaining.length - 1)
+          const next = remaining[nextIndex]
+          if (next) navigateToItem(next.batchId, next.itemId)
+        }
+      })
+    },
+    [resolveItems, flatItems, navigateToItem]
+  )
+
+  const handleReject = useCallback(
+    (batchId: string, itemId: string) => {
+      const currentIndex = flatItems.findIndex((fi) => fi.batchId === batchId && fi.itemId === itemId)
+      void resolveItems(batchId, [itemId], 'discard').then(() => {
+        const remaining = flatItems.filter((fi) => !(fi.batchId === batchId && fi.itemId === itemId))
+        if (remaining.length > 0) {
+          const nextIndex = Math.min(currentIndex, remaining.length - 1)
+          const next = remaining[nextIndex]
+          if (next) navigateToItem(next.batchId, next.itemId)
+        }
+      })
+    },
+    [resolveItems, flatItems, navigateToItem]
+  )
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      handleReviewKeydown(
+        {
+          key: event.key,
+          target: {
+            tagName: target?.tagName ?? '',
+            isContentEditable: target?.isContentEditable ?? false
+          },
+          preventDefault: () => event.preventDefault()
+        },
+        {
+          activeItemId: activeItem?.id ?? null,
+          activeBatchId: activeBatch?.summary.batchId ?? null,
+          flatItems,
+          onApprove: handleApprove,
+          onReject: handleReject,
+          onNavigate: navigateToItem
+        }
       )
-      await Promise.all([loadQueue(batchId), refreshRelatedViews(batchId)])
-    } finally {
-      setMutating(false)
     }
-  }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [activeBatch, activeItem, flatItems, handleApprove, handleReject, navigateToItem])
 
   const restoreItems = async () => {
     if (!restoreContext) {
@@ -184,6 +315,9 @@ export const ReviewQueueScreen = ({ initialBatchId, onBackToHistory }: ReviewQue
             Back to import history
           </button>
         </div>
+        <p style={styles.keyboardHint}>
+          <span title="Approve (A)">Press A to approve</span>, <span title="Reject (R)">R to reject</span>, and arrow keys to navigate the focused item.
+        </p>
       </section>
 
       {restoreContext ? <ReviewRestoreBanner message={restoreContext.message} onRestore={() => void restoreItems()} /> : null}
@@ -296,6 +430,11 @@ const styles = {
     margin: 0,
     color: 'var(--color-muted)',
     maxWidth: 720
+  },
+  keyboardHint: {
+    margin: 0,
+    fontSize: 12,
+    color: 'var(--color-muted)'
   },
   secondaryButton: {
     minHeight: 44,
