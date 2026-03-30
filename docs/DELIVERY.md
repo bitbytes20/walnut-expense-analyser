@@ -490,6 +490,8 @@ When a phase completes:
 
 v1.0 (Release 1: Foundation) is complete and fully merged into `release/1.0.0`. All 8 phases and 30 execution waves shipped.
 
+v2.0 (Release 2: Core) is in progress. Phases 9 and 10 are complete; Phase 11 is upcoming.
+
 - Phase 1 implementation is complete and merged into `release/1.0.0`
 - Phase 1 tracking items are epic `#1` and stories `#14`, `#15`, and `#16`
 - Phase 2 implementation is complete and merged into `release/1.0.0`
@@ -503,7 +505,11 @@ v1.0 (Release 1: Foundation) is complete and fully merged into `release/1.0.0`. 
 - Phase 6 implementation is complete and merged into `release/1.0.0`
 - Phase 7 implementation is complete and merged into `release/1.0.0`
 - Phase 8 implementation is complete and merged into `release/1.0.0`
-- Next milestone: v2.0 Release 2: Core (Phases 9–11)
+- Phase 9 implementation is complete on `phase/9-workflow-polish` — PR pending merge into `release/1.1.0`
+- Phase 9 tracking items are epic `#9`
+- Phase 10 implementation is complete on `phase/10-rule-system-expansion` — PR [#57](https://github.com/bitbytes20/walnut-expense-analyser/pull/57) pending merge into `release/1.1.0`
+- Phase 10 tracking items are epic `#10`
+- Next: Phase 11 Budgeting Foundations
 
 ## Documentation Expectations
 
