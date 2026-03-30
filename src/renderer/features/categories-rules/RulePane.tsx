@@ -1,10 +1,19 @@
-import type { CategorizationRuleSummary } from '../../../shared/contracts/categories'
+import { useState } from 'react'
+import type { CategorizationRuleSummary, RuleConflict, RuleExportEntry, RuleImportResult } from '../../../shared/contracts/categories'
+import { RuleExportImportBar } from './RuleExportImportBar'
+import { RuleImportDiffView } from './RuleImportDiffView'
 
 interface RulePaneProps {
   rules: CategorizationRuleSummary[]
   onCreate: () => void
   onEdit: (rule: CategorizationRuleSummary) => void
   onToggle: (rule: CategorizationRuleSummary) => void
+  onRulesChange: (rules: CategorizationRuleSummary[]) => void
+}
+
+interface DiffState {
+  result: RuleImportResult
+  entries: RuleExportEntry[]
 }
 
 const summarizeCondition = (rule: CategorizationRuleSummary) => {
@@ -26,46 +35,89 @@ const summarizeAction = (rule: CategorizationRuleSummary) => {
   return parts.join(' • ') || 'No action'
 }
 
-export const RulePane = ({ rules, onCreate, onEdit, onToggle }: RulePaneProps) => (
-  <section style={styles.card}>
-    <div style={styles.header}>
-      <div>
-        <div style={styles.kicker}>Automation rules</div>
-        <h3 style={styles.heading}>Reusable categorization logic</h3>
-      </div>
-      <button type="button" style={styles.primaryButton} onClick={onCreate}>
-        Add rule
-      </button>
-    </div>
+export const RulePane = ({ rules, onCreate, onEdit, onToggle, onRulesChange }: RulePaneProps) => {
+  const [diffState, setDiffState] = useState<DiffState | null>(null)
 
-    <div style={styles.list}>
-      {rules.map((rule) => (
-        <article key={rule.id} style={styles.row}>
-          <div style={styles.rowHeader}>
-            <strong>{rule.name}</strong>
-            <div style={styles.badges}>
-              {rule.kind === 'system' ? <span style={styles.systemBadge}>Starter</span> : null}
-              <span style={rule.isEnabled ? styles.enabledBadge : styles.disabledBadge}>{rule.isEnabled ? 'Enabled' : 'Disabled'}</span>
-            </div>
-          </div>
-          <div style={styles.summaryLine}>{summarizeCondition(rule)}</div>
-          <div style={styles.summaryLine}>{summarizeAction(rule)}</div>
-          <div style={styles.rowFooter}>
-            <span>{rule.affectedTransactionCount} affected transactions</span>
-            <div style={styles.footerActions}>
-              <button type="button" style={styles.ghostButton} onClick={() => onToggle(rule)}>
-                {rule.isEnabled ? 'Disable' : 'Enable'}
-              </button>
-              <button type="button" style={styles.ghostButton} onClick={() => onEdit(rule)}>
-                Manage
-              </button>
-            </div>
-          </div>
-        </article>
-      ))}
-    </div>
-  </section>
-)
+  const userRuleCount = rules.filter((r) => r.kind === 'user').length
+
+  const handleShowDiff = (result: RuleImportResult, entries: RuleExportEntry[]) => {
+    setDiffState({ result, entries })
+  }
+
+  const handleConfirmImport = async (resolutions: Array<{ name: string; action: 'keep' | 'replace' | 'skip' }>) => {
+    if (!diffState) return
+    const nextRules = await window.walnut.importRulesCommit({ entries: diffState.entries, resolutions })
+    onRulesChange(nextRules)
+    setDiffState(null)
+  }
+
+  const handleCancelImport = () => {
+    setDiffState(null)
+  }
+
+  const handleImportComplete = async () => {
+    const nextRules = await window.walnut.listRules()
+    onRulesChange(nextRules)
+  }
+
+  return (
+    <section style={styles.card}>
+      <div style={styles.header}>
+        <div>
+          <div style={styles.kicker}>Automation rules</div>
+          <h3 style={styles.heading}>Reusable categorization logic</h3>
+        </div>
+        <button type="button" style={styles.primaryButton} onClick={onCreate}>
+          Add rule
+        </button>
+      </div>
+
+      <RuleExportImportBar
+        userRuleCount={userRuleCount}
+        onImportComplete={handleImportComplete}
+        onShowDiff={handleShowDiff}
+      />
+
+      {diffState ? (
+        <RuleImportDiffView
+          conflicts={diffState.result.conflicts as RuleConflict[]}
+          nonConflictCount={diffState.result.imported}
+          warnings={diffState.result.warnings}
+          entries={diffState.entries}
+          onConfirm={handleConfirmImport}
+          onCancel={handleCancelImport}
+        />
+      ) : (
+        <div style={styles.list}>
+          {rules.map((rule) => (
+            <article key={rule.id} style={styles.row}>
+              <div style={styles.rowHeader}>
+                <strong>{rule.name}</strong>
+                <div style={styles.badges}>
+                  {rule.kind === 'system' ? <span style={styles.systemBadge}>Starter</span> : null}
+                  <span style={rule.isEnabled ? styles.enabledBadge : styles.disabledBadge}>{rule.isEnabled ? 'Enabled' : 'Disabled'}</span>
+                </div>
+              </div>
+              <div style={styles.summaryLine}>{summarizeCondition(rule)}</div>
+              <div style={styles.summaryLine}>{summarizeAction(rule)}</div>
+              <div style={styles.rowFooter}>
+                <span>{rule.affectedTransactionCount} affected transactions</span>
+                <div style={styles.footerActions}>
+                  <button type="button" style={styles.ghostButton} onClick={() => onToggle(rule)}>
+                    {rule.isEnabled ? 'Disable' : 'Enable'}
+                  </button>
+                  <button type="button" style={styles.ghostButton} onClick={() => onEdit(rule)}>
+                    Manage
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
 
 const styles = {
   card: {

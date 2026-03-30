@@ -138,6 +138,7 @@ export const CategoriesRulesScreen = ({ initialRuleDraft, onRuleDraftHandled }: 
           onCreate={() => setRuleEditor({ mode: 'create' })}
           onEdit={(rule) => setRuleEditor({ mode: 'edit', rule })}
           onToggle={async (rule) => setRules(await window.walnut.toggleRule({ ruleId: rule.id, isEnabled: !rule.isEnabled }))}
+          onRulesChange={setRules}
         />
       </div>
 
