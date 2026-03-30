@@ -60,9 +60,9 @@ Future-facing expansion once the local foundation and core workflows are stable.
 **Plans:** 2/5 plans executed
 Plans:
 - [x] 09-01-PLAN.md — Shared contracts, DB schema, IPC handlers, preload bridge, and Wave 0 test scaffolds
-- [ ] 09-02-PLAN.md — Transaction multi-select with checkboxes, shift+click, and bulk category/tag assignment
+- [x] 09-02-PLAN.md — Transaction multi-select with checkboxes, shift+click, and bulk category/tag assignment
 - [x] 09-03-PLAN.md — Review queue keyboard shortcuts (A/R/arrows) and mixed-state bulk approve
-- [ ] 09-04-PLAN.md — Import error diagnostics with row-level detail and in-place file retry
+- [x] 09-04-PLAN.md — Import error diagnostics with row-level detail and in-place file retry
 - [x] 09-05-PLAN.md — Named filter presets (save, restore, rename, delete) in filter drawer
 **UI hint**: yes
 
