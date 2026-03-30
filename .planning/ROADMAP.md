@@ -31,11 +31,11 @@ Full archive: `.planning/milestones/v1.0-ROADMAP.md`
 
 Polish and hardening once the trusted local loop is working end-to-end.
 
-- [ ] **Phase 9: Workflow Polish** — Multi-select batch operations, import error diagnostics, and filter state persistence
-- [ ] **Phase 10: Rule System Expansion** — Richer rule authoring, category safety correctness fixes, rule maintenance tools
-- [ ] **Phase 11: Budgeting Foundations** ��� Monthly category targets, budget vs actual variance view, over-budget indicators
+- [x] **Phase 9: Workflow Polish** — Multi-select batch operations, import error diagnostics, and filter state persistence
+- [ ] **Phase 10: Rule System Expansion** — Richer rule authoring, category safety correctness fixes, rule maintenance tools (1/5 plans)
+- [ ] **Phase 11: Budgeting Foundations** — Monthly category targets, budget vs actual variance view, over-budget indicators
 - [ ] **Phase 12: AI Insights** — Owner-controlled AI provider config, triggered dashboard insights card with spend narrative
-- [ ] **Phase 13: Family Members** ��� Multi-member account profiles, family dashboard with aggregate and per-member views
+- [ ] **Phase 13: Family Members** — Multi-member account profiles, family dashboard with aggregate and per-member views
 - [ ] **Phase 14: WanderLog** — Custom expense tracking contexts with auto-assignment rules and scoped dashboards
 
 ### 📋 v3.0 Release 3: Smart (Planned)
@@ -147,8 +147,8 @@ Plans:
 | 6. Dashboard Analytics | v1.0 | 4/4 | Complete | 2026-03-28 |
 | 7. Audit and Diagnostics | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 8. Settings and Release Hardening | v1.0 | 4/4 | Complete | 2026-03-29 |
-| 9. Workflow Polish | v2.0 | 5/5 | Complete |  |
-| 10. Rule System Expansion | v2.0 | 0/5 | Planned | — |
+| 9. Workflow Polish | v2.0 | 5/5 | Complete | 2026-03-30 |
+| 10. Rule System Expansion | v2.0 | 1/5 | In progress | — |
 | 11. Budgeting Foundations | v2.0 | TBD | Not started | — |
 | 12. AI Insights | v2.0 | TBD | Not started | — |
 | 13. Family Members | v2.0 | TBD | Not started | — |
@@ -157,4 +157,4 @@ Plans:
 | 16. Expansion Architecture | v3.0 | TBD | Not started | — |
 
 ---
-*Last updated: 2026-03-30 — Phase 10 plans created (5 plans, 3 waves)*
+*Last updated: 2026-03-30 after Phase 10 Plan 01 completion*

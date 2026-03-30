@@ -73,7 +73,7 @@ const rules = [
     kind: 'user' as const,
     isEnabled: true,
     condition: {
-      descriptionContains: ['burger'],
+      descriptionTerms: [{ op: 'contains' as const, value: 'burger' }],
       transactionTypes: ['expense' as const],
       tags: [],
       directions: ['debit' as const]
@@ -84,6 +84,7 @@ const rules = [
       appendTags: ['restaurant']
     },
     specificityScore: 8,
+    sortOrder: 10,
     affectedTransactionCount: 3,
     updatedAt: '2026-03-28T18:00:00.000Z'
   }

@@ -34,7 +34,7 @@ describe('rule engine', () => {
     expect(rules.some((rule) => rule.kind === 'system')).toBe(true)
 
     for (const rule of rules) {
-      expect(Array.isArray(rule.condition.descriptionContains)).toBe(true)
+      expect(Array.isArray(rule.condition.descriptionTerms)).toBe(true)
       expect(Array.isArray(rule.condition.transactionTypes)).toBe(true)
       expect(Array.isArray(rule.condition.tags)).toBe(true)
       expect(Array.isArray(rule.condition.directions)).toBe(true)
@@ -87,7 +87,7 @@ describe('rule engine', () => {
     const genericFoodRule: CreateCategorizationRuleInput = {
       name: 'Generic food',
       condition: {
-        descriptionContains: ['king'],
+        descriptionTerms: [{ op: 'contains', value: 'king' }],
         transactionTypes: ['expense'],
         tags: [],
         directions: ['debit']
@@ -101,7 +101,7 @@ describe('rule engine', () => {
     const specificFoodRule: CreateCategorizationRuleInput = {
       name: 'Burger King dining',
       condition: {
-        descriptionContains: ['burger', 'king'],
+        descriptionTerms: [{ op: 'contains', value: 'burger' }, { op: 'contains', value: 'king' }],
         amountMinMinor: 50000,
         amountMaxMinor: 100000,
         transactionTypes: ['expense'],
@@ -137,4 +137,51 @@ describe('rule engine', () => {
 
     repository.close()
   })
+})
+
+describe('Phase 10: descriptionTerms migration', () => {
+  it.todo('migrates descriptionContains to descriptionTerms with op:contains at startup')
+  it.todo('leaves already-migrated rules unchanged on second startup')
+  it.todo('handles rules with empty descriptionContains array')
+})
+
+describe('Phase 10: starts-with operator', () => {
+  it.todo('matches when description starts with the term value (case-insensitive)')
+  it.todo('does not match when description contains but does not start with the term value')
+})
+
+describe('Phase 10: ends-with operator', () => {
+  it.todo('matches when description ends with the term value (case-insensitive)')
+  it.todo('does not match when description contains but does not end with the term value')
+})
+
+describe('Phase 10: regex operator', () => {
+  it.todo('matches description against regex pattern')
+  it.todo('returns false for invalid regex pattern without throwing')
+  it.todo('regex match is case-insensitive')
+})
+
+describe('Phase 10: AND conditions', () => {
+  it.todo('matches only when ALL descriptionTerms entries match (AND semantics)')
+  it.todo('fails when any single descriptionTerm does not match')
+  it.todo('combines descriptionTerms with amountMinMinor/amountMaxMinor (AND)')
+})
+
+describe('Phase 10: drag reorder', () => {
+  it.todo('reorderRules persists sort_order values in given order')
+  it.todo('listRules returns user rules sorted by sort_order ASC, system rules last')
+  it.todo('reorderRules ignores system rule IDs silently')
+})
+
+describe('Phase 10: rule export', () => {
+  it.todo('exportRules returns JSON array of user rules only, no system rules')
+  it.todo('exported entries contain name, sortOrder, descriptionTerms, action with categoryName')
+  it.todo('exported entries do NOT contain internal IDs or transaction counts')
+})
+
+describe('Phase 10: rule import', () => {
+  it.todo('imports non-conflicting rules directly')
+  it.todo('detects conflict when incoming rule name matches existing rule name')
+  it.todo('resolves category references by name, returns warning for unresolvable categories')
+  it.todo('ignores incoming entries that match system rule names')
 })

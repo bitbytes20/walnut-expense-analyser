@@ -16,6 +16,7 @@ export const CategoryTreeNodeSchema: z.ZodType<{
   parentId?: string
   path: string[]
   isActive: boolean
+  isArchived: boolean
   isIncomeCategory: boolean
   sortOrder: number
   counts: { directTransactionCount: number; totalTransactionCount: number }
@@ -28,6 +29,7 @@ export const CategoryTreeNodeSchema: z.ZodType<{
     parentId: z.string().optional(),
     path: z.array(z.string()),
     isActive: z.boolean(),
+    isArchived: z.boolean(),
     isIncomeCategory: z.boolean(),
     sortOrder: z.number().int(),
     counts: CategoryCountSummarySchema,
@@ -40,7 +42,8 @@ export const CategoryOptionSchema = z.object({
   label: z.string(),
   path: z.array(z.string()),
   kind: CategoryKindSchema,
-  isActive: z.boolean()
+  isActive: z.boolean(),
+  isArchived: z.boolean()
 })
 
 export const CreateCategoryInputSchema = z.object({
@@ -65,8 +68,13 @@ export const DeleteCategoryInputSchema = z.object({
   categoryId: z.string()
 })
 
+export const DescriptionTermSchema = z.object({
+  op: z.enum(['contains', 'starts-with', 'ends-with', 'regex']),
+  value: z.string().trim().min(1)
+})
+
 export const CategorizationRuleConditionSchema = z.object({
-  descriptionContains: z.array(z.string().trim().min(1)).default([]),
+  descriptionTerms: z.array(DescriptionTermSchema).default([]),
   amountMinMinor: z.number().optional(),
   amountMaxMinor: z.number().optional(),
   transactionTypes: z.array(TransactionNormalizedTypeSchema).default([]),
@@ -92,6 +100,7 @@ export const CategorizationRuleSummarySchema = z.object({
   condition: CategorizationRuleConditionSchema,
   action: CategorizationRuleActionSchema,
   specificityScore: z.number().int().nonnegative(),
+  sortOrder: z.number().int(),
   affectedTransactionCount: z.number().int().nonnegative(),
   updatedAt: z.string()
 })
@@ -152,6 +161,52 @@ export const ApplyRuleToExistingInputSchema = z.object({
   ruleId: z.string()
 })
 
+export const ReorderRulesInputSchema = z.object({
+  ruleIds: z.array(z.string())
+})
+
+export const RuleExportEntrySchema = z.object({
+  name: z.string(),
+  sortOrder: z.number().int(),
+  descriptionTerms: z.array(DescriptionTermSchema).default([]),
+  amountMinMinor: z.number().optional(),
+  amountMaxMinor: z.number().optional(),
+  transactionTypes: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
+  directions: z.array(z.string()).default([]),
+  action: z.object({
+    categoryName: z.string().optional(),
+    type: z.string().optional(),
+    appendTags: z.array(z.string()).default([])
+  })
+})
+
+export const RuleConflictSchema = z.object({
+  name: z.string(),
+  existing: RuleExportEntrySchema,
+  incoming: RuleExportEntrySchema
+})
+
+export const RuleImportResultSchema = z.object({
+  imported: z.number().int(),
+  skipped: z.number().int(),
+  conflicts: z.array(RuleConflictSchema),
+  warnings: z.array(z.string())
+})
+
+export const MergeCategoryPreviewSchema = z.object({
+  sourceCategoryId: z.string(),
+  targetCategoryId: z.string(),
+  affectedTransactionCount: z.number().int().nonnegative(),
+  affectedRuleCount: z.number().int().nonnegative(),
+  samples: z.array(RulePreviewSampleSchema)
+})
+
+export const ArchiveCategoryInputSchema = z.object({
+  categoryId: z.string(),
+  isArchived: z.boolean()
+})
+
 export type CategoryKind = z.infer<typeof CategoryKindSchema>
 export type CategoryDirection = z.infer<typeof CategoryDirectionSchema>
 export type CategoryCountSummary = z.infer<typeof CategoryCountSummarySchema>
@@ -173,3 +228,10 @@ export type ToggleCategorizationRuleInput = z.infer<typeof ToggleCategorizationR
 export type DeleteCategorizationRuleInput = z.infer<typeof DeleteCategorizationRuleInputSchema>
 export type RulePreviewInput = z.infer<typeof RulePreviewInputSchema>
 export type ApplyRuleToExistingInput = z.infer<typeof ApplyRuleToExistingInputSchema>
+export type DescriptionTerm = z.infer<typeof DescriptionTermSchema>
+export type ReorderRulesInput = z.infer<typeof ReorderRulesInputSchema>
+export type RuleExportEntry = z.infer<typeof RuleExportEntrySchema>
+export type RuleConflict = z.infer<typeof RuleConflictSchema>
+export type RuleImportResult = z.infer<typeof RuleImportResultSchema>
+export type MergeCategoryPreview = z.infer<typeof MergeCategoryPreviewSchema>
+export type ArchiveCategoryInput = z.infer<typeof ArchiveCategoryInputSchema>

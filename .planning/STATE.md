@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: "Release 2: Core"
-status: Phase 10 next
-last_updated: "2026-03-30T00:00:00.000Z"
+status: Phase 10 in progress
+last_updated: "2026-03-30T14:50:00.000Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 6
-  completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 11
+  completed_phases: 9
+  total_plans: 35
+  completed_plans: 31
 ---
 
 # State: Walnut Expense Analyser
@@ -136,10 +136,17 @@ Progress: [░░░░░░] 0/6 phases complete
 - StagedFileRow onRetry prop only passed to rejected files to limit replace-in-place to the right context
 - Files with parseErrors get status=rejected so they sort into the Rejected section and show inline error expansion
 
+## Phase 10 Decisions
+
+- descriptionTerms uses AND semantics: all terms must match for rule to fire
+- migrateDescriptionContainsToDescriptionTerms() runs at WalnutRepository bootstrap init
+- RuleEditorPanel UI keeps simple comma-separated text field, maps to op:contains terms (full UI in later plans)
+- listRules ORDER BY changed to is_system ASC, sort_order ASC (user rules first per D-05)
+- is_archived column added via ensureColumn pattern for safe migration on existing DBs
+
 ## Immediate Next Action
 
-Phase 9 complete. 5 plans executed, 13/13 must-haves verified, 24 new passing tests, human verification approved.
-Next: `/gsd:discuss-phase 10` (Rule System Expansion)
+Phase 10 Plan 01 complete. Contract foundation in place: descriptionTerms, new IPC schemas, DB columns, and 41 it.todo test scaffolds. Ready for Plan 02 (rule engine implementation).
 
 ---
-*Last updated: 2026-03-30 — Phase 9 Plan 01 complete*
+*Last updated: 2026-03-30 after Phase 10 Plan 01 completion*

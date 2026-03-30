@@ -105,6 +105,7 @@ const defaultCategories = (): CategoryTreeNode[] => [
     kind: 'system',
     path: ['Food & Dining'],
     isActive: true,
+    isArchived: false,
     isIncomeCategory: false,
     sortOrder: 10,
     counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -116,6 +117,7 @@ const defaultCategories = (): CategoryTreeNode[] => [
     kind: 'system',
     path: ['Income'],
     isActive: true,
+    isArchived: false,
     isIncomeCategory: true,
     sortOrder: 160,
     counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -127,6 +129,7 @@ const defaultCategories = (): CategoryTreeNode[] => [
         parentId: 'cat:income',
         path: ['Income', 'Salary'],
         isActive: true,
+        isArchived: false,
         isIncomeCategory: true,
         sortOrder: 161,
         counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -140,6 +143,7 @@ const defaultCategories = (): CategoryTreeNode[] => [
     kind: 'system',
     path: ['Uncategorized'],
     isActive: true,
+    isArchived: false,
     isIncomeCategory: false,
     sortOrder: 190,
     counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -1590,11 +1594,12 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
               draft: {
                 name: `${updatedDetail.description} rule`,
                 condition: {
-                  descriptionContains: updatedDetail.description
+                  descriptionTerms: updatedDetail.description
                     .split(/\s+/)
                     .map((token) => token.trim().toLowerCase())
                     .filter((token) => token.length >= 3)
-                    .slice(0, 3),
+                    .slice(0, 3)
+                    .map((value) => ({ op: 'contains' as const, value })),
                   transactionTypes: [previousType],
                   tags: updatedDetail.tags,
                   directions: [updatedDetail.direction]
@@ -1620,6 +1625,7 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
       parentId: input.parentId,
       path: input.parentId ? ['Parent', input.name.trim()] : [input.name.trim()],
       isActive: true,
+      isArchived: false,
       isIncomeCategory: Boolean(input.isIncomeCategory),
       sortOrder: Date.now(),
       counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -1661,6 +1667,7 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
         condition: input.condition,
         action: input.action,
         specificityScore: 1,
+        sortOrder: readRules().length,
         affectedTransactionCount: 0,
         updatedAt: new Date().toISOString()
       }

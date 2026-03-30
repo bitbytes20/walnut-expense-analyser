@@ -181,7 +181,7 @@ const starterRuleSeeds: Array<{
     id: ruleId('salary-credit'),
     name: 'Salary credit',
     condition: {
-      descriptionContains: ['salary'],
+      descriptionTerms: [{ op: 'contains', value: 'salary' }],
       transactionTypes: ['income'],
       tags: [],
       directions: ['credit']
@@ -197,7 +197,7 @@ const starterRuleSeeds: Array<{
     id: ruleId('atm-withdrawal'),
     name: 'ATM withdrawal',
     condition: {
-      descriptionContains: ['atm'],
+      descriptionTerms: [{ op: 'contains', value: 'atm' }],
       transactionTypes: ['atm-withdrawal'],
       tags: [],
       directions: ['debit']
@@ -213,7 +213,7 @@ const starterRuleSeeds: Array<{
     id: ruleId('credit-card-payment'),
     name: 'Credit card payment',
     condition: {
-      descriptionContains: ['card payment'],
+      descriptionTerms: [{ op: 'contains', value: 'card payment' }],
       transactionTypes: ['credit-card-payment'],
       tags: [],
       directions: ['debit']
@@ -613,6 +613,7 @@ export class WalnutRepository {
     this.ensureColumn('imported_transactions', 'category_label', 'TEXT')
     this.ensureColumn('imported_transactions', 'review_state_override', 'TEXT')
     this.ensureColumn('categorization_rules', 'sort_order', 'INTEGER NOT NULL DEFAULT 0')
+    this.ensureColumn('categories', 'is_archived', 'INTEGER NOT NULL DEFAULT 0')
     this.ensureColumn('review_items', 'resolution_action', 'TEXT')
     this.ensureColumn('review_items', 'resolution_payload_json', 'TEXT')
     this.ensureColumn('review_items', 'resolved_at', 'TEXT')
@@ -636,6 +637,28 @@ export class WalnutRepository {
 
     this.seedSystemCategories(stamp)
     this.seedStarterRules(stamp)
+    this.migrateDescriptionContainsToDescriptionTerms()
+  }
+
+  private migrateDescriptionContainsToDescriptionTerms() {
+    const rows = this.sqlite
+      .prepare('SELECT id, condition_json FROM categorization_rules')
+      .all() as Array<{ id: string; condition_json: string }>
+
+    for (const row of rows) {
+      const condition = JSON.parse(row.condition_json) as Record<string, unknown>
+      if (!Array.isArray(condition.descriptionTerms) && Array.isArray(condition.descriptionContains)) {
+        const descriptionTerms = (condition.descriptionContains as string[]).map((value: string) => ({
+          op: 'contains' as const,
+          value
+        }))
+        const migrated = { ...condition, descriptionTerms }
+        delete (migrated as Record<string, unknown>).descriptionContains
+        this.sqlite
+          .prepare('UPDATE categorization_rules SET condition_json = ? WHERE id = ?')
+          .run(JSON.stringify(migrated), row.id)
+      }
+    }
   }
 
   private ensureColumn(tableName: string, columnName: string, definition: string) {
@@ -1678,7 +1701,7 @@ export class WalnutRepository {
             draft: {
               name: `${detailDescriptionToRuleName(nextDescription)} rule`,
               condition: {
-                descriptionContains: extractRuleKeywords(nextDescription),
+                descriptionTerms: extractRuleKeywords(nextDescription).map((value) => ({ op: 'contains' as const, value })),
                 amountMinMinor: undefined,
                 amountMaxMinor: undefined,
                 transactionTypes: [current.normalizedType],
@@ -1940,7 +1963,7 @@ export class WalnutRepository {
 
   listRules(): CategorizationRuleSummary[] {
     const rows = this.sqlite
-      .prepare('SELECT * FROM categorization_rules ORDER BY is_system DESC, specificity_score DESC, sort_order ASC, name ASC')
+      .prepare('SELECT * FROM categorization_rules ORDER BY is_system ASC, sort_order ASC, name ASC')
       .all() as Array<Record<string, unknown>>
 
     return rows.map((row) => this.mapRuleSummary(row))
@@ -3051,7 +3074,7 @@ export class WalnutRepository {
 
   private normalizeRuleCondition(condition: CategorizationRuleCondition): CategorizationRuleCondition {
     return {
-      descriptionContains: (condition.descriptionContains ?? []).map((value) => value.trim()).filter(Boolean),
+      descriptionTerms: (condition.descriptionTerms ?? []).filter((term) => term.value.trim().length > 0),
       amountMinMinor: condition.amountMinMinor,
       amountMaxMinor: condition.amountMaxMinor,
       transactionTypes: condition.transactionTypes ?? [],
@@ -3071,7 +3094,7 @@ export class WalnutRepository {
   private parseRuleCondition(value: unknown): CategorizationRuleCondition {
     if (!value) {
       return this.normalizeRuleCondition({
-        descriptionContains: [],
+        descriptionTerms: [],
         transactionTypes: [],
         tags: [],
         directions: []
@@ -3092,7 +3115,7 @@ export class WalnutRepository {
   private computeRuleSpecificity(condition: CategorizationRuleCondition) {
     const normalized = this.normalizeRuleCondition(condition)
     return (
-      normalized.descriptionContains.length * 5 +
+      normalized.descriptionTerms.length * 5 +
       normalized.tags.length * 4 +
       normalized.transactionTypes.length * 3 +
       normalized.directions.length * 2 +
@@ -3167,6 +3190,7 @@ export class WalnutRepository {
         parentId: row.parent_id ? String(row.parent_id) : undefined,
         path: [],
         isActive: Boolean(row.is_active),
+        isArchived: Boolean(row.is_archived),
         isIncomeCategory: Boolean(row.is_income_category),
         sortOrder: Number(row.sort_order ?? 0),
         counts: {
@@ -3212,7 +3236,7 @@ export class WalnutRepository {
       return [] as string[]
     }
 
-    const rows = this.sqlite.prepare('SELECT id, name, parent_id, kind, is_active, is_income_category, sort_order FROM categories ORDER BY sort_order ASC, name ASC').all() as Array<Record<string, unknown>>
+    const rows = this.sqlite.prepare('SELECT id, name, parent_id, kind, is_active, is_archived, is_income_category, sort_order FROM categories ORDER BY sort_order ASC, name ASC').all() as Array<Record<string, unknown>>
     const nodes = new Map<string, CategoryTreeNode>()
     for (const row of rows) {
       nodes.set(String(row.id), {
@@ -3222,6 +3246,7 @@ export class WalnutRepository {
         parentId: row.parent_id ? String(row.parent_id) : undefined,
         path: [],
         isActive: Boolean(row.is_active),
+        isArchived: Boolean(row.is_archived),
         isIncomeCategory: Boolean(row.is_income_category),
         sortOrder: Number(row.sort_order ?? 0),
         counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -3258,7 +3283,22 @@ export class WalnutRepository {
   private matchesRuleCondition(row: TransactionLedgerRow, condition: CategorizationRuleCondition, excludeRuleId?: string) {
     void excludeRuleId
     const text = row.description.toLowerCase()
-    if (condition.descriptionContains.length && !condition.descriptionContains.every((keyword) => text.includes(keyword.toLowerCase()))) {
+    if (condition.descriptionTerms.length && !condition.descriptionTerms.every((term) => {
+      const value = term.value.toLowerCase()
+      switch (term.op) {
+        case 'contains': return text.includes(value)
+        case 'starts-with': return text.startsWith(value)
+        case 'ends-with': return text.endsWith(value)
+        case 'regex': {
+          try {
+            return new RegExp(term.value, 'i').test(row.description)
+          } catch {
+            return false
+          }
+        }
+        default: return false
+      }
+    })) {
       return false
     }
     if (condition.amountMinMinor !== undefined && Math.abs(row.signedAmountMinor) < condition.amountMinMinor) {
@@ -3678,6 +3718,7 @@ export class WalnutRepository {
       condition,
       action,
       specificityScore: Number(row.specificity_score ?? this.computeRuleSpecificity(condition)),
+      sortOrder: Number(row.sort_order ?? 0),
       affectedTransactionCount: this.buildRulePreview(condition, action, String(row.id)).matchCount,
       updatedAt: String(row.updated_at)
     }

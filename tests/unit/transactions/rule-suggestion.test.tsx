@@ -112,7 +112,7 @@ const createWalnutApi = () => {
         draft: {
           name: 'Coffee shop rule',
           condition: {
-            descriptionContains: ['coffee', 'shop'],
+            descriptionTerms: [{ op: 'contains' as const, value: 'coffee' }, { op: 'contains' as const, value: 'shop' }],
             transactionTypes: ['expense' as const],
             tags: ['coffee'],
             directions: ['debit' as const]
