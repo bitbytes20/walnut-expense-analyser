@@ -148,7 +148,7 @@ Plans:
 | 7. Audit and Diagnostics | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 8. Settings and Release Hardening | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 9. Workflow Polish | v2.0 | 5/5 | Complete | 2026-03-30 |
-| 10. Rule System Expansion | v2.0 | 5/5 | Complete   | 2026-03-30 |
+| 10. Rule System Expansion | v2.0 | 5/5 | Complete    | 2026-03-30 |
 | 11. Budgeting Foundations | v2.0 | TBD | Not started | — |
 | 12. AI Insights | v2.0 | TBD | Not started | — |
 | 13. Family Members | v2.0 | TBD | Not started | — |
