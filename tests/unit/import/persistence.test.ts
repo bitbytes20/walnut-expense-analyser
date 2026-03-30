@@ -50,6 +50,55 @@ describe('import persistence', () => {
     repository.close()
   })
 
+  it('replaceStagedFile removes old entry and adds new parsed entry, preserving other staged files', () => {
+    const repository = createRepository()
+    const coordinator = new ImportCoordinator(repository)
+    const originalPath = path.join(fixtureDir, 'icici-valid.xlsx')
+
+    const tempDir = withTempDir()
+    const replacementPath = path.join(tempDir, 'replacement.xlsx')
+    const workbook = xlsx.readFile(originalPath)
+    xlsx.writeFile(workbook, replacementPath)
+
+    const staged = coordinator.stageFilePaths([originalPath])
+    const originalId = staged.stagedFiles[0]?.id
+    expect(originalId).toBeTruthy()
+
+    const result = coordinator.replaceStagedFile(originalId as string, replacementPath)
+
+    expect(result.stagedFiles).toHaveLength(1)
+    expect(result.stagedFiles[0]?.id).not.toBe(originalId)
+    expect(result.stagedFiles[0]?.fileName).toBe('replacement.xlsx')
+
+    repository.close()
+  })
+
+  it('replaceStagedFile preserves other staged files when replacing one', () => {
+    const repository = createRepository()
+    const coordinator = new ImportCoordinator(repository)
+    const originalPath = path.join(fixtureDir, 'icici-valid.xlsx')
+
+    const tempDir = withTempDir()
+    const unsupportedPath = path.join(fixtureDir, 'icici-unsupported-variant.xlsx')
+    const replacementPath = path.join(tempDir, 'replacement.xlsx')
+    const workbook = xlsx.readFile(originalPath)
+    xlsx.writeFile(workbook, replacementPath)
+
+    const staged = coordinator.stageFilePaths([originalPath, unsupportedPath])
+    expect(staged.stagedFiles).toHaveLength(2)
+
+    const targetId = staged.stagedFiles.find((f) => f.fileName === 'icici-valid.xlsx')?.id
+    expect(targetId).toBeTruthy()
+
+    const result = coordinator.replaceStagedFile(targetId as string, replacementPath)
+
+    expect(result.stagedFiles).toHaveLength(2)
+    expect(result.stagedFiles.some((f) => f.fileName === 'icici-unsupported-variant.xlsx')).toBe(true)
+    expect(result.stagedFiles.some((f) => f.fileName === 'replacement.xlsx')).toBe(true)
+
+    repository.close()
+  })
+
   it('records mixed rejected and duplicate-candidate batches without finalizing accepted rows and still loads prior-batch details', () => {
     const repository = createRepository()
     const coordinator = new ImportCoordinator(repository)

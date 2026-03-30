@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { FileSpreadsheet, FileWarning, History, Layers3, Trash2 } from 'lucide-react'
 import type { StagedImportFile } from '../../../shared/contracts/import'
 
@@ -7,6 +8,7 @@ interface StagedFileRowProps {
   onViewReason: (fileId: string) => void
   onViewEarlierBatch: (fileId: string) => void
   onRemove: (fileId: string) => void
+  onRetry?: (stagedFileId: string) => void
 }
 
 const getStatusTone = (status: StagedImportFile['status']) => {
@@ -49,15 +51,47 @@ const getAction = (file: StagedImportFile) => {
   }
 
   if (file.status === 'rejected') {
+    if (file.parseErrors && file.parseErrors.length > 0) {
+      return { label: 'View error details', icon: FileWarning }
+    }
     return { label: 'View reason', icon: FileWarning }
   }
 
   return undefined
 }
 
-export const StagedFileRow = ({ file, onReviewSheet, onViewReason, onViewEarlierBatch, onRemove }: StagedFileRowProps) => {
+export const StagedFileRow = ({ file, onReviewSheet, onViewReason, onViewEarlierBatch, onRemove, onRetry }: StagedFileRowProps) => {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isRetrying, setIsRetrying] = useState(false)
   const tone = getStatusTone(file.status)
   const action = getAction(file)
+  const hasParseErrors = Boolean(file.parseErrors && file.parseErrors.length > 0)
+
+  const handleActionClick = () => {
+    if (file.status === 'needs-sheet-selection') {
+      onReviewSheet(file.id)
+      return
+    }
+    if (file.status === 'duplicate-blocked') {
+      onViewEarlierBatch(file.id)
+      return
+    }
+    if (hasParseErrors) {
+      setIsExpanded((prev) => !prev)
+      return
+    }
+    onViewReason(file.id)
+  }
+
+  const handleRetry = async () => {
+    if (!onRetry) return
+    setIsRetrying(true)
+    try {
+      await onRetry(file.id)
+    } finally {
+      setIsRetrying(false)
+    }
+  }
 
   return (
     <article style={styles.card}>
@@ -84,17 +118,7 @@ export const StagedFileRow = ({ file, onReviewSheet, onViewReason, onViewEarlier
           <button
             type="button"
             style={styles.ghostButton}
-            onClick={() => {
-              if (file.status === 'needs-sheet-selection') {
-                onReviewSheet(file.id)
-                return
-              }
-              if (file.status === 'duplicate-blocked') {
-                onViewEarlierBatch(file.id)
-                return
-              }
-              onViewReason(file.id)
-            }}
+            onClick={handleActionClick}
           >
             <action.icon size={16} strokeWidth={2} />
             {action.label}
@@ -105,6 +129,42 @@ export const StagedFileRow = ({ file, onReviewSheet, onViewReason, onViewEarlier
           Remove
         </button>
       </div>
+
+      {hasParseErrors && isExpanded ? (
+        <div
+          role="region"
+          aria-label={`Parse error details for ${file.fileName}`}
+          style={styles.errorPanel}
+        >
+          <ul style={styles.errorList}>
+            {file.parseErrors!.map((err, index) => (
+              <li
+                key={`${err.rowNumber}-${index}`}
+                style={index < file.parseErrors!.length - 1 ? styles.errorItemBordered : styles.errorItem}
+              >
+                <div style={styles.rowLabel}>Row {err.rowNumber}</div>
+                <div style={styles.errorField}>
+                  <span style={styles.fieldLabel}>Expected:</span> {err.expected}
+                </div>
+                <div style={styles.errorField}>
+                  <span style={styles.fieldLabel}>Found:</span> {err.found}
+                </div>
+                <div style={styles.suggestion}>{err.suggestion}</div>
+              </li>
+            ))}
+          </ul>
+          {onRetry ? (
+            <button
+              type="button"
+              style={{ ...styles.retryButton, opacity: isRetrying ? 0.6 : 1 }}
+              disabled={isRetrying}
+              onClick={() => void handleRetry()}
+            >
+              {isRetrying ? 'Replacing...' : 'Replace with corrected file'}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   )
 }
@@ -203,5 +263,59 @@ const styles = {
     color: 'var(--color-destructive)',
     padding: '0 18px',
     fontWeight: 700
+  },
+  errorPanel: {
+    background: 'var(--color-surface)',
+    borderLeft: '3px solid var(--color-destructive)',
+    padding: 'var(--space-lg)',
+    borderRadius: 'var(--radius-sm)'
+  },
+  errorList: {
+    margin: '0 0 var(--space-lg) 0',
+    padding: 0,
+    listStyle: 'none',
+    display: 'grid',
+    gap: 0
+  },
+  errorItem: {
+    display: 'grid',
+    gap: 'var(--space-xs)',
+    padding: 'var(--space-md) 0'
+  },
+  errorItemBordered: {
+    display: 'grid',
+    gap: 'var(--space-xs)',
+    padding: 'var(--space-md) 0',
+    borderBottom: '1px solid var(--color-border)'
+  },
+  rowLabel: {
+    fontSize: 12,
+    fontWeight: 400,
+    color: 'var(--color-muted)'
+  },
+  errorField: {
+    fontSize: 14,
+    color: 'var(--color-ink)'
+  },
+  fieldLabel: {
+    fontWeight: 600,
+    color: 'var(--color-ink)'
+  },
+  suggestion: {
+    fontSize: 14,
+    fontStyle: 'italic' as const,
+    color: 'var(--color-muted)'
+  },
+  retryButton: {
+    minHeight: 44,
+    display: 'inline-flex',
+    alignItems: 'center',
+    borderRadius: 999,
+    border: '1px solid rgba(30, 27, 22, 0.18)',
+    background: 'rgba(30, 27, 22, 0.04)',
+    color: 'var(--color-ink)',
+    padding: '0 18px',
+    fontWeight: 600,
+    fontSize: 14
   }
 } as const
