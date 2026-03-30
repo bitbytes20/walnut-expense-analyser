@@ -1,6 +1,7 @@
 import { Filter, Search } from 'lucide-react'
 import { startTransition, useEffect, useMemo, useState } from 'react'
 import type {
+  FilterPreset,
   TransactionDetail,
   TransactionLedgerQuery,
   TransactionLedgerRow,
@@ -44,6 +45,7 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [pageSize, setPageSize] = useState<number>(50)
   const [currentPage, setCurrentPage] = useState<number>(1)
+  const [presets, setPresets] = useState<FilterPreset[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -93,6 +95,31 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
       search: undefined
     })
   }, [navigationQuery, navigationVersion])
+
+  useEffect(() => {
+    if (filtersOpen) {
+      void window.walnut.listFilterPresets().then(setPresets)
+    }
+  }, [filtersOpen])
+
+  const handleSavePreset = (name: string) => {
+    void window.walnut.saveFilterPreset({ name, filters: { ...filters, search: submittedSearch || undefined } }).then(setPresets)
+  }
+
+  const handleRestorePreset = (preset: FilterPreset) => {
+    const { search, ...restFilters } = preset.filters
+    setPendingSearch(search ?? '')
+    setSubmittedSearch(search ?? '')
+    setFilters(restFilters)
+  }
+
+  const handleRenamePreset = (id: string, newName: string) => {
+    void window.walnut.renameFilterPreset({ id, name: newName }).then(setPresets)
+  }
+
+  const handleDeletePreset = (id: string) => {
+    void window.walnut.deleteFilterPreset({ id }).then(setPresets)
+  }
 
   const openTransaction = async (transactionId: string) => {
     setActiveTransactionId(transactionId)
@@ -175,6 +202,11 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
           onToggleAdvanced={() => setAdvancedFiltersOpen((current) => !current)}
           onChange={setFilters}
           onClear={() => setFilters({})}
+          presets={presets}
+          onSavePreset={handleSavePreset}
+          onRestorePreset={handleRestorePreset}
+          onRenamePreset={handleRenamePreset}
+          onDeletePreset={handleDeletePreset}
         />
       ) : null}
 
