@@ -114,6 +114,39 @@ export const UpdateTransactionResultSchema = z.object({
   ruleSuggestion: TransactionRuleSuggestionSchema.optional()
 })
 
+export const BulkUpdateTransactionsInputSchema = z.object({
+  transactionIds: z.array(z.string()).min(1),
+  categoryId: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional()
+})
+
+export const BulkUpdateTransactionsResultSchema = z.object({
+  updatedCount: z.number()
+})
+
+export const FilterPresetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  filters: TransactionLedgerQuerySchema,
+  createdAt: z.string(),
+  updatedAt: z.string()
+})
+
+export const SaveFilterPresetInputSchema = z.object({
+  name: z.string().min(1).max(100),
+  filters: TransactionLedgerQuerySchema
+})
+
+export const RenameFilterPresetInputSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(100)
+})
+
+export const DeleteFilterPresetInputSchema = z.object({
+  id: z.string()
+})
+
 export type TransactionNormalizedType = z.infer<typeof TransactionNormalizedTypeSchema>
 export type TransactionReviewState = z.infer<typeof TransactionReviewStateSchema>
 export type TransactionRuleSuggestion = z.infer<typeof TransactionRuleSuggestionSchema>
@@ -123,3 +156,9 @@ export type GetTransactionDetailInput = z.infer<typeof GetTransactionDetailInput
 export type UpdateTransactionInput = z.infer<typeof UpdateTransactionInputSchema>
 export type TransactionDetail = z.infer<typeof TransactionDetailSchema>
 export type UpdateTransactionResult = z.infer<typeof UpdateTransactionResultSchema>
+export type BulkUpdateTransactionsInput = z.infer<typeof BulkUpdateTransactionsInputSchema>
+export type BulkUpdateTransactionsResult = z.infer<typeof BulkUpdateTransactionsResultSchema>
+export type FilterPreset = z.infer<typeof FilterPresetSchema>
+export type SaveFilterPresetInput = z.infer<typeof SaveFilterPresetInputSchema>
+export type RenameFilterPresetInput = z.infer<typeof RenameFilterPresetInputSchema>
+export type DeleteFilterPresetInput = z.infer<typeof DeleteFilterPresetInputSchema>
