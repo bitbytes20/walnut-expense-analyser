@@ -1,11 +1,11 @@
 ---
 phase: 10
 slug: rule-system-expansion
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-03-30
-reviewed_at: ~
+reviewed_at: 2026-03-30
 ---
 
 # Phase 10 — UI Design Contract
