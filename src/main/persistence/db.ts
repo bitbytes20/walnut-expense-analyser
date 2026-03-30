@@ -58,6 +58,7 @@ import type {
   UpdateCategorizationRuleInput
 } from '../../shared/contracts/categories'
 import type {
+  BulkResolveResult,
   CommitImportBatchResult,
   GetImportBatchDetailInput,
   GetReviewQueueInput,
@@ -80,7 +81,13 @@ import type {
 import type { LockReason, SecurityEvent, SecurityState } from '../../shared/contracts/security'
 import type { AuditEvent } from '../../shared/contracts/audit'
 import type {
+  BulkUpdateTransactionsInput,
+  BulkUpdateTransactionsResult,
+  DeleteFilterPresetInput,
+  FilterPreset,
   GetTransactionDetailInput,
+  RenameFilterPresetInput,
+  SaveFilterPresetInput,
   TransactionDetail,
   TransactionLedgerQuery,
   TransactionLedgerRow,
@@ -590,6 +597,13 @@ export class WalnutRepository {
         ON audit_events(timestamp_iso DESC);
       CREATE INDEX IF NOT EXISTS idx_audit_events_entity
         ON audit_events(entity_id);
+      CREATE TABLE IF NOT EXISTS filter_presets (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        filters_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
     `)
 
     this.ensureColumn('imported_transactions', 'tags_json', 'TEXT')
@@ -1686,6 +1700,71 @@ export class WalnutRepository {
     }
   }
 
+  bulkUpdateTransactions(input: BulkUpdateTransactionsInput): BulkUpdateTransactionsResult {
+    let updatedCount = 0
+    const transaction = this.sqlite.transaction(() => {
+      for (const transactionId of input.transactionIds) {
+        const setParts: string[] = []
+        const params: unknown[] = []
+        if (input.categoryId !== undefined) {
+          setParts.push('category_id = ?')
+          params.push(input.categoryId)
+        }
+        if (input.category !== undefined) {
+          setParts.push('category_label = ?')
+          params.push(input.category)
+        }
+        if (input.tags !== undefined) {
+          setParts.push('tags_json = ?')
+          params.push(JSON.stringify(input.tags))
+        }
+        if (setParts.length === 0) continue
+        params.push(transactionId)
+        const result = this.sqlite
+          .prepare(`UPDATE imported_transactions SET ${setParts.join(', ')} WHERE id = ?`)
+          .run(...(params as Parameters<typeof this.sqlite.prepare>))
+        updatedCount += result.changes
+      }
+    })
+    transaction()
+    return { updatedCount }
+  }
+
+  listFilterPresets(): FilterPreset[] {
+    const rows = this.sqlite
+      .prepare('SELECT * FROM filter_presets ORDER BY updated_at DESC')
+      .all() as Record<string, unknown>[]
+    return rows.map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      filters: JSON.parse(String(row.filters_json)) as FilterPreset['filters'],
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at)
+    }))
+  }
+
+  saveFilterPreset(input: SaveFilterPresetInput): FilterPreset[] {
+    const id = crypto.randomUUID()
+    const now = new Date().toISOString()
+    this.sqlite
+      .prepare('INSERT INTO filter_presets (id, name, filters_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+      .run(id, input.name, JSON.stringify(input.filters), now, now)
+    return this.listFilterPresets()
+  }
+
+  renameFilterPreset(input: RenameFilterPresetInput): FilterPreset[] {
+    const now = new Date().toISOString()
+    this.sqlite
+      .prepare('UPDATE filter_presets SET name = ?, updated_at = ? WHERE id = ?')
+      .run(input.name, now, input.id)
+    return this.listFilterPresets()
+  }
+
+  deleteFilterPreset(input: DeleteFilterPresetInput): FilterPreset[] {
+    this.sqlite.prepare('DELETE FROM filter_presets WHERE id = ?').run(input.id)
+    return this.listFilterPresets()
+  }
+
   listImportHistory(input?: ListImportHistoryInput): ImportAttemptSummary[] {
     const rows = this.sqlite
       .prepare(
@@ -2086,6 +2165,10 @@ export class WalnutRepository {
       .get() as Record<string, unknown> | undefined
     const householdName = profileRow?.household_name ? String(profileRow.household_name) : ''
 
+    const filterPresetsRows = this.sqlite
+      .prepare('SELECT * FROM filter_presets')
+      .all() as Record<string, unknown>[]
+
     return {
       version: 1,
       createdAt: new Date().toISOString(),
@@ -2101,7 +2184,8 @@ export class WalnutRepository {
         categories,
         categorizationRules,
         auditEvents,
-        appSettings: appSettingsRaw
+        appSettings: appSettingsRaw,
+        filterPresets: filterPresetsRows
       }
     }
   }
@@ -2120,6 +2204,7 @@ export class WalnutRepository {
         DELETE FROM categorization_rules;
         DELETE FROM audit_events;
         DELETE FROM app_settings;
+        DELETE FROM filter_presets;
       `)
 
       // Insert account profiles
@@ -2190,6 +2275,15 @@ export class WalnutRepository {
         this.sqlite
           .prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
           .run(key, value, new Date().toISOString())
+      }
+
+      // Insert filter presets
+      if (payload.tables.filterPresets) {
+        for (const row of payload.tables.filterPresets) {
+          const keys = Object.keys(row).join(', ')
+          const placeholders = Object.keys(row).map(() => '?').join(', ')
+          this.sqlite.prepare(`INSERT OR IGNORE INTO filter_presets (${keys}) VALUES (${placeholders})`).run(...Object.values(row))
+        }
       }
     })
 
@@ -2393,6 +2487,90 @@ export class WalnutRepository {
 
     transaction()
     return this.getImportBatchDetail({ batchId: sanitized.batchId })
+  }
+
+  resolveBulkReviewItems(input: ReviewItemResolutionInput): { batchDetail: ImportBatchDetail; bulkResult: BulkResolveResult } {
+    if (input.reviewItemIds.length === 0) {
+      return {
+        batchDetail: this.getImportBatchDetail({ batchId: input.batchId }),
+        bulkResult: { approvedCount: 0, skippedCount: 0 }
+      }
+    }
+
+    const stamp = nowIso()
+    const sanitized = this.sanitizeResolutionInput(input)
+
+    // Check which items have an active import gate (unresolved duplicate-candidate sibling in the same batch)
+    const hasDuplicateGate = (this.sqlite
+      .prepare(
+        `SELECT COUNT(*) as cnt
+         FROM review_items
+         WHERE batch_id = ?
+           AND reason_code = 'duplicate-candidate'
+           AND state = 'pending'`
+      )
+      .get(sanitized.batchId) as { cnt: number }).cnt > 0
+
+    let approvedCount = 0
+    let skippedCount = 0
+
+    const transaction = this.sqlite.transaction(() => {
+      const updateReviewItem = this.sqlite.prepare(
+        `UPDATE review_items
+         SET state = ?, updated_at = ?, resolution_action = ?, resolution_payload_json = ?, resolved_at = ?, restored_at = NULL
+         WHERE id = ?`
+      )
+
+      for (const reviewItemId of sanitized.reviewItemIds) {
+        // Fetch the pending row for this specific item
+        const reviewRow = this.sqlite
+          .prepare(
+            `SELECT * FROM review_items WHERE batch_id = ? AND id = ? AND state = 'pending'`
+          )
+          .get(sanitized.batchId, reviewItemId) as ReviewItemRow | undefined
+
+        if (!reviewRow) {
+          // Item not found or not pending — skip silently
+          skippedCount++
+          continue
+        }
+
+        // If there is an active import gate and this item is not itself a duplicate-candidate, skip it
+        if (hasDuplicateGate && reviewRow.reason_code !== 'duplicate-candidate') {
+          skippedCount++
+          continue
+        }
+
+        this.applyResolutionEffects(reviewRow, sanitized)
+        updateReviewItem.run(
+          'resolved',
+          stamp,
+          sanitized.action,
+          JSON.stringify(this.buildResolutionPayload(sanitized)),
+          stamp,
+          reviewRow.id
+        )
+        this.insertReviewAuditEvent('review:resolved', {
+          action: sanitized.action,
+          batchId: sanitized.batchId,
+          reviewItemIds: [reviewRow.id]
+        }, stamp)
+        approvedCount++
+      }
+
+      this.refreshImportAttemptReviewState(sanitized.batchId, stamp)
+    })
+
+    transaction()
+
+    return {
+      batchDetail: this.getImportBatchDetail({ batchId: sanitized.batchId }),
+      bulkResult: {
+        approvedCount,
+        skippedCount,
+        skippedReason: skippedCount > 0 ? 'import gate still active' : undefined
+      }
+    }
   }
 
   restoreReviewItems(input: ReviewItemRestoreInput): ImportBatchDetail {

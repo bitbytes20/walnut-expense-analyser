@@ -1,10 +1,11 @@
-import { ipcMain, type BrowserWindow } from 'electron'
+import { dialog, ipcMain, type BrowserWindow } from 'electron'
 import type {
   ChooseImportSheetInput,
   CommitImportBatchInput,
   GetImportBatchDetailInput,
   GetReviewQueueInput,
   ListImportHistoryInput,
+  ReplaceStagedFileInput,
   ReviewItemResolutionInput,
   ReviewItemRestoreInput,
   StageImportFilesInput
@@ -22,6 +23,21 @@ export const registerImportIpc = (window: BrowserWindow) => {
     return coordinator.stageFilePaths(filePaths)
   })
 
+  ipcMain.handle('import:replace-staged-file', async (_event, input: ReplaceStagedFileInput) => {
+    let filePath = input.newFilePath
+    if (!filePath) {
+      const result = await dialog.showOpenDialog(window, {
+        properties: ['openFile'],
+        filters: [{ name: 'Statement files', extensions: ['csv', 'xls', 'xlsx'] }]
+      })
+      if (result.canceled || result.filePaths.length === 0) {
+        return coordinator.stageFilePaths([])
+      }
+      filePath = result.filePaths[0]
+    }
+    return coordinator.replaceStagedFile(input.stagedFileId, filePath)
+  })
+
   ipcMain.handle('import:choose-sheet', (_event, input: ChooseImportSheetInput) => coordinator.chooseSheet(input))
   ipcMain.handle('import:remove-staged-file', (_event, input: { stagedFileId: string }) => coordinator.removeStagedFile(input.stagedFileId))
   ipcMain.handle('import:commit-batch', (_event, input?: CommitImportBatchInput) => coordinator.commitBatch(input))
@@ -30,5 +46,6 @@ export const registerImportIpc = (window: BrowserWindow) => {
   ipcMain.handle('import:get-batch-detail', (_event, input: GetImportBatchDetailInput) => repository.getImportBatchDetail(input))
   ipcMain.handle('import:get-review-queue', (_event, input?: GetReviewQueueInput) => repository.getReviewQueue(input))
   ipcMain.handle('import:resolve-review-items', (_event, input: ReviewItemResolutionInput) => repository.resolveReviewItems(input))
+  ipcMain.handle('import:resolve-review-items-bulk', (_event, input: ReviewItemResolutionInput) => repository.resolveBulkReviewItems(input))
   ipcMain.handle('import:restore-review-items', (_event, input: ReviewItemRestoreInput) => repository.restoreReviewItems(input))
 }

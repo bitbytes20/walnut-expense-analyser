@@ -1,9 +1,36 @@
 import path from 'node:path'
+import { parse } from 'date-fns'
 import xlsx from 'xlsx'
-import type { ImportReasonCode, StagedImportFile, WorksheetCandidate } from '../../shared/contracts/import'
+import type { ImportReasonCode, ParseRowError, StagedImportFile, WorksheetCandidate } from '../../shared/contracts/import'
 import type { NormalizedImportRow } from '../../shared/contracts/import'
 import { normalizeWhitespace, parseMinorUnits } from './normalizers'
 import { getWorksheetCandidates } from './worksheet-selector'
+
+const DATE_PATTERNS = ['dd/MM/yyyy', 'd/M/yyyy', 'yyyy-MM-dd']
+
+// Excel date serials are positive numbers typically between 1 (1900-01-01) and ~80000 (2100s)
+const EXCEL_SERIAL_MIN = 1
+const EXCEL_SERIAL_MAX = 80000
+
+const isValidDate = (value: string): boolean => {
+  const trimmed = value.trim()
+  if (!trimmed) return false
+  // Accept Excel serial date numbers (xlsx returns these when date cells are numeric)
+  const asNum = Number(trimmed)
+  if (!Number.isNaN(asNum) && asNum >= EXCEL_SERIAL_MIN && asNum <= EXCEL_SERIAL_MAX) return true
+  for (const pattern of DATE_PATTERNS) {
+    const parsed = parse(trimmed, pattern, new Date())
+    if (!Number.isNaN(parsed.getTime())) return true
+  }
+  return false
+}
+
+const isValidNumeric = (value: string | number | undefined): boolean => {
+  if (value === undefined || value === null || value === '') return true // undefined is acceptable (optional field)
+  const normalized = String(value).replace(/,/g, '').trim()
+  if (!normalized) return true
+  return !Number.isNaN(Number(normalized))
+}
 
 export interface ParsedImportFile {
   stagedFile: StagedImportFile
@@ -111,19 +138,59 @@ const resolveColumns = (headerRow: string[]): ColumnIndexes | undefined => {
 const buildRows = (fileId: string, rows: string[][], headerRowIndex: number, columns: ColumnIndexes) => {
   const normalizedRows: NormalizedImportRow[] = []
   const warnings: string[] = []
+  const parseErrors: ParseRowError[] = []
   let previousBalance: number | undefined
 
-  for (const row of rows.slice(headerRowIndex + 1)) {
+  for (let i = 0; i < rows.slice(headerRowIndex + 1).length; i++) {
+    const row = rows[headerRowIndex + 1 + i]!
+    // 1-based row number in source file; header is at headerRowIndex+1 (1-based), data starts after
+    const sourceRowNumber = headerRowIndex + 2 + i
+
     const transactionDateRaw = normalizeWhitespace(String(row[columns.transactionDate] ?? ''))
     const valueDateRaw = columns.valueDate === undefined ? undefined : normalizeWhitespace(String(row[columns.valueDate] ?? ''))
     const rawNarration = normalizeWhitespace(String(row[columns.narration] ?? ''))
-    const debitAmountMinor = parseMinorUnits(row[columns.withdrawal] as string | number | undefined)
-    const creditAmountMinor = parseMinorUnits(row[columns.deposit] as string | number | undefined)
-    const runningBalanceMinor = parseMinorUnits(row[columns.balance] as string | number | undefined)
+    const rawWithdrawal = row[columns.withdrawal] as string | number | undefined
+    const rawDeposit = row[columns.deposit] as string | number | undefined
+    const rawBalance = row[columns.balance] as string | number | undefined
+    const debitAmountMinor = parseMinorUnits(rawWithdrawal)
+    const creditAmountMinor = parseMinorUnits(rawDeposit)
+    const runningBalanceMinor = parseMinorUnits(rawBalance)
     const reference = columns.reference === undefined ? undefined : normalizeWhitespace(String(row[columns.reference] ?? '')) || undefined
 
     if (!transactionDateRaw && !valueDateRaw && !rawNarration && debitAmountMinor === undefined && creditAmountMinor === undefined) {
       continue
+    }
+
+    // Date validation
+    const primaryDate = transactionDateRaw || valueDateRaw || ''
+    if (primaryDate && !isValidDate(primaryDate)) {
+      parseErrors.push({
+        rowNumber: sourceRowNumber,
+        expected: 'date in DD/MM/YYYY format',
+        found: `'${primaryDate}'`,
+        suggestion: 'Remove this row or correct the date value.'
+      })
+    }
+
+    // Amount validation — check withdrawal and balance for non-numeric content
+    const withdrawalStr = String(rawWithdrawal ?? '')
+    if (withdrawalStr && withdrawalStr !== '0' && withdrawalStr !== '0.00' && !isValidNumeric(rawWithdrawal)) {
+      parseErrors.push({
+        rowNumber: sourceRowNumber,
+        expected: 'numeric amount value',
+        found: `'${withdrawalStr}'`,
+        suggestion: 'Ensure the amount column contains a number.'
+      })
+    }
+
+    const balanceStr = String(rawBalance ?? '')
+    if (balanceStr && !isValidNumeric(rawBalance)) {
+      parseErrors.push({
+        rowNumber: sourceRowNumber,
+        expected: 'numeric amount value',
+        found: `'${balanceStr}'`,
+        suggestion: 'Ensure the amount column contains a number.'
+      })
     }
 
     const direction = creditAmountMinor && creditAmountMinor > 0 && (!debitAmountMinor || debitAmountMinor === 0) ? 'credit' : 'debit'
@@ -153,7 +220,8 @@ const buildRows = (fileId: string, rows: string[][], headerRowIndex: number, col
 
   return {
     normalizedRows,
-    warnings
+    warnings,
+    parseErrors
   }
 }
 
@@ -212,10 +280,12 @@ export const parseImportFile = (filePath: string, selectedWorksheetName?: string
       return createRejectedFile(filePath, 'missing-columns', 'ICICI columns were not recognized', canonicalReasonBody, worksheetCandidates)
     }
 
-    const { normalizedRows, warnings } = buildRows(filePath, rows, headerRowIndex, columns)
-    if (normalizedRows.length === 0) {
+    const { normalizedRows, warnings, parseErrors } = buildRows(filePath, rows, headerRowIndex, columns)
+    if (normalizedRows.length === 0 && parseErrors.length === 0) {
       return createRejectedFile(filePath, 'parse-error', 'No transaction rows were found', canonicalReasonBody, worksheetCandidates)
     }
+
+    const hasParseErrors = parseErrors.length > 0
 
     return {
       stagedFile: {
@@ -225,10 +295,14 @@ export const parseImportFile = (filePath: string, selectedWorksheetName?: string
         filePath,
         accountLabel: metadata.accountLabel,
         statementPeriodLabel: metadata.statementPeriodLabel,
-        status: 'ready',
+        status: hasParseErrors ? 'rejected' : 'ready',
         selectedWorksheetName: worksheetName,
         worksheetCandidates,
         warnings,
+        parseErrors: hasParseErrors ? parseErrors : undefined,
+        reasonCode: hasParseErrors ? 'parse-error' : undefined,
+        reasonTitle: hasParseErrors ? 'Some rows could not be parsed' : undefined,
+        reasonBody: hasParseErrors ? 'One or more rows contain invalid data. Expand the error details to see which rows need correction.' : undefined,
         rowsPreview: normalizedRows.slice(0, 3)
       },
       rows: normalizedRows

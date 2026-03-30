@@ -61,13 +61,14 @@ GitHub Milestone: [v2.0 Release 2: Core](https://github.com/bitbytes20/walnut-ex
 Goal: users can move through review, categorization, and transaction management faster with fewer interactions per task.
 Requirements: WORKFLOW-01 to WORKFLOW-09 (9 requirements)
 Epic: [#9](https://github.com/bitbytes20/walnut-expense-analyser/issues/9)
+Status: completed on `phase/9-workflow-polish` — PR pending merge into `release/1.1.0`
 
 Key capabilities:
 - Multi-select transactions with checkboxes (shift+click, select-all); batch categorize and tag
 - Batch approve/dismiss review queue items while respecting existing gating rules
-- Keyboard shortcuts for review queue approve/reject
-- Structured import error messages with row-level detail and in-session retry flow
-- Saved named filter presets with one-click restore
+- Keyboard shortcuts for review queue approve/reject (A/R/arrows)
+- Structured import error messages with row-level detail and in-place retry flow
+- Saved named filter presets with one-click restore, rename, and delete
 
 ### Phase 10: Rule System Expansion
 

@@ -1,5 +1,6 @@
 import type { AccountProfile, AccountProfileDraft } from './account'
 import type {
+  BulkResolveResult,
   ChooseImportSheetInput,
   CommitImportBatchInput,
   CommitImportBatchResult,
@@ -9,6 +10,7 @@ import type {
   ImportAttemptSummary,
   ListImportHistoryInput,
   PriorImportBatchInspection,
+  ReplaceStagedFileInput,
   ReviewItemResolutionInput,
   ReviewItemRestoreInput,
   RemoveStagedFileInput,
@@ -42,7 +44,13 @@ import type {
   CategoryTreeNode
 } from './categories'
 import type {
+  BulkUpdateTransactionsInput,
+  BulkUpdateTransactionsResult,
+  DeleteFilterPresetInput,
+  FilterPreset,
   GetTransactionDetailInput,
+  RenameFilterPresetInput,
+  SaveFilterPresetInput,
   TransactionDetail,
   TransactionLedgerQuery,
   TransactionLedgerRow,
@@ -165,6 +173,7 @@ export interface BackupPayload {
     categorizationRules: Record<string, unknown>[]
     auditEvents: Record<string, unknown>[]
     appSettings: Array<{ key: string; value: string }>
+    filterPresets: Record<string, unknown>[]
   }
 }
 
@@ -191,6 +200,7 @@ export interface WalnutApi {
   getImportBatchDetail: (input: GetImportBatchDetailInput) => Promise<ImportBatchDetail>
   getReviewQueue: (input?: GetReviewQueueInput) => Promise<ImportBatchDetail[]>
   resolveReviewItems: (input: ReviewItemResolutionInput) => Promise<ImportBatchDetail>
+  resolveReviewItemsBulk: (input: ReviewItemResolutionInput) => Promise<{ batchDetail: ImportBatchDetail; bulkResult: BulkResolveResult }>
   restoreReviewItems: (input: ReviewItemRestoreInput) => Promise<ImportBatchDetail>
   listTransactions: (input?: TransactionLedgerQuery) => Promise<TransactionLedgerRow[]>
   getTransactionDetail: (input: GetTransactionDetailInput) => Promise<TransactionDetail>
@@ -221,4 +231,10 @@ export interface WalnutApi {
   clearTransactions: () => Promise<ClearTransactionsResult>
   fullReset: () => Promise<AppShellState>
   ping: () => Promise<string>
+  bulkUpdateTransactions: (input: BulkUpdateTransactionsInput) => Promise<BulkUpdateTransactionsResult>
+  replaceStagedFile: (input: ReplaceStagedFileInput) => Promise<StageImportFilesResult>
+  listFilterPresets: () => Promise<FilterPreset[]>
+  saveFilterPreset: (input: SaveFilterPresetInput) => Promise<FilterPreset[]>
+  renameFilterPreset: (input: RenameFilterPresetInput) => Promise<FilterPreset[]>
+  deleteFilterPreset: (input: DeleteFilterPresetInput) => Promise<FilterPreset[]>
 }

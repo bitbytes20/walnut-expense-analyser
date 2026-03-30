@@ -1,15 +1,26 @@
-import { useState } from 'react'
-import type { ReviewItemResolutionAction } from '../../../shared/contracts/import'
+import { useEffect, useState } from 'react'
+import type { BulkResolveResult, ReviewItemResolutionAction } from '../../../shared/contracts/import'
 
 interface ReviewBulkActionBarProps {
   selectedCount: number
   busy?: boolean
+  bulkResult?: BulkResolveResult | null
   onAction: (action: ReviewItemResolutionAction, options?: { tag?: string }) => void
 }
 
-export const ReviewBulkActionBar = ({ selectedCount, busy = false, onAction }: ReviewBulkActionBarProps) => {
+export const ReviewBulkActionBar = ({ selectedCount, busy = false, bulkResult, onAction }: ReviewBulkActionBarProps) => {
   const disabled = selectedCount === 0
   const [tag, setTag] = useState('')
+  const [confirmMessage, setConfirmMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (bulkResult && bulkResult.skippedCount > 0) {
+      setConfirmMessage(`${bulkResult.approvedCount} approved, ${bulkResult.skippedCount} skipped (import gate still active)`)
+      const timer = setTimeout(() => setConfirmMessage(null), 4000)
+      return () => clearTimeout(timer)
+    }
+    return undefined
+  }, [bulkResult])
 
   return (
     <section style={styles.root}>
@@ -17,6 +28,9 @@ export const ReviewBulkActionBar = ({ selectedCount, busy = false, onAction }: R
         <div style={styles.kicker}>Bulk actions</div>
         <h3 style={styles.heading}>{selectedCount} selected</h3>
       </div>
+      {confirmMessage ? (
+        <p style={styles.confirmMessage}>{confirmMessage}</p>
+      ) : null}
       <div style={styles.actions}>
         <button type="button" style={styles.button} disabled={disabled || busy} onClick={() => onAction('accept-as-is')}>
           Accept selected as-is
@@ -73,10 +87,15 @@ const styles = {
     fontSize: 'var(--font-heading-size)',
     lineHeight: 1.2
   },
+  confirmMessage: {
+    margin: 0,
+    fontSize: 14,
+    color: 'var(--color-muted)'
+  },
   actions: {
     display: 'flex',
     gap: 'var(--space-sm)',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap' as const
   },
   input: {
     minHeight: 44,

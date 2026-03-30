@@ -249,4 +249,114 @@ describe('review mutations', () => {
       repository.close()
     }
   )
+
+  describe('resolveBulkReviewItems — mixed-state bulk approve', () => {
+    it('bulk approve with all approvable items returns full approvedCount and zero skippedCount', () => {
+      const repository = createRepository()
+      const batchId = 'batch-bulk-all'
+      const attemptId = 'attempt-bulk-all'
+      const sourceFileId = 'file-bulk-all'
+      const warningRow1 = createRow(sourceFileId, batchId, 1, { cleanedDescription: 'Warning row 1' })
+      const warningRow2 = createRow(sourceFileId, batchId, 2, { cleanedDescription: 'Warning row 2' })
+
+      repository.persistImportAttempt({
+        attemptId,
+        batchId,
+        batchLabel: 'Bulk all batch',
+        status: 'needs-review',
+        importedAt: '2026-03-30T09:00:00.000Z',
+        accountLabel: 'ICICI - Household',
+        importedFiles: [createStagedFile(sourceFileId, 'bulk-all.xlsx')],
+        rejectedFiles: [],
+        duplicateBlockedFiles: [],
+        acceptedFiles: [
+          {
+            stagedFile: createStagedFile(sourceFileId, 'bulk-all.xlsx'),
+            fileFingerprint: 'fp-bulk-all',
+            transactionSignatures: ['sig-bulk-all-1', 'sig-bulk-all-2'],
+            rows: [warningRow1, warningRow2]
+          }
+        ],
+        reviewItems: [
+          createReviewItem('bulk-warning-1', batchId, attemptId, sourceFileId, warningRow1, 'parser-uncertainty', 'warning'),
+          createReviewItem('bulk-warning-2', batchId, attemptId, sourceFileId, warningRow2, 'parser-uncertainty', 'warning')
+        ],
+        lazyAccountCreated: false
+      })
+
+      const result = repository.resolveBulkReviewItems({
+        batchId,
+        action: 'accept-as-is',
+        reviewItemIds: ['bulk-warning-1', 'bulk-warning-2']
+      })
+
+      expect(result.bulkResult.approvedCount).toBe(2)
+      expect(result.bulkResult.skippedCount).toBe(0)
+      expect(result.bulkResult.skippedReason).toBeUndefined()
+
+      repository.close()
+    })
+
+    it('bulk approve with some import-gated items skips gated items and returns correct counts', () => {
+      const repository = createRepository()
+      const { batchId } = seedBatch(repository)
+
+      // Seed batch has 'review-duplicate' (duplicate-candidate, blocking) and 'review-warning' (parser-uncertainty, warning)
+      // The duplicate-candidate is the import gate — warning items should be skipped while the gate is active
+      const result = repository.resolveBulkReviewItems({
+        batchId,
+        action: 'accept-as-is',
+        reviewItemIds: ['review-duplicate', 'review-warning']
+      })
+
+      // review-duplicate (duplicate-candidate) should be approved; review-warning is gated by the duplicate-candidate gate
+      // After approving review-duplicate, there is no longer an active gate, but we check the gate BEFORE resolving
+      // So both should be processed: review-duplicate passes (it IS a duplicate-candidate), review-warning is gated
+      expect(result.bulkResult.approvedCount).toBe(1)
+      expect(result.bulkResult.skippedCount).toBe(1)
+      expect(result.bulkResult.skippedReason).toBe('import gate still active')
+
+      repository.close()
+    })
+
+    it('bulk approve with all gated items returns zero approvedCount and full skippedCount', () => {
+      const repository = createRepository()
+      const batchId = 'batch-all-gated'
+      const attemptId = 'attempt-all-gated'
+      const sourceFileId = 'file-all-gated'
+      const duplicateRow = createRow(sourceFileId, batchId, 1)
+      const warningRow = createRow(sourceFileId, batchId, 2, { cleanedDescription: 'Warning row' })
+
+      repository.persistImportAttempt({
+        attemptId,
+        batchId,
+        batchLabel: 'All gated batch',
+        status: 'needs-review',
+        importedAt: '2026-03-30T09:00:00.000Z',
+        accountLabel: 'ICICI - Household',
+        importedFiles: [],
+        rejectedFiles: [],
+        duplicateBlockedFiles: [createStagedFile(sourceFileId, 'all-gated.xlsx')],
+        acceptedFiles: [],
+        reviewItems: [
+          createReviewItem('gated-duplicate', batchId, attemptId, sourceFileId, duplicateRow, 'duplicate-candidate', 'blocking'),
+          createReviewItem('gated-warning', batchId, attemptId, sourceFileId, warningRow, 'balance-continuity-warning', 'warning')
+        ],
+        lazyAccountCreated: false
+      })
+
+      // Attempt to bulk-approve only the non-duplicate-candidate warning items while gate is active
+      const result = repository.resolveBulkReviewItems({
+        batchId,
+        action: 'accept-as-is',
+        reviewItemIds: ['gated-warning']
+      })
+
+      expect(result.bulkResult.approvedCount).toBe(0)
+      expect(result.bulkResult.skippedCount).toBe(1)
+      expect(result.bulkResult.skippedReason).toBe('import gate still active')
+
+      repository.close()
+    })
+  })
 })

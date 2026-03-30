@@ -51,6 +51,13 @@ export interface NormalizedImportRow {
   importBatchId: string
 }
 
+export interface ParseRowError {
+  rowNumber: number
+  expected: string
+  found: string
+  suggestion: string
+}
+
 export interface StagedImportFile extends ImportFileReason {
   id: string
   fileName: string
@@ -62,6 +69,7 @@ export interface StagedImportFile extends ImportFileReason {
   selectedWorksheetName?: string
   worksheetCandidates?: WorksheetCandidate[]
   warnings?: string[]
+  parseErrors?: ParseRowError[]
   rowsPreview?: NormalizedImportRow[]
   priorBatch?: PriorImportBatchReference
   importedTransactionCount?: number
@@ -233,6 +241,17 @@ export interface CommitImportBatchResult {
   reviewItems: ReviewItem[]
   summary: ImportAttemptSummary
   lazyAccountCreated?: boolean
+}
+
+export interface BulkResolveResult {
+  approvedCount: number
+  skippedCount: number
+  skippedReason?: string
+}
+
+export interface ReplaceStagedFileInput {
+  stagedFileId: string
+  newFilePath?: string
 }
 
 export interface PriorImportBatchInspection {

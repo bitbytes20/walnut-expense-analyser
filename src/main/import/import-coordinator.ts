@@ -144,6 +144,13 @@ export class ImportCoordinator {
     return this.getStageResult()
   }
 
+  replaceStagedFile(stagedFileId: string, newFilePath: string): StageImportFilesResult {
+    this.stagedImportFiles.delete(stagedFileId)
+    const parsedFile = parseImportFile(newFilePath)
+    this.stagedImportFiles.set(parsedFile.stagedFile.id, this.withDuplicateState(parsedFile))
+    return this.getStageResult()
+  }
+
   commitBatch(input?: CommitImportBatchInput): CommitImportBatchResult {
     const targetIds = input?.stagedFileIds?.length ? new Set(input.stagedFileIds) : undefined
     const selectedRecords = Array.from(this.stagedImportFiles.entries()).filter(([id]) => !targetIds || targetIds.has(id))

@@ -244,7 +244,13 @@ const createWalnutApi = () => {
     getReviewQueue: vi.fn().mockResolvedValue([batchDetail]),
     resolveReviewItems: vi.fn().mockResolvedValue(batchDetail),
     restoreReviewItems: vi.fn().mockResolvedValue(batchDetail),
-    ping: vi.fn().mockResolvedValue('pong')
+    ping: vi.fn().mockResolvedValue('pong'),
+    bulkUpdateTransactions: vi.fn().mockResolvedValue({ updatedCount: 0 }),
+    replaceStagedFile: vi.fn().mockResolvedValue({ stagedFiles: [] }),
+    listFilterPresets: vi.fn().mockResolvedValue([]),
+    saveFilterPreset: vi.fn().mockResolvedValue([]),
+    renameFilterPreset: vi.fn().mockResolvedValue([]),
+    deleteFilterPreset: vi.fn().mockResolvedValue([])
   } satisfies Partial<WalnutApi>
 
   return api as WalnutApi & {
@@ -334,7 +340,13 @@ const createMutationWalnutApi = () => {
       )
       return detail
     }),
-    ping: vi.fn().mockResolvedValue('pong')
+    ping: vi.fn().mockResolvedValue('pong'),
+    bulkUpdateTransactions: vi.fn().mockResolvedValue({ updatedCount: 0 }),
+    replaceStagedFile: vi.fn().mockResolvedValue({ stagedFiles: [] }),
+    listFilterPresets: vi.fn().mockResolvedValue([]),
+    saveFilterPreset: vi.fn().mockResolvedValue([]),
+    renameFilterPreset: vi.fn().mockResolvedValue([]),
+    deleteFilterPreset: vi.fn().mockResolvedValue([])
   } satisfies Partial<WalnutApi>
 
   return api as WalnutApi & {

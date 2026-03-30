@@ -57,7 +57,13 @@ Future-facing expansion once the local foundation and core workflows are stable.
   3. User can approve and reject individual review queue items using keyboard shortcuts without reaching for the mouse
   4. User sees import error messages that identify the failing row, describe what was expected vs found, and suggest a fix; user can retry with a corrected file without navigating away
   5. User can save the current filter state as a named preset and restore it in one click; user can rename, delete, and list all saved presets
-**Plans**: TBD
+**Plans:** 2/5 plans executed
+Plans:
+- [x] 09-01-PLAN.md — Shared contracts, DB schema, IPC handlers, preload bridge, and Wave 0 test scaffolds
+- [x] 09-02-PLAN.md — Transaction multi-select with checkboxes, shift+click, and bulk category/tag assignment
+- [x] 09-03-PLAN.md — Review queue keyboard shortcuts (A/R/arrows) and mixed-state bulk approve
+- [x] 09-04-PLAN.md — Import error diagnostics with row-level detail and in-place file retry
+- [x] 09-05-PLAN.md — Named filter presets (save, restore, rename, delete) in filter drawer
 **UI hint**: yes
 
 ### Phase 10: Rule System Expansion
@@ -135,7 +141,7 @@ Future-facing expansion once the local foundation and core workflows are stable.
 | 6. Dashboard Analytics | v1.0 | 4/4 | Complete | 2026-03-28 |
 | 7. Audit and Diagnostics | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 8. Settings and Release Hardening | v1.0 | 4/4 | Complete | 2026-03-29 |
-| 9. Workflow Polish | v2.0 | TBD | Not started | — |
+| 9. Workflow Polish | v2.0 | 2/5 | In Progress|  |
 | 10. Rule System Expansion | v2.0 | TBD | Not started | — |
 | 11. Budgeting Foundations | v2.0 | TBD | Not started | — |
 | 12. AI Insights | v2.0 | TBD | Not started | — |
@@ -145,4 +151,4 @@ Future-facing expansion once the local foundation and core workflows are stable.
 | 16. Expansion Architecture | v3.0 | TBD | Not started | — |
 
 ---
-*Last updated: 2026-03-30 — v2.0 roadmap created (Phases 9-14, 49 requirements)*
+*Last updated: 2026-03-30 — Phase 9 plans created (5 plans, 2 waves)*

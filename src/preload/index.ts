@@ -24,6 +24,7 @@ const walnutApi: WalnutApi = {
   getImportBatchDetail: (input) => ipcRenderer.invoke('import:get-batch-detail', input),
   getReviewQueue: (input) => ipcRenderer.invoke('import:get-review-queue', input),
   resolveReviewItems: (input) => ipcRenderer.invoke('import:resolve-review-items', input),
+  resolveReviewItemsBulk: (input) => ipcRenderer.invoke('import:resolve-review-items-bulk', input),
   restoreReviewItems: (input) => ipcRenderer.invoke('import:restore-review-items', input),
   listTransactions: (input) => ipcRenderer.invoke('transactions:list', input),
   getTransactionDetail: (input) => ipcRenderer.invoke('transactions:get-detail', input),
@@ -53,7 +54,13 @@ const walnutApi: WalnutApi = {
   importBackup: (pin) => ipcRenderer.invoke('walnut:importBackup', pin),
   clearTransactions: () => ipcRenderer.invoke('walnut:clearTransactions'),
   fullReset: () => ipcRenderer.invoke('walnut:fullReset'),
-  ping: () => ipcRenderer.invoke('app-state:ping')
+  ping: () => ipcRenderer.invoke('app-state:ping'),
+  bulkUpdateTransactions: (input) => ipcRenderer.invoke('transactions:bulk-update', input),
+  replaceStagedFile: (input) => ipcRenderer.invoke('import:replace-staged-file', input),
+  listFilterPresets: () => ipcRenderer.invoke('filter-presets:list'),
+  saveFilterPreset: (input) => ipcRenderer.invoke('filter-presets:save', input),
+  renameFilterPreset: (input) => ipcRenderer.invoke('filter-presets:rename', input),
+  deleteFilterPreset: (input) => ipcRenderer.invoke('filter-presets:delete', input)
 }
 
 contextBridge.exposeInMainWorld('walnut', walnutApi)

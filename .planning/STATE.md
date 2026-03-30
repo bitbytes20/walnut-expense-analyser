@@ -1,14 +1,15 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: Release 2 — Core
-status: Phase 9 next
+milestone_name: "Release 2: Core"
+status: Phase 10 next
 last_updated: "2026-03-30T00:00:00.000Z"
+last_activity: 2026-03-30
 progress:
   total_phases: 6
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # State: Walnut Expense Analyser
@@ -22,16 +23,15 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-29)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** v2.0 — workflow polish, rule system expansion, budgeting foundations, AI insights, family members, WanderLog
+**Current focus:** Phase 09 — workflow-polish
 
 **Active implementation branch:** `release/1.1.0`
 
 ## Current Position
 
-Phase: 9 — Workflow Polish
-Plan: —
-Status: Phase 9 next
-Last activity: 2026-03-30 — v2.0 roadmap created (49 requirements, Phases 9-14)
+Phase: 09 (workflow-polish) — COMPLETE ✓
+Status: Phase 9 complete — Phase 10 next
+Last activity: 2026-03-30
 
 Progress: [░░░░░░] 0/6 phases complete
 
@@ -112,6 +112,8 @@ Progress: [░░░░░░] 0/6 phases complete
 - 2026-03-28: Phase 6 executed with summaries at `.planning/phases/06-dashboard-analytics/06-01-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-02-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-03-SUMMARY.md`, `.planning/phases/06-dashboard-analytics/06-04-SUMMARY.md`, and `.planning/phases/06-dashboard-analytics/06-VERIFICATION.md`
 - 2026-03-29: Phase 7 and Phase 8 completed; v1.0 shipped
 - 2026-03-30: v2.0 roadmap created — Phases 9-14, 49 requirements mapped
+- 2026-03-30: Phase 9 planned — 5 plans (09-01 to 09-05), 2 waves, WORKFLOW-01 through WORKFLOW-09 covered
+- 2026-03-30: Phase 9 complete — 13/13 must-haves verified, 24 new passing tests, human verification approved
 
 ## Phase 8 Decisions
 
@@ -123,10 +125,21 @@ Progress: [░░░░░░] 0/6 phases complete
 - handleGlobalShortcut exported as pure function for testability; GlobalShortcutActions interface uses WorkspaceScreen union type for TypeScript correctness
 - setImportAreaScreen in GlobalShortcutActions uses '{ type: workspace | history }' narrowing to satisfy Dispatch<SetStateAction<ImportAreaScreen>> constraint
 
+## Phase 9 Decisions
+
+- filter_presets uses raw SQL in bootstrap() consistent with all other Phase 9 table creation patterns (not Drizzle migration)
+- Filter preset CRUD methods (save/rename/delete) return full list after mutation — matches categories and rules IPC pattern
+- bulkUpdateTransactions wraps all updates in SQLite transaction() for atomicity; builds SET clause dynamically from input fields present
+- replaceStagedFile deletes old staged entry and re-parses new file while preserving all other staged entries in coordinator
+- Wave 0 test scaffolds use it.todo() stubs so vitest run passes without implementation (stubs enabled in Wave 2 plans)
+- Excel serial date numbers (floats 1-80000) accepted as valid dates in parser since xlsx returns these from XLS/XLSX date cells
+- StagedFileRow onRetry prop only passed to rejected files to limit replace-in-place to the right context
+- Files with parseErrors get status=rejected so they sort into the Rejected section and show inline error expansion
+
 ## Immediate Next Action
 
-v2.0 roadmap complete. 49 requirements mapped across Phases 9-14. Ready to plan Phase 9.
-Next: `/gsd:plan-phase 9`
+Phase 9 complete. 5 plans executed, 13/13 must-haves verified, 24 new passing tests, human verification approved.
+Next: `/gsd:discuss-phase 10` (Rule System Expansion)
 
 ---
-*Last updated: 2026-03-30 — v2.0 roadmap created, Phase 9 next*
+*Last updated: 2026-03-30 — Phase 9 Plan 01 complete*

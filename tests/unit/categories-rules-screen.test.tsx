@@ -159,7 +159,13 @@ const createWalnutApi = () => {
       ]
     }),
     applyRuleToExisting: vi.fn().mockResolvedValue(rules),
-    ping: vi.fn().mockResolvedValue('pong')
+    ping: vi.fn().mockResolvedValue('pong'),
+    bulkUpdateTransactions: vi.fn().mockResolvedValue({ updatedCount: 0 }),
+    replaceStagedFile: vi.fn().mockResolvedValue({ stagedFiles: [] }),
+    listFilterPresets: vi.fn().mockResolvedValue([]),
+    saveFilterPreset: vi.fn().mockResolvedValue([]),
+    renameFilterPreset: vi.fn().mockResolvedValue([]),
+    deleteFilterPreset: vi.fn().mockResolvedValue([])
   } satisfies Partial<WalnutApi>
 
   return api as WalnutApi & {

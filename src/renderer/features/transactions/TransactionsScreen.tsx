@@ -1,15 +1,19 @@
 import { Filter, Search } from 'lucide-react'
-import { startTransition, useEffect, useMemo, useState } from 'react'
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
+import type { CategoryTreeNode } from '../../../shared/contracts/categories'
 import type {
+  FilterPreset,
   TransactionDetail,
   TransactionLedgerQuery,
   TransactionLedgerRow,
   TransactionRuleSuggestion
 } from '../../../shared/contracts/transactions'
+import { TransactionBulkActionBar } from './TransactionBulkActionBar'
 import { TransactionDetailDrawer } from './TransactionDetailDrawer'
 import { TransactionEmptyState } from './TransactionEmptyState'
 import { TransactionFilterDrawer } from './TransactionFilterDrawer'
 import { TransactionLedgerTable, type SortDirection, type SortKey } from './TransactionLedgerTable'
+import { computeRangeSelect } from './multiSelectLogic'
 
 const pageSizeOptions = [10, 25, 50, 75, 100, 150, 200] as const
 
@@ -44,6 +48,17 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [pageSize, setPageSize] = useState<number>(50)
   const [currentPage, setCurrentPage] = useState<number>(1)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const shiftAnchorRef = useRef<string | null>(null)
+  const [categories, setCategories] = useState<CategoryTreeNode[]>([])
+  const [presets, setPresets] = useState<FilterPreset[]>([])
+
+  // Load categories once for the bulk action bar
+  useEffect(() => {
+    void window.walnut.listCategories().then((nextCategories) => {
+      setCategories(nextCategories)
+    })
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -81,6 +96,13 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
     setCurrentPage(1)
   }, [submittedSearch, filters])
 
+  // Reset multi-select on page navigation or filter/search change
+  // Intentionally excludes sortKey/sortDirection — selection persists across sort changes
+  useEffect(() => {
+    setSelectedIds(new Set())
+    shiftAnchorRef.current = null
+  }, [currentPage, submittedSearch, filters])
+
   useEffect(() => {
     if (!navigationQuery) {
       return
@@ -93,6 +115,82 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
       search: undefined
     })
   }, [navigationQuery, navigationVersion])
+
+  const handleRowSelect = (id: string, checked: boolean, shiftHeld: boolean) => {
+    const pagedRowIds = pagedRows.map((row) => row.id)
+    const result = computeRangeSelect(
+      pagedRowIds,
+      shiftHeld ? shiftAnchorRef.current : null,
+      id,
+      checked,
+      selectedIds
+    )
+    shiftAnchorRef.current = result.newAnchor
+    setSelectedIds(result.selectedIds)
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    const pagedRowIds = pagedRows.map((row) => row.id)
+    const result = computeRangeSelect(pagedRowIds, null, '__all__', checked, selectedIds)
+    shiftAnchorRef.current = result.newAnchor
+    setSelectedIds(result.selectedIds)
+  }
+
+  const refreshTransactions = async () => {
+    const nextRows = await window.walnut.listTransactions({
+      ...filters,
+      search: submittedSearch || undefined
+    })
+    startTransition(() => {
+      setRows(nextRows)
+    })
+  }
+
+  const handleBulkAssignCategory = async (categoryId: string, categoryLabel: string) => {
+    await window.walnut.bulkUpdateTransactions({
+      transactionIds: [...selectedIds],
+      categoryId,
+      category: categoryLabel
+    })
+    setSelectedIds(new Set())
+    shiftAnchorRef.current = null
+    await refreshTransactions()
+  }
+
+  const handleBulkApplyTag = async (tag: string) => {
+    await window.walnut.bulkUpdateTransactions({
+      transactionIds: [...selectedIds],
+      tags: [tag]
+    })
+    setSelectedIds(new Set())
+    shiftAnchorRef.current = null
+    await refreshTransactions()
+  }
+
+  useEffect(() => {
+    if (filtersOpen) {
+      void window.walnut.listFilterPresets().then(setPresets)
+    }
+  }, [filtersOpen])
+
+  const handleSavePreset = (name: string) => {
+    void window.walnut.saveFilterPreset({ name, filters: { ...filters, search: submittedSearch || undefined } }).then(setPresets)
+  }
+
+  const handleRestorePreset = (preset: FilterPreset) => {
+    const { search, ...restFilters } = preset.filters
+    setPendingSearch(search ?? '')
+    setSubmittedSearch(search ?? '')
+    setFilters(restFilters)
+  }
+
+  const handleRenamePreset = (id: string, newName: string) => {
+    void window.walnut.renameFilterPreset({ id, name: newName }).then(setPresets)
+  }
+
+  const handleDeletePreset = (id: string) => {
+    void window.walnut.deleteFilterPreset({ id }).then(setPresets)
+  }
 
   const openTransaction = async (transactionId: string) => {
     setActiveTransactionId(transactionId)
@@ -175,6 +273,11 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
           onToggleAdvanced={() => setAdvancedFiltersOpen((current) => !current)}
           onChange={setFilters}
           onClear={() => setFilters({})}
+          presets={presets}
+          onSavePreset={handleSavePreset}
+          onRestorePreset={handleRestorePreset}
+          onRenamePreset={handleRenamePreset}
+          onDeletePreset={handleDeletePreset}
         />
       ) : null}
 
@@ -289,12 +392,28 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
                 </div>
               </section>
 
+              {selectedIds.size > 0 ? (
+                <TransactionBulkActionBar
+                  selectedCount={selectedIds.size}
+                  categories={categories}
+                  onAssignCategory={handleBulkAssignCategory}
+                  onApplyTag={handleBulkApplyTag}
+                  onClearSelection={() => {
+                    setSelectedIds(new Set())
+                    shiftAnchorRef.current = null
+                  }}
+                />
+              ) : null}
+
               <TransactionLedgerTable
                 rows={pagedRows}
                 loading={loading}
                 activeTransactionId={activeTransactionId}
                 sortKey={sortKey}
                 sortDirection={sortDirection}
+                selectedIds={selectedIds}
+                onSelect={handleRowSelect}
+                onSelectAll={handleSelectAll}
                 onSort={(key) => {
                   if (key === sortKey) {
                     setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
