@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: "Release 2: Core"
 status: executing
-last_updated: "2026-03-30T03:46:14.756Z"
+last_updated: "2026-03-30T09:30:00Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 35
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # State: Walnut Expense Analyser
@@ -30,8 +30,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-29)
 ## Current Position
 
 Phase: 09 (workflow-polish) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
+Plan: 4 of 5 complete
+Status: Plan 04 complete, Plan 05 next
 Last activity: 2026-03-30
 
 Progress: [░░░░░░] 0/6 phases complete
@@ -132,11 +132,14 @@ Progress: [░░░░░░] 0/6 phases complete
 - bulkUpdateTransactions wraps all updates in SQLite transaction() for atomicity; builds SET clause dynamically from input fields present
 - replaceStagedFile deletes old staged entry and re-parses new file while preserving all other staged entries in coordinator
 - Wave 0 test scaffolds use it.todo() stubs so vitest run passes without implementation (stubs enabled in Wave 2 plans)
+- Excel serial date numbers (floats 1-80000) accepted as valid dates in parser since xlsx returns these from XLS/XLSX date cells
+- StagedFileRow onRetry prop only passed to rejected files to limit replace-in-place to the right context
+- Files with parseErrors get status=rejected so they sort into the Rejected section and show inline error expansion
 
 ## Immediate Next Action
 
-Phase 9 Plan 01 complete. Contracts, DB schema, IPC handlers, and test scaffolds in place.
-Next: Execute 09-02-PLAN.md (multi-select + bulk categorization renderer)
+Phase 9 Plan 04 complete. Row-level parse error diagnostics implemented with inline expansion and in-place retry.
+Next: Execute 09-05-PLAN.md (filter presets renderer)
 
 ---
 *Last updated: 2026-03-30 — Phase 9 Plan 01 complete*
