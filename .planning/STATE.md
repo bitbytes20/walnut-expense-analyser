@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: "Release 2: Core"
-status: Phase 10 in progress
+status: executing
 last_updated: "2026-03-30T14:50:00.000Z"
-last_activity: 2026-03-30
+last_activity: 2026-03-30 -- Phase 10 execution started
 progress:
   total_phases: 11
   completed_phases: 9
-  total_plans: 35
-  completed_plans: 31
+  total_plans: 40
+  completed_plans: 35
 ---
 
 # State: Walnut Expense Analyser
@@ -23,15 +23,16 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-29)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 09 — workflow-polish
+**Current focus:** Phase 10 — rule-system-expansion
 
 **Active implementation branch:** `release/1.1.0`
 
 ## Current Position
 
-Phase: 09 (workflow-polish) — COMPLETE ✓
-Status: Phase 9 complete — Phase 10 next
-Last activity: 2026-03-30
+Phase: 10 (rule-system-expansion) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 10
+Last activity: 2026-03-30 -- Phase 10 execution started
 
 Progress: [░░░░░░] 0/6 phases complete
 
