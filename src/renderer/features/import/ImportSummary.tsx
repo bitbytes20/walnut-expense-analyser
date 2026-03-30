@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import type { CommitImportBatchResult, StagedImportFile } from '../../../shared/contracts/import'
 
 interface ImportSummaryProps {
@@ -21,25 +23,80 @@ const Group = ({ title, files }: { title: 'Imported' | 'Rejected' | 'Duplicate b
   </section>
 )
 
-export const ImportSummary = ({ summary }: ImportSummaryProps) => (
-  <section aria-label="import summary" style={styles.root}>
-    <div style={styles.headerCard}>
-      <div style={styles.kicker}>Import summary</div>
-      <h2 style={styles.heading}>Import statements</h2>
-      <p style={styles.body}>
-        {summary.transactionsCreated > 0
-          ? `Walnut imported ${summary.transactionsCreated} transactions from ${summary.importedFiles.length} file${summary.importedFiles.length === 1 ? '' : 's'}.`
-          : 'No files were imported, but Walnut kept every result visible so you can review what happened.'}
-      </p>
-      {summary.lazyAccountCreated ? <div style={styles.accountBanner}>Walnut created the ICICI account profile from your first successful import.</div> : null}
-    </div>
-    <div style={styles.groups}>
-      <Group title="Imported" files={summary.importedFiles} />
-      <Group title="Rejected" files={summary.rejectedFiles} />
-      <Group title="Duplicate blocked" files={summary.duplicateBlockedFiles} />
-    </div>
-  </section>
-)
+export const ImportSummary = ({ summary }: ImportSummaryProps) => {
+  const [isRuleSummaryOpen, setIsRuleSummaryOpen] = useState(false)
+
+  const ruleCategorizations = summary.ruleCategorizations
+  const totalRuleCategorized = ruleCategorizations?.reduce((sum, rc) => sum + rc.count, 0) ?? 0
+
+  return (
+    <section aria-label="import summary" style={styles.root}>
+      <div style={styles.headerCard}>
+        <div style={styles.kicker}>Import summary</div>
+        <h2 style={styles.heading}>Import statements</h2>
+        <p style={styles.body}>
+          {summary.transactionsCreated > 0
+            ? `Walnut imported ${summary.transactionsCreated} transactions from ${summary.importedFiles.length} file${summary.importedFiles.length === 1 ? '' : 's'}.`
+            : 'No files were imported, but Walnut kept every result visible so you can review what happened.'}
+        </p>
+        {summary.lazyAccountCreated ? <div style={styles.accountBanner}>Walnut created the ICICI account profile from your first successful import.</div> : null}
+
+        {ruleCategorizations && ruleCategorizations.length > 0 && (
+          <details
+            style={{ marginTop: 'var(--space-sm)' }}
+            open={isRuleSummaryOpen}
+            onToggle={(e) => setIsRuleSummaryOpen((e.target as HTMLDetailsElement).open)}
+          >
+            <summary
+              style={{
+                fontSize: 14,
+                color: 'var(--color-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-xs)',
+                listStyle: 'none'
+              }}
+            >
+              <span>
+                {totalRuleCategorized} transaction{totalRuleCategorized !== 1 ? 's' : ''} categorized by your rules.
+              </span>
+              <ChevronDown
+                size={12}
+                style={{
+                  transition: 'transform 140ms ease',
+                  transform: isRuleSummaryOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                }}
+                aria-hidden="true"
+              />
+            </summary>
+            <div
+              style={{
+                background: 'var(--color-surface)',
+                padding: 'var(--space-md)',
+                borderRadius: 'var(--radius-md)',
+                maxHeight: 180,
+                overflowY: 'auto',
+                marginTop: 'var(--space-xs)'
+              }}
+            >
+              {ruleCategorizations.map((rc) => (
+                <div key={rc.ruleName} style={{ fontSize: 12, color: 'var(--color-muted)', padding: '2px 0' }}>
+                  {rc.ruleName} — {rc.count} transaction{rc.count !== 1 ? 's' : ''}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+      </div>
+      <div style={styles.groups}>
+        <Group title="Imported" files={summary.importedFiles} />
+        <Group title="Rejected" files={summary.rejectedFiles} />
+        <Group title="Duplicate blocked" files={summary.duplicateBlockedFiles} />
+      </div>
+    </section>
+  )
+}
 
 const styles = {
   root: {

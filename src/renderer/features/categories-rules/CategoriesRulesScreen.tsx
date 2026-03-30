@@ -31,7 +31,7 @@ interface CategoriesRulesScreenProps {
 }
 
 const flattenCategories = (nodes: CategoryTreeNode[]): CategoryTreeNode[] =>
-  nodes.flatMap((node) => [node, ...flattenCategories(node.children)])
+  nodes.flatMap((node) => [node, ...flattenCategories(node.children as CategoryTreeNode[])])
 
 export const CategoriesRulesScreen = ({ initialRuleDraft, onRuleDraftHandled }: CategoriesRulesScreenProps) => {
   const [categories, setCategories] = useState<CategoryTreeNode[]>([])
@@ -60,12 +60,16 @@ export const CategoriesRulesScreen = ({ initialRuleDraft, onRuleDraftHandled }: 
 
   const categoryOptions = useMemo(
     () =>
-      flattenCategories(categories).map((category) => ({
-        id: category.id,
-        label: category.path.join(' > '),
-        kind: category.kind,
-        isActive: category.isActive
-      })),
+      flattenCategories(categories)
+        .filter((category) => !category.isArchived)
+        .map((category) => ({
+          id: category.id,
+          label: category.path.join(' > '),
+          path: category.path,
+          kind: category.kind,
+          isActive: category.isActive,
+          isArchived: category.isArchived
+        })),
     [categories]
   )
 
@@ -128,12 +132,13 @@ export const CategoriesRulesScreen = ({ initialRuleDraft, onRuleDraftHandled }: 
       </section>
 
       <div style={styles.workspace}>
-        <CategoryPane categories={categories} onCreate={() => setCategoryEditor({ mode: 'create' })} onEdit={(category) => setCategoryEditor({ mode: 'edit', category })} />
+        <CategoryPane categories={categories} onCreate={() => setCategoryEditor({ mode: 'create' })} onEdit={(category) => setCategoryEditor({ mode: 'edit', category })} onCategoriesChange={setCategories} />
         <RulePane
           rules={rules}
           onCreate={() => setRuleEditor({ mode: 'create' })}
           onEdit={(rule) => setRuleEditor({ mode: 'edit', rule })}
           onToggle={async (rule) => setRules(await window.walnut.toggleRule({ ruleId: rule.id, isEnabled: !rule.isEnabled }))}
+          onRulesChange={setRules}
         />
       </div>
 

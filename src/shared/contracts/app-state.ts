@@ -29,13 +29,19 @@ import type { AuditEvent } from './audit'
 import type { GenerateDiagnosticsBundleInput } from './diagnostics'
 import type {
   ApplyRuleToExistingInput,
+  ArchiveCategoryInput,
   CategorizationRuleSummary,
   CreateCategoryInput,
   CreateCategorizationRuleInput,
   DeleteCategoryInput,
   DeleteCategorizationRuleInput,
   MergeCategoryInput,
+  MergeCategoryPreview,
+  ReorderRulesInput,
   RuleApplyPreview,
+  RuleConflict,
+  RuleExportEntry,
+  RuleImportResult,
   RulePreviewInput,
   RuleTestPreview,
   ToggleCategorizationRuleInput,
@@ -209,15 +215,21 @@ export interface WalnutApi {
   createCategory: (input: CreateCategoryInput) => Promise<CategoryTreeNode[]>
   updateCategory: (input: UpdateCategoryInput) => Promise<CategoryTreeNode[]>
   mergeCategory: (input: MergeCategoryInput) => Promise<CategoryTreeNode[]>
+  mergeCategoryPreview: (input: { sourceCategoryId: string; targetCategoryId: string }) => Promise<MergeCategoryPreview>
+  archiveCategory: (input: ArchiveCategoryInput) => Promise<CategoryTreeNode[]>
   deleteCategory: (input: DeleteCategoryInput) => Promise<CategoryTreeNode[]>
   listRules: () => Promise<CategorizationRuleSummary[]>
   createRule: (input: CreateCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
   updateRule: (input: UpdateCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
   toggleRule: (input: ToggleCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
   deleteRule: (input: DeleteCategorizationRuleInput) => Promise<CategorizationRuleSummary[]>
+  reorderRules: (input: ReorderRulesInput) => Promise<CategorizationRuleSummary[]>
   testRule: (input: RulePreviewInput) => Promise<RuleTestPreview>
   previewRuleApplyToExisting: (input: RulePreviewInput | ApplyRuleToExistingInput) => Promise<RuleApplyPreview>
   applyRuleToExisting: (input: ApplyRuleToExistingInput) => Promise<CategorizationRuleSummary[]>
+  exportRules: () => Promise<{ success: boolean; reason?: string; count?: number }>
+  importRulesPrepare: () => Promise<{ result: RuleImportResult; entries: RuleExportEntry[] } | null>
+  importRulesCommit: (input: { entries: RuleExportEntry[]; resolutions: Array<{ name: string; action: 'keep' | 'replace' | 'skip' }> }) => Promise<CategorizationRuleSummary[]>
   getDashboardPreferences: () => Promise<DashboardPreferences>
   setDashboardPreferences: (input: DashboardPreferences) => Promise<DashboardPreferences>
   getDashboardSnapshot: (input: DashboardSnapshotQuery) => Promise<DashboardSnapshot>

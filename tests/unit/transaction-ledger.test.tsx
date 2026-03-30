@@ -118,7 +118,7 @@ const createWalnutApi = () => {
             draft: {
               name: 'Coffee shop rule',
               condition: {
-                descriptionContains: ['coffee', 'shop'],
+                descriptionTerms: [{ op: 'contains' as const, value: 'coffee' }, { op: 'contains' as const, value: 'shop' }],
                 transactionTypes: [transactionDetail.normalizedType],
                 tags: transactionDetail.tags,
                 directions: [transactionDetail.direction]
@@ -163,6 +163,8 @@ const createWalnutApi = () => {
     createCategory: vi.fn().mockResolvedValue([]),
     updateCategory: vi.fn().mockResolvedValue([]),
     mergeCategory: vi.fn().mockResolvedValue([]),
+    mergeCategoryPreview: vi.fn().mockResolvedValue({ sourceCategoryId: '', targetCategoryId: '', affectedTransactionCount: 0, affectedRuleCount: 0, samples: [] }),
+    archiveCategory: vi.fn().mockResolvedValue([]),
     deleteCategory: vi.fn().mockResolvedValue([]),
     listRules: vi.fn().mockResolvedValue([]),
     createRule: vi.fn().mockResolvedValue([]),
@@ -178,7 +180,10 @@ const createWalnutApi = () => {
     listFilterPresets: vi.fn().mockResolvedValue([]),
     saveFilterPreset: vi.fn().mockResolvedValue([]),
     renameFilterPreset: vi.fn().mockResolvedValue([]),
-    deleteFilterPreset: vi.fn().mockResolvedValue([])
+    deleteFilterPreset: vi.fn().mockResolvedValue([]),
+    exportRules: vi.fn().mockResolvedValue({ success: false, reason: 'no-rules' }),
+    importRulesPrepare: vi.fn().mockResolvedValue(null),
+    importRulesCommit: vi.fn().mockResolvedValue([])
   } satisfies Partial<WalnutApi>
 
   return api as WalnutApi & {

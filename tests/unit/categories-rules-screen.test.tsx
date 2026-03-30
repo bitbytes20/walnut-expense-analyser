@@ -73,7 +73,7 @@ const rules = [
     kind: 'user' as const,
     isEnabled: true,
     condition: {
-      descriptionContains: ['burger'],
+      descriptionTerms: [{ op: 'contains' as const, value: 'burger' }],
       transactionTypes: ['expense' as const],
       tags: [],
       directions: ['debit' as const]
@@ -84,6 +84,7 @@ const rules = [
       appendTags: ['restaurant']
     },
     specificityScore: 8,
+    sortOrder: 10,
     affectedTransactionCount: 3,
     updatedAt: '2026-03-28T18:00:00.000Z'
   }
@@ -120,6 +121,8 @@ const createWalnutApi = () => {
     createCategory: vi.fn().mockResolvedValue(categories),
     updateCategory: vi.fn().mockResolvedValue(categories),
     mergeCategory: vi.fn().mockResolvedValue(categories),
+    mergeCategoryPreview: vi.fn().mockResolvedValue({ sourceCategoryId: '', targetCategoryId: '', affectedTransactionCount: 0, affectedRuleCount: 0, samples: [] }),
+    archiveCategory: vi.fn().mockResolvedValue(categories),
     deleteCategory: vi.fn().mockResolvedValue(categories),
     listRules: vi.fn().mockResolvedValue(rules),
     createRule: vi.fn().mockResolvedValue(rules),
@@ -159,13 +162,17 @@ const createWalnutApi = () => {
       ]
     }),
     applyRuleToExisting: vi.fn().mockResolvedValue(rules),
+    reorderRules: vi.fn().mockResolvedValue(rules),
     ping: vi.fn().mockResolvedValue('pong'),
     bulkUpdateTransactions: vi.fn().mockResolvedValue({ updatedCount: 0 }),
     replaceStagedFile: vi.fn().mockResolvedValue({ stagedFiles: [] }),
     listFilterPresets: vi.fn().mockResolvedValue([]),
     saveFilterPreset: vi.fn().mockResolvedValue([]),
     renameFilterPreset: vi.fn().mockResolvedValue([]),
-    deleteFilterPreset: vi.fn().mockResolvedValue([])
+    deleteFilterPreset: vi.fn().mockResolvedValue([]),
+    exportRules: vi.fn().mockResolvedValue({ success: false, reason: 'no-rules' }),
+    importRulesPrepare: vi.fn().mockResolvedValue(null),
+    importRulesCommit: vi.fn().mockResolvedValue([])
   } satisfies Partial<WalnutApi>
 
   return api as WalnutApi & {

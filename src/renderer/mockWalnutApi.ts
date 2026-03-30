@@ -8,6 +8,7 @@ import type {
 import type { AccountProfileDraft } from '../shared/contracts/account'
 import type {
   ApplyRuleToExistingInput,
+  ArchiveCategoryInput,
   CategoryTreeNode,
   CategorizationRuleSummary,
   CreateCategoryInput,
@@ -15,7 +16,10 @@ import type {
   DeleteCategoryInput,
   DeleteCategorizationRuleInput,
   MergeCategoryInput,
+  MergeCategoryPreview,
+  ReorderRulesInput,
   RuleApplyPreview,
+  RuleExportEntry,
   RulePreviewInput,
   RuleTestPreview,
   ToggleCategorizationRuleInput,
@@ -105,6 +109,7 @@ const defaultCategories = (): CategoryTreeNode[] => [
     kind: 'system',
     path: ['Food & Dining'],
     isActive: true,
+    isArchived: false,
     isIncomeCategory: false,
     sortOrder: 10,
     counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -116,6 +121,7 @@ const defaultCategories = (): CategoryTreeNode[] => [
     kind: 'system',
     path: ['Income'],
     isActive: true,
+    isArchived: false,
     isIncomeCategory: true,
     sortOrder: 160,
     counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -127,6 +133,7 @@ const defaultCategories = (): CategoryTreeNode[] => [
         parentId: 'cat:income',
         path: ['Income', 'Salary'],
         isActive: true,
+        isArchived: false,
         isIncomeCategory: true,
         sortOrder: 161,
         counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -140,6 +147,7 @@ const defaultCategories = (): CategoryTreeNode[] => [
     kind: 'system',
     path: ['Uncategorized'],
     isActive: true,
+    isArchived: false,
     isIncomeCategory: false,
     sortOrder: 190,
     counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -1590,11 +1598,12 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
               draft: {
                 name: `${updatedDetail.description} rule`,
                 condition: {
-                  descriptionContains: updatedDetail.description
+                  descriptionTerms: updatedDetail.description
                     .split(/\s+/)
                     .map((token) => token.trim().toLowerCase())
                     .filter((token) => token.length >= 3)
-                    .slice(0, 3),
+                    .slice(0, 3)
+                    .map((value) => ({ op: 'contains' as const, value })),
                   transactionTypes: [previousType],
                   tags: updatedDetail.tags,
                   directions: [updatedDetail.direction]
@@ -1620,6 +1629,7 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
       parentId: input.parentId,
       path: input.parentId ? ['Parent', input.name.trim()] : [input.name.trim()],
       isActive: true,
+      isArchived: false,
       isIncomeCategory: Boolean(input.isIncomeCategory),
       sortOrder: Date.now(),
       counts: { directTransactionCount: 0, totalTransactionCount: 0 },
@@ -1644,6 +1654,22 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
   async mergeCategory(input: MergeCategoryInput) {
     return writeCategories(readCategories().filter((category) => category.id !== input.sourceCategoryId))
   },
+  async mergeCategoryPreview(input: { sourceCategoryId: string; targetCategoryId: string }): Promise<MergeCategoryPreview> {
+    return {
+      sourceCategoryId: input.sourceCategoryId,
+      targetCategoryId: input.targetCategoryId,
+      affectedTransactionCount: 0,
+      affectedRuleCount: 0,
+      samples: []
+    }
+  },
+  async archiveCategory(input: ArchiveCategoryInput) {
+    return writeCategories(
+      readCategories().map((category) =>
+        category.id === input.categoryId ? { ...category, isArchived: input.isArchived } : category
+      )
+    )
+  },
   async deleteCategory(input: DeleteCategoryInput) {
     return writeCategories(readCategories().filter((category) => category.id !== input.categoryId))
   },
@@ -1661,6 +1687,7 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
         condition: input.condition,
         action: input.action,
         specificityScore: 1,
+        sortOrder: readRules().length,
         affectedTransactionCount: 0,
         updatedAt: new Date().toISOString()
       }
@@ -1687,6 +1714,17 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
   },
   async deleteRule(input: DeleteCategorizationRuleInput) {
     return writeRules(readRules().filter((rule) => rule.id !== input.ruleId))
+  },
+  async reorderRules(input: ReorderRulesInput) {
+    const rules = readRules()
+    const userRules = input.ruleIds
+      .map((id, index) => {
+        const rule = rules.find((r) => r.id === id && r.kind !== 'system')
+        return rule ? { ...rule, sortOrder: index + 1 } : null
+      })
+      .filter(Boolean) as CategorizationRuleSummary[]
+    const systemRules = rules.filter((r) => r.kind === 'system')
+    return writeRules([...userRules, ...systemRules])
   },
   async testRule(_input: RulePreviewInput): Promise<RuleTestPreview> {
     return { matchCount: 0, samples: [] }
@@ -1959,6 +1997,15 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
     return []
   },
   async deleteFilterPreset(_input: DeleteFilterPresetInput): Promise<FilterPreset[]> {
+    return []
+  },
+  async exportRules(): Promise<{ success: boolean; reason?: string; count?: number }> {
+    return { success: false, reason: 'no-rules' }
+  },
+  async importRulesPrepare(): Promise<{ result: import('../shared/contracts/categories').RuleImportResult; entries: RuleExportEntry[] } | null> {
+    return null
+  },
+  async importRulesCommit(_input: { entries: RuleExportEntry[]; resolutions: Array<{ name: string; action: 'keep' | 'replace' | 'skip' }> }): Promise<CategorizationRuleSummary[]> {
     return []
   }
 })

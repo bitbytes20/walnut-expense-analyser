@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: "Release 2: Core"
-status: Phase 10 next
-last_updated: "2026-03-30T00:00:00.000Z"
+status: executing
+last_updated: "2026-03-30T11:26:56.585Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 6
-  completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 10
+  completed_phases: 10
+  total_plans: 40
+  completed_plans: 40
 ---
 
 # State: Walnut Expense Analyser
@@ -23,14 +23,19 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-29)
 
 **Core value:** A household owner can reliably import local bank statements and quickly understand where the money goes without giving up privacy or trust in the numbers.
-**Current focus:** Phase 09 — workflow-polish
+**Current focus:** Phase 10 — rule-system-expansion
 
 **Active implementation branch:** `release/1.1.0`
 
 ## Current Position
 
-Phase: 09 (workflow-polish) — COMPLETE ✓
-Status: Phase 9 complete — Phase 10 next
+Phase: 10
+Plan: Not started
+Status: Ready to execute
+Last activity: 2026-03-30
+=======
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [░░░░░░] 0/6 phases complete
@@ -136,10 +141,25 @@ Progress: [░░░░░░] 0/6 phases complete
 - StagedFileRow onRetry prop only passed to rejected files to limit replace-in-place to the right context
 - Files with parseErrors get status=rejected so they sort into the Rejected section and show inline error expansion
 
+## Phase 10 Decisions
+
+- descriptionTerms uses AND semantics: all terms must match for rule to fire
+- migrateDescriptionContainsToDescriptionTerms() runs at WalnutRepository bootstrap init
+- RuleEditorPanel UI keeps simple comma-separated text field, maps to op:contains terms (full UI in later plans)
+- listRules ORDER BY changed to is_system ASC, sort_order ASC (user rules first per D-05)
+- is_archived column added via ensureColumn pattern for safe migration on existing DBs
+- Live match preview only on regex rows — other operators don't benefit from per-keystroke IPC
+- detectReDoSRisk exported from RuleEditorPanel for reuse
+- Dynamic condition rows replace comma-separated keyword field in RuleEditorPanel
+- Rename propagation wraps categories.name update + imported_transactions.category_label in SQLite transaction() for atomicity (D-17)
+- mergeCategory extends atomic transaction to update rule action_json.categoryId from source to target (Pitfall 4)
+- Archive is soft-delete via is_archived flag; pickers filter !isArchived; historical transaction data preserved
+- CategoryPane uses RowAction union type for per-row inline states (rename/merge-pick/merge-preview/archive-confirm)
+- LIKE-based rule scanning for mergeCategoryPreview: action_json LIKE '%categoryId:X%' to count affected rules
+
 ## Immediate Next Action
 
-Phase 9 complete. 5 plans executed, 13/13 must-haves verified, 24 new passing tests, human verification approved.
-Next: `/gsd:discuss-phase 10` (Rule System Expansion)
+Phase 10 Plan 03 complete. Category rename propagation, merge preview with atomic rule target update, archive/restore with picker exclusion all implemented. Ready for Plan 04 (drag reorder for rules).
 
 ---
-*Last updated: 2026-03-30 — Phase 9 Plan 01 complete*
+*Last updated: 2026-03-30 after Phase 10 Plan 03 completion*
