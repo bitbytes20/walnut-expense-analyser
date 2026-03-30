@@ -33,7 +33,7 @@ const formatCurrency = (minor?: number) =>
 
 const flattenCategories = (nodes: CategoryTreeNode[]): Array<{ id: string; label: string }> =>
   nodes.flatMap((node) => [
-    { id: node.id, label: node.path.join(' > ') },
+    ...(node.isArchived ? [] : [{ id: node.id, label: node.path.join(' > ') }]),
     ...flattenCategories(node.children as CategoryTreeNode[])
   ])
 

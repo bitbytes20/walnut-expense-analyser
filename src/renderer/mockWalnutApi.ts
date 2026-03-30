@@ -8,6 +8,7 @@ import type {
 import type { AccountProfileDraft } from '../shared/contracts/account'
 import type {
   ApplyRuleToExistingInput,
+  ArchiveCategoryInput,
   CategoryTreeNode,
   CategorizationRuleSummary,
   CreateCategoryInput,
@@ -15,6 +16,7 @@ import type {
   DeleteCategoryInput,
   DeleteCategorizationRuleInput,
   MergeCategoryInput,
+  MergeCategoryPreview,
   RuleApplyPreview,
   RulePreviewInput,
   RuleTestPreview,
@@ -1649,6 +1651,22 @@ export const createMockWalnutApi = (): MockWalnutApi => ({
   },
   async mergeCategory(input: MergeCategoryInput) {
     return writeCategories(readCategories().filter((category) => category.id !== input.sourceCategoryId))
+  },
+  async mergeCategoryPreview(input: { sourceCategoryId: string; targetCategoryId: string }): Promise<MergeCategoryPreview> {
+    return {
+      sourceCategoryId: input.sourceCategoryId,
+      targetCategoryId: input.targetCategoryId,
+      affectedTransactionCount: 0,
+      affectedRuleCount: 0,
+      samples: []
+    }
+  },
+  async archiveCategory(input: ArchiveCategoryInput) {
+    return writeCategories(
+      readCategories().map((category) =>
+        category.id === input.categoryId ? { ...category, isArchived: input.isArchived } : category
+      )
+    )
   },
   async deleteCategory(input: DeleteCategoryInput) {
     return writeCategories(readCategories().filter((category) => category.id !== input.categoryId))

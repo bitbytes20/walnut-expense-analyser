@@ -124,6 +124,8 @@ const createWalnutApi = () => {
     createCategory: vi.fn().mockResolvedValue([]),
     updateCategory: vi.fn().mockResolvedValue([]),
     mergeCategory: vi.fn().mockResolvedValue([]),
+    mergeCategoryPreview: vi.fn().mockResolvedValue({ sourceCategoryId: '', targetCategoryId: '', affectedTransactionCount: 0, affectedRuleCount: 0, samples: [] }),
+    archiveCategory: vi.fn().mockResolvedValue([]),
     deleteCategory: vi.fn().mockResolvedValue([]),
     listRules: vi.fn().mockResolvedValue([]),
     createRule: vi.fn().mockResolvedValue([]),
