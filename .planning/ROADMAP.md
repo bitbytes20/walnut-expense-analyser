@@ -63,7 +63,7 @@ Plans:
 - [ ] 09-02-PLAN.md — Transaction multi-select with checkboxes, shift+click, and bulk category/tag assignment
 - [x] 09-03-PLAN.md — Review queue keyboard shortcuts (A/R/arrows) and mixed-state bulk approve
 - [ ] 09-04-PLAN.md — Import error diagnostics with row-level detail and in-place file retry
-- [ ] 09-05-PLAN.md — Named filter presets (save, restore, rename, delete) in filter drawer
+- [x] 09-05-PLAN.md — Named filter presets (save, restore, rename, delete) in filter drawer
 **UI hint**: yes
 
 ### Phase 10: Rule System Expansion

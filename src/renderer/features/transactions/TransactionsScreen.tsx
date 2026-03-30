@@ -2,6 +2,7 @@ import { Filter, Search } from 'lucide-react'
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import type { CategoryTreeNode } from '../../../shared/contracts/categories'
 import type {
+  FilterPreset,
   TransactionDetail,
   TransactionLedgerQuery,
   TransactionLedgerRow,
@@ -50,6 +51,7 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const shiftAnchorRef = useRef<string | null>(null)
   const [categories, setCategories] = useState<CategoryTreeNode[]>([])
+  const [presets, setPresets] = useState<FilterPreset[]>([])
 
   // Load categories once for the bulk action bar
   useEffect(() => {
@@ -165,6 +167,31 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
     await refreshTransactions()
   }
 
+  useEffect(() => {
+    if (filtersOpen) {
+      void window.walnut.listFilterPresets().then(setPresets)
+    }
+  }, [filtersOpen])
+
+  const handleSavePreset = (name: string) => {
+    void window.walnut.saveFilterPreset({ name, filters: { ...filters, search: submittedSearch || undefined } }).then(setPresets)
+  }
+
+  const handleRestorePreset = (preset: FilterPreset) => {
+    const { search, ...restFilters } = preset.filters
+    setPendingSearch(search ?? '')
+    setSubmittedSearch(search ?? '')
+    setFilters(restFilters)
+  }
+
+  const handleRenamePreset = (id: string, newName: string) => {
+    void window.walnut.renameFilterPreset({ id, name: newName }).then(setPresets)
+  }
+
+  const handleDeletePreset = (id: string) => {
+    void window.walnut.deleteFilterPreset({ id }).then(setPresets)
+  }
+
   const openTransaction = async (transactionId: string) => {
     setActiveTransactionId(transactionId)
     setDetailLoading(true)
@@ -246,6 +273,11 @@ export const TransactionsScreen = ({ navigationQuery, navigationVersion, onUseRu
           onToggleAdvanced={() => setAdvancedFiltersOpen((current) => !current)}
           onChange={setFilters}
           onClear={() => setFilters({})}
+          presets={presets}
+          onSavePreset={handleSavePreset}
+          onRestorePreset={handleRestorePreset}
+          onRenamePreset={handleRenamePreset}
+          onDeletePreset={handleDeletePreset}
         />
       ) : null}
 

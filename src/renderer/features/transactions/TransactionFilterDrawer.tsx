@@ -1,6 +1,7 @@
-import type { ChangeEvent } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
-import type { TransactionLedgerQuery, TransactionNormalizedType, TransactionReviewState } from '../../../shared/contracts/transactions'
+import type { ChangeEvent, KeyboardEvent } from 'react'
+import { useState } from 'react'
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import type { FilterPreset, TransactionLedgerQuery, TransactionNormalizedType, TransactionReviewState } from '../../../shared/contracts/transactions'
 
 interface TransactionFilterDrawerProps {
   filters: TransactionLedgerQuery
@@ -8,6 +9,11 @@ interface TransactionFilterDrawerProps {
   onToggleAdvanced: () => void
   onChange: (next: TransactionLedgerQuery) => void
   onClear: () => void
+  presets: FilterPreset[]
+  onSavePreset: (name: string) => void
+  onRestorePreset: (preset: FilterPreset) => void
+  onRenamePreset: (id: string, newName: string) => void
+  onDeletePreset: (id: string) => void
 }
 
 const typeOptions: Array<{ value: TransactionNormalizedType; label: string }> = [
@@ -37,8 +43,19 @@ export const TransactionFilterDrawer = ({
   advancedOpen,
   onToggleAdvanced,
   onChange,
-  onClear
+  onClear,
+  presets,
+  onSavePreset,
+  onRestorePreset,
+  onRenamePreset,
+  onDeletePreset
 }: TransactionFilterDrawerProps) => {
+  const [renamingId, setRenamingId] = useState<string>()
+  const [renameValue, setRenameValue] = useState('')
+  const [deletingId, setDeletingId] = useState<string>()
+  const [showSaveInput, setShowSaveInput] = useState(false)
+  const [savePresetName, setSavePresetName] = useState('')
+
   const onAmountChange = (field: 'amountMinMinor' | 'amountMaxMinor') => (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value.trim()
     onChange({
@@ -61,8 +78,129 @@ export const TransactionFilterDrawer = ({
     Boolean(filters.dateFrom || filters.dateTo || filters.amountMinMinor !== undefined || filters.amountMaxMinor !== undefined) ||
     Boolean(filters.categories?.length || filters.tags?.length || filters.reviewStates?.length)
 
+  const hasAnyFilter =
+    Boolean(filters.dateFrom || filters.dateTo || filters.amountMinMinor !== undefined || filters.amountMaxMinor !== undefined) ||
+    Boolean(filters.categories?.length || filters.tags?.length || filters.reviewStates?.length || filters.types?.length || filters.search)
+
+  const confirmRename = (id: string) => {
+    const trimmed = renameValue.trim()
+    if (trimmed) {
+      onRenamePreset(id, trimmed)
+    }
+    setRenamingId(undefined)
+    setRenameValue('')
+  }
+
+  const handleRenameKeyDown = (event: KeyboardEvent<HTMLInputElement>, id: string) => {
+    if (event.key === 'Enter') {
+      confirmRename(id)
+    } else if (event.key === 'Escape') {
+      setRenamingId(undefined)
+      setRenameValue('')
+    }
+  }
+
+  const confirmSavePreset = () => {
+    const trimmed = savePresetName.trim()
+    if (!trimmed) return
+    onSavePreset(trimmed)
+    setSavePresetName('')
+    setShowSaveInput(false)
+  }
+
+  const handleSaveKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      confirmSavePreset()
+    } else if (event.key === 'Escape') {
+      setSavePresetName('')
+      setShowSaveInput(false)
+    }
+  }
+
   return (
     <aside style={styles.drawer}>
+      {/* Saved filters section at TOP of drawer (D-13) */}
+      <div style={styles.presetsSection}>
+        <div style={styles.presetsHeader}>Saved filters</div>
+        {presets.length === 0 ? (
+          <p style={styles.presetsEmpty}>No presets saved yet. Set your filters then save them as a preset below.</p>
+        ) : (
+          <div style={styles.presetList}>
+            {presets.map((preset) => (
+              <div key={preset.id}>
+                {deletingId === preset.id ? (
+                  <div style={styles.deleteConfirmRow}>
+                    <span style={styles.deleteConfirmText}>Delete &ldquo;{preset.name}&rdquo;?</span>
+                    <button
+                      type="button"
+                      style={styles.deleteConfirmBtn}
+                      onClick={() => {
+                        onDeletePreset(preset.id)
+                        setDeletingId(undefined)
+                      }}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      style={styles.keepPresetBtn}
+                      onClick={() => setDeletingId(undefined)}
+                    >
+                      Keep preset
+                    </button>
+                  </div>
+                ) : (
+                  <div style={styles.presetRow}>
+                    {renamingId === preset.id ? (
+                      <input
+                        type="text"
+                        aria-label="Rename preset"
+                        autoFocus
+                        value={renameValue}
+                        onChange={(event) => setRenameValue(event.target.value)}
+                        onBlur={() => confirmRename(preset.id)}
+                        onKeyDown={(event) => handleRenameKeyDown(event, preset.id)}
+                        style={styles.renameInput}
+                      />
+                    ) : (
+                      <span
+                        style={styles.presetName}
+                        onDoubleClick={() => {
+                          setRenamingId(preset.id)
+                          setRenameValue(preset.name)
+                        }}
+                        title="Double-click to rename"
+                      >
+                        {preset.name}
+                      </span>
+                    )}
+                    <div style={styles.presetActions}>
+                      <button
+                        type="button"
+                        style={styles.restoreButton}
+                        onClick={() => onRestorePreset(preset)}
+                      >
+                        Restore
+                      </button>
+                      <button
+                        type="button"
+                        style={styles.trashButton}
+                        onClick={() => setDeletingId(preset.id)}
+                        title="Delete preset"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <hr style={styles.separator} />
+
       <div style={styles.header}>
         <div style={styles.headerCopy}>
           <div style={styles.kicker}>Ledger filters</div>
@@ -191,6 +329,45 @@ export const TransactionFilterDrawer = ({
           </div>
         </div>
       ) : null}
+
+      {/* Save as preset at BOTTOM of drawer (D-14) — only shown when at least one filter is active */}
+      {hasAnyFilter ? (
+        <div style={styles.savePresetSection}>
+          {showSaveInput ? (
+            <div style={styles.savePresetRow}>
+              <input
+                type="text"
+                placeholder="Preset name"
+                autoFocus
+                maxLength={64}
+                value={savePresetName}
+                onChange={(event) => setSavePresetName(event.target.value)}
+                onKeyDown={handleSaveKeyDown}
+                style={styles.savePresetInput}
+              />
+              <button
+                type="button"
+                style={{
+                  ...styles.savePresetConfirmBtn,
+                  ...(savePresetName.trim() ? {} : styles.savePresetConfirmBtnDisabled)
+                }}
+                disabled={!savePresetName.trim()}
+                onClick={confirmSavePreset}
+              >
+                Save preset
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              style={styles.saveAsPresetButton}
+              onClick={() => setShowSaveInput(true)}
+            >
+              Save as preset
+            </button>
+          )}
+        </div>
+      ) : null}
     </aside>
   )
 }
@@ -204,6 +381,118 @@ const styles = {
     border: '1px solid var(--color-border)',
     background: 'rgba(226, 215, 197, 0.8)',
     boxShadow: 'var(--shadow-panel)'
+  },
+  presetsSection: {
+    display: 'grid',
+    gap: 'var(--space-sm)'
+  },
+  presetsHeader: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: 'var(--color-ink)'
+  },
+  presetsEmpty: {
+    margin: 0,
+    fontSize: 14,
+    color: 'var(--color-muted)',
+    fontStyle: 'italic' as const
+  },
+  presetList: {
+    display: 'grid',
+    gap: 'var(--space-xs)'
+  },
+  presetRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-sm)',
+    padding: '6px 0'
+  },
+  presetName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: 400,
+    color: 'var(--color-ink)',
+    cursor: 'default',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const
+  },
+  presetActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-xs)',
+    flexShrink: 0
+  },
+  restoreButton: {
+    fontSize: 12,
+    minHeight: 32,
+    padding: '0 12px',
+    borderRadius: 999,
+    border: '1px solid rgba(30, 27, 22, 0.18)',
+    background: 'rgba(30, 27, 22, 0.04)',
+    color: 'var(--color-ink)',
+    fontWeight: 500,
+    cursor: 'pointer'
+  },
+  trashButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    border: 'none',
+    background: 'transparent',
+    color: 'var(--color-muted)',
+    cursor: 'pointer',
+    padding: 0
+  },
+  renameInput: {
+    flex: 1,
+    minHeight: 32,
+    borderRadius: 8,
+    border: '1px solid rgba(15, 118, 110, 0.4)',
+    background: 'rgba(255, 255, 255, 0.9)',
+    padding: '0 10px',
+    fontSize: 14,
+    color: 'var(--color-ink)',
+    outline: 'none'
+  },
+  deleteConfirmRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-sm)',
+    padding: '6px 0',
+    flexWrap: 'wrap' as const
+  },
+  deleteConfirmText: {
+    flex: 1,
+    fontSize: 14,
+    color: 'var(--color-ink)'
+  },
+  deleteConfirmBtn: {
+    fontSize: 14,
+    fontWeight: 500,
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--color-destructive)',
+    cursor: 'pointer',
+    padding: '4px 8px'
+  },
+  keepPresetBtn: {
+    fontSize: 14,
+    fontWeight: 500,
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--color-muted)',
+    cursor: 'pointer',
+    padding: '4px 8px'
+  },
+  separator: {
+    margin: '0',
+    borderColor: 'var(--color-border)',
+    borderStyle: 'solid',
+    borderWidth: '1px 0 0 0'
   },
   header: {
     display: 'flex',
@@ -344,5 +633,53 @@ const styles = {
     border: '1px solid rgba(15, 118, 110, 0.24)',
     background: 'rgba(15, 118, 110, 0.08)',
     color: 'var(--color-accent)'
+  },
+  savePresetSection: {
+    paddingTop: 'var(--space-sm)'
+  },
+  saveAsPresetButton: {
+    minHeight: 44,
+    borderRadius: 999,
+    border: '1px solid rgba(30, 27, 22, 0.18)',
+    background: 'rgba(30, 27, 22, 0.04)',
+    color: 'var(--color-ink)',
+    padding: '0 18px',
+    fontWeight: 600,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 'var(--space-sm)',
+    cursor: 'pointer'
+  },
+  savePresetRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-sm)'
+  },
+  savePresetInput: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 16,
+    border: '1px solid rgba(15, 118, 110, 0.4)',
+    background: 'rgba(255, 255, 255, 0.86)',
+    padding: '0 14px',
+    fontSize: 14,
+    color: 'var(--color-ink)',
+    outline: 'none'
+  },
+  savePresetConfirmBtn: {
+    minHeight: 44,
+    borderRadius: 999,
+    border: 'none',
+    background: 'var(--color-accent)',
+    color: 'white',
+    padding: '0 18px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center'
+  },
+  savePresetConfirmBtnDisabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed'
   }
 } as const
